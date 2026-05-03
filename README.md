@@ -1,0 +1,3 @@
+# ConferenceDashboard
+
+> Conference dashboard interface.
