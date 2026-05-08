@@ -1,11 +1,19 @@
+import { neon } from "@/db/neon";
+
+import { useConference } from "@/core/ConferenceContext";
 import type { RoleKey } from "@/core/types";
 
-export const currentUserRoles: RoleKey[] = ["all", "staff"];
+export const useUserRoles = (): RoleKey[] => {
+	let isEditor = false;
+	let role: string | null = null;
+	try {
+		const ctx = useConference();
+		isEditor = ctx.isEditor;
+		role = ctx.role;
+	} catch {}
+	const { data } = neon.auth.useSession();
 
-export const hasAccess = (userRoles: RoleKey[], required?: RoleKey[]): boolean => {
-	if (!required || required.length === 0) return true;
-	if (required.includes("all")) return true;
-	return required.some(r => userRoles.includes(r));
+	if (!data?.user) return ["all"];
+	if (!isEditor) return ["all", "viewer"];
+	return ["all", "viewer", "staff", role ?? "editor"];
 };
-
-export const getUserRoles = (): RoleKey[] => currentUserRoles;

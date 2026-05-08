@@ -1,18 +1,50 @@
 import { useState } from "react";
 
+import { useAccommodationRooms } from "@/db/hooks/accommodationRooms";
+import { useAppSettings } from "@/db/hooks/appSettings";
+import { useAttendees } from "@/db/hooks/attendees";
+import { useHelpdeskIssues } from "@/db/hooks/helpdeskIssues";
+
 import { Card } from "@/components/Card";
 import { SectionTitle } from "@/components/SectionTitle";
 
-import { DATA, PAGES_META } from "@/core/data";
+import { PAGES_META } from "@/core/data";
 
 export const SettingsPage = () => {
-	const [meta, setMeta] = useState(DATA.meta);
+	const { data: appSettings = [], isLoading: settingsLoading } = useAppSettings();
+	const { data: attendees = [], isLoading: attendeesLoading } = useAttendees();
+	const { data: issues = [], isLoading: issuesLoading } = useHelpdeskIssues();
+	const { data: rooms = [] } = useAccommodationRooms();
+
+	const loading = settingsLoading || attendeesLoading || issuesLoading;
+
+	const [meta, setMeta] = useState<any>({
+		name: "",
+		shortName: "",
+		dates: "",
+		venue: "",
+		currentDay: 1,
+	});
+
+	const totalCapacity = attendees.length || 0;
+	const checkedInCount = attendees.filter(
+		a => !!a.checked_in_at || a.checkin_status === "checked_in",
+	).length;
+	const roomsAssigned = rooms?.reduce((s: number, r: any) => s + (r.occupied_count || 0), 0) || 0;
+	const roomsTotal = rooms?.reduce((s: number, r: any) => s + (r.capacity || 0), 0) || 0;
+	const openIssues = issues.filter(i => i.issue_status === "open").length;
+	const vipConfirmed = attendees.filter(
+		a => (a.category || "").toString().toLowerCase() === "vip",
+	).length;
 
 	return (
 		<div>
 			<SectionTitle
 				title={PAGES_META.find(p => p.id === "settings")?.label || "Settings"}
-				subtitle={PAGES_META.find(p => p.id === "settings")?.description || "Conference metadata and dashboard settings"}
+				subtitle={
+					PAGES_META.find(p => p.id === "settings")?.description ||
+					"Conference metadata and dashboard settings"
+				}
 			/>
 			<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 				<Card className="p-6">
@@ -32,7 +64,7 @@ export const SettingsPage = () => {
 									className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-colors focus:border-blue-500"
 									value={meta[field.key as keyof typeof meta] || ""}
 									onChange={event =>
-										setMeta(prev => ({
+										setMeta((prev: any) => ({
 											...prev,
 											[field.key]: event.target.value,
 										}))
@@ -49,20 +81,22 @@ export const SettingsPage = () => {
 					<h3 className="mb-4 font-semibold text-zinc-900">Live Overview</h3>
 					<div className="space-y-3">
 						{[
-							["Current Day", `Day ${DATA.meta.currentDay} of 3`, "text-zinc-900"],
-							["Total Capacity", DATA.overview.total, "text-zinc-900"],
+							["Current Day", `Day ${meta.currentDay} of 3`, "text-zinc-900"],
+							["Total Capacity", totalCapacity, "text-zinc-900"],
 							[
 								"Check-in Rate",
-								`${Math.round((DATA.overview.checkedIn / DATA.overview.total) * 100)}%`,
+								totalCapacity
+									? `${Math.round((checkedInCount / totalCapacity) * 100)}%`
+									: "N/A",
 								"text-green-400",
 							],
 							[
 								"Room Occupancy",
-								`${Math.round((DATA.overview.roomsAssigned / DATA.overview.roomsTotal) * 100)}%`,
+								`${Math.round((roomsTotal ? roomsAssigned / roomsTotal : 0) * 100)}%`,
 								"text-blue-400",
 							],
-							["Open Issues", DATA.overview.openIssues, "text-red-400"],
-							["VIP Confirmed", DATA.overview.vip, "text-yellow-400"],
+							["Open Issues", openIssues, "text-red-400"],
+							["VIP Confirmed", vipConfirmed, "text-yellow-400"],
 						].map(([label, value, colorClass]) => (
 							<div
 								key={String(label)}

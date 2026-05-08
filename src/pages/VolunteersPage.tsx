@@ -1,100 +1,209 @@
+import { useState } from "react";
 import { Link } from "react-router";
 
+import { useDeleteVolunteer, useUpsertVolunteer, useVolunteers } from "@/db/hooks/volunteers.ts";
 import { CheckCircle, Clock, TrendingUp, UserCheck } from "lucide-react";
 
 import { Badge } from "@/components/Badge";
 import { Card } from "@/components/Card";
+import EntityDrawer from "@/components/EntityDrawer";
 import { SectionTitle } from "@/components/SectionTitle";
 import { StatCard } from "@/components/StatCard";
 
-import { DATA, PAGES_META } from "@/core/data";
+import { useConference } from "@/core/ConferenceContext";
+import { PAGES_META } from "@/core/data";
 import { Routes as AppRoutes } from "@/core/navigation";
 
-export const VolunteersPage = () => (
-	<div>
-		<SectionTitle
-			title={PAGES_META.find(p => p.id === "volunteers")?.label || "Volunteers"}
-			subtitle={PAGES_META.find(p => p.id === "volunteers")?.description || "Team assignments, shifts, and on-ground operations"}
-		/>
-		<div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-			<StatCard
-				icon={UserCheck}
-				label="Total Volunteers"
-				value={DATA.volunteers.length}
-				color="blue"
+export const VolunteersPage = () => {
+	const { data: volunteers = [], isLoading } = useVolunteers();
+	const { isEditor } = useConference();
+	const upsert = useUpsertVolunteer();
+	const remove = useDeleteVolunteer();
+	const [editing, setEditing] = useState<Record<string, any> | null>(null);
+	return (
+		<div>
+			<SectionTitle
+				title={PAGES_META.find(p => p.id === "volunteers")?.label || "Volunteers"}
+				subtitle={
+					PAGES_META.find(p => p.id === "volunteers")?.description ||
+					"Team assignments, shifts, and on-ground operations"
+				}
 			/>
-			<StatCard
-				icon={CheckCircle}
-				label="Currently Active"
-				value={DATA.volunteers.filter(volunteer => volunteer.status === "Active").length}
-				color="green"
-			/>
-			<StatCard
-				icon={Clock}
-				label="On Break"
-				value={DATA.volunteers.filter(volunteer => volunteer.status === "On Break").length}
-				color="yellow"
-			/>
-			<StatCard
-				icon={TrendingUp}
-				label="Teams Deployed"
-				value={[...new Set(DATA.volunteers.map(volunteer => volunteer.team))].length}
-				color="purple"
-			/>
-		</div>
-		<Card>
-			<div className="overflow-x-auto">
-				<table className="w-full text-sm">
-					<thead>
-						<tr className="border-b border-gray-200">
-							{["Name", "Role", "Location", "Shift", "Team", "Status"].map(header => (
-								<th
-									key={header}
-									scope="col"
-									className="whitespace-nowrap px-5 py-3 text-left font-medium text-zinc-600"
-								>
-									{header}
-								</th>
-							))}
-						</tr>
-					</thead>
-					<tbody className="divide-y divide-gray-200">
-						{DATA.volunteers.map((volunteer, index) => (
-							<tr key={index} className="hover:bg-gray-50">
-								<td className="px-5 py-3 font-medium text-zinc-900">
-									<Link
-										to={AppRoutes.volunteers(
-											volunteer.name.replace(/\s+/g, "-").toLowerCase(),
-										)}
-										className="hover:text-blue-600 hover:underline"
-									>
-										{volunteer.name}
-									</Link>
-								</td>
-								<td className="px-5 py-3 text-xs text-zinc-600">
-									{volunteer.role}
-								</td>
-								<td className="px-5 py-3 text-xs text-zinc-600">
-									{volunteer.location}
-								</td>
-								<td className="px-5 py-3 font-mono text-xs text-zinc-600">
-									{volunteer.shift}
-								</td>
-								<td className="px-5 py-3">
-									<Badge variant="blue">{volunteer.team}</Badge>
-								</td>
-								<td className="px-5 py-3">
-									<Badge
-										variant={volunteer.status === "Active" ? "green" : "yellow"}
-									>
-										{volunteer.status}
-									</Badge>
-								</td>
-							</tr>
-						))}
-					</tbody>
-				</table>
+			<div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+				<StatCard
+					icon={UserCheck}
+					label="Total Volunteers"
+					value={isLoading ? "Loading..." : volunteers.length}
+					color="blue"
+				/>
+				<StatCard
+					icon={CheckCircle}
+					label="Currently Active"
+					value={
+						isLoading
+							? "Loading..."
+							: volunteers.filter(
+									volunteer =>
+										String(volunteer.status_label).toLowerCase() === "active",
+								).length
+					}
+					color="green"
+				/>
+				<StatCard
+					icon={Clock}
+					label="On Break"
+					value={
+						isLoading
+							? "Loading..."
+							: volunteers.filter(
+									volunteer =>
+										String(volunteer.status_label).toLowerCase() ===
+											"on break" ||
+										String(volunteer.status_label).toLowerCase() === "on_break",
+								).length
+					}
+					color="yellow"
+				/>
+				<StatCard
+					icon={TrendingUp}
+					label="Teams Deployed"
+					value={
+						isLoading
+							? "Loading..."
+							: [...new Set(volunteers.map(volunteer => String(volunteer.team)))]
+									.length
+					}
+					color="purple"
+				/>
 			</div>
-		</Card>
-	</div>
-);
+			<Card>
+				{isEditor && (
+					<button
+						className="m-3 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
+						onClick={() => setEditing({})}
+					>
+						+ Add volunteer
+					</button>
+				)}
+				<div className="overflow-x-auto">
+					<table className="w-full text-sm">
+						<thead>
+							<tr className="border-b border-gray-200">
+								{["Name", "Role", "Location", "Shift", "Team", "Status"].map(
+									header => (
+										<th
+											key={header}
+											scope="col"
+											className="whitespace-nowrap px-5 py-3 text-left font-medium text-zinc-600"
+										>
+											{header}
+										</th>
+									),
+								)}
+								{isEditor && (
+									<th className="whitespace-nowrap px-5 py-3 text-left font-medium text-zinc-600">
+										Actions
+									</th>
+								)}
+							</tr>
+						</thead>
+						<tbody className="divide-y divide-gray-200">
+							{volunteers.map((volunteer, index) => (
+								<tr key={index} className="hover:bg-gray-50">
+									<td className="px-5 py-3 font-medium text-zinc-900">
+										<Link
+											to={AppRoutes.volunteers(
+												(volunteer.name || "")
+													.replace(/\s+/g, "-")
+													.toLowerCase(),
+											)}
+											className="hover:text-blue-600 hover:underline"
+										>
+											{volunteer.name}
+										</Link>
+									</td>
+									<td className="px-5 py-3 text-xs text-zinc-600">
+										{volunteer.role}
+									</td>
+									<td className="px-5 py-3 text-xs text-zinc-600">
+										{volunteer.location}
+									</td>
+									<td className="px-5 py-3 font-mono text-xs text-zinc-600">
+										{volunteer.shift_start
+											? `${volunteer.shift_start}${volunteer.shift_end ? ` - ${volunteer.shift_end}` : ""}`
+											: ""}
+									</td>
+									<td className="px-5 py-3">
+										<Badge variant="blue">{String(volunteer.team || "")}</Badge>
+									</td>
+									<td className="px-5 py-3">
+										<Badge
+											variant={
+												String(volunteer.status_label).toLowerCase() ===
+												"active"
+													? "green"
+													: "yellow"
+											}
+										>
+											{String(volunteer.status_label || "")}
+										</Badge>
+									</td>
+									{isEditor && (
+										<td className="px-5 py-3 text-xs">
+											<button
+												className="mr-2 rounded px-2 py-1 text-xs border border-gray-200"
+												onClick={() => setEditing(volunteer)}
+											>
+												Edit
+											</button>
+											<button
+												className="rounded px-2 py-1 text-xs border border-red-200 text-red-600"
+												onClick={() => remove.mutate(volunteer.id)}
+											>
+												Delete
+											</button>
+										</td>
+									)}
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			</Card>
+			{editing !== null && (
+				<EntityDrawer
+					open={editing !== null}
+					title={editing?.id ? "Edit volunteer" : "Add volunteer"}
+					initial={editing}
+					fields={[
+						{ name: "name", label: "Name" },
+						{ name: "role", label: "Role" },
+						{ name: "location", label: "Location" },
+						{ name: "shift_start", label: "Shift Start" },
+						{ name: "shift_end", label: "Shift End" },
+						{ name: "team", label: "Team" },
+						{
+							name: "status_label",
+							label: "Status",
+							type: "select",
+							options: ["active", "inactive", "on_break", "completed"],
+						},
+					]}
+					onCancel={() => setEditing(null)}
+					onSave={async row => {
+						await upsert.mutateAsync(row);
+						setEditing(null);
+					}}
+					onDelete={
+						editing?.id
+							? async () => {
+									await remove.mutateAsync(editing.id);
+									setEditing(null);
+								}
+							: undefined
+					}
+				/>
+			)}
+		</div>
+	);
+};

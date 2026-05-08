@@ -10,7 +10,10 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
+		"@neondatabase/auth-ui": "0.2.0-beta",
+		"@neondatabase/neon-js": "0.5.0-beta",
 		"@tailwindcss/vite": "^4.2.4",
+		"@tanstack/react-query": "^5.100.9",
 		"iconoir-react": "^7.11.0",
 		"lucide-react": "^1.14.0",
 		"react": "^19.2.5",
@@ -22,7 +25,7 @@
 		"zustand": "^5.0.12"
 	},
 	"devDependencies": {
-		"@eslint/js": "^10.0.1",
+		"@eslint/js": "^9.39.4",
 		"@ianvs/prettier-plugin-sort-imports": "^4.7.1",
 		"@types/node": "^25.6.0",
 		"@types/react": "^19.2.14",
@@ -30,7 +33,7 @@
 		"@typescript-eslint/eslint-plugin": "^8.59.1",
 		"@typescript-eslint/parser": "^8.59.1",
 		"@vitejs/plugin-react": "^6.0.1",
-		"eslint": "^10.2.1",
+		"eslint": "^9.39.4",
 		"eslint-plugin-prettier": "^5.5.5",
 		"eslint-plugin-react": "^7.37.5",
 		"eslint-plugin-react-hooks": "^7.1.1",

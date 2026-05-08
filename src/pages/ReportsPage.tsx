@@ -14,6 +14,7 @@ import {
 
 import { Badge } from "@/components/Badge";
 import { SectionTitle } from "@/components/SectionTitle";
+
 import { PAGES_META } from "@/core/data";
 
 export const ReportsPage = () => {
@@ -84,10 +85,14 @@ export const ReportsPage = () => {
 		<div>
 			<SectionTitle
 				title={PAGES_META.find(p => p.id === "reports")?.label || "Reports & Data Export"}
-				subtitle={PAGES_META.find(p => p.id === "reports")?.description || "Generate and download event reports in Excel, PDF, or CSV"}
+				subtitle={
+					PAGES_META.find(p => p.id === "reports")?.description ||
+					"Generate and download event reports in Excel, PDF, or CSV"
+				}
 			/>
 			<div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-yt				{reports.map((report, index) => (
+				yt{" "}
+				{reports.map((report, index) => (
 					<button
 						key={index}
 						type="button"

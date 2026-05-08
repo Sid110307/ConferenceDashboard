@@ -1,48 +1,57 @@
+import { useState } from "react";
 import { Link } from "react-router";
 
+import { useVipChecklist } from "@/db/hooks/vipChecklist";
+import { useDeleteVipGuest, useUpsertVipGuest, useVipGuests } from "@/db/hooks/vipGuests";
 import { Car, Check, CheckCircle, Crown, Shield } from "lucide-react";
 
 import { Badge } from "@/components/Badge";
 import { Card, CardHead } from "@/components/Card";
+import EntityDrawer from "@/components/EntityDrawer";
 import { ProgressBar } from "@/components/ProgressBar";
 import { SectionTitle } from "@/components/SectionTitle";
 import { StatCard } from "@/components/StatCard";
 
-import { DATA, statusVariant, PAGES_META } from "@/core/data";
+import { useConference } from "@/core/ConferenceContext";
+import { PAGES_META, statusVariant } from "@/core/data";
 import { Routes as AppRoutes } from "@/core/navigation";
 
 export const VIPPage = () => {
-	const done = DATA.vip.checklist.filter(item => item.done).length;
+	const { isEditor } = useConference();
+	const { data: vipGuests = [] } = useVipGuests();
+	const upsert = useUpsertVipGuest();
+	const remove = useDeleteVipGuest();
+	const [editing, setEditing] = useState<Record<string, any> | null>(null);
+	const guests = vipGuests as any[];
+	const { data: checklist = [] } = useVipChecklist();
+	const done = checklist.filter((item: any) => item.done).length;
 
 	return (
 		<div>
 			<SectionTitle
 				title={PAGES_META.find(p => p.id === "vip")?.label || "VIP"}
-				subtitle={PAGES_META.find(p => p.id === "vip")?.description || "Day 3 Special Programme"}
+				subtitle={
+					PAGES_META.find(p => p.id === "vip")?.description || "Day 3 Special Programme"
+				}
 			/>
 			<div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-				<StatCard
-					icon={Crown}
-					label="VIP Guests"
-					value={DATA.vip.guests.length}
-					color="gold"
-				/>
+				<StatCard icon={Crown} label="VIP Guests" value={vipGuests.length} color="gold" />
 				<StatCard
 					icon={CheckCircle}
 					label="Checklist Done"
-					value={`${done}/${DATA.vip.checklist.length}`}
+					value={`${done}/${checklist.length}`}
 					color="green"
 				/>
 				<StatCard
 					icon={Car}
 					label="Vehicles Assigned"
-					value={DATA.vip.guests.length}
+					value={vipGuests.length}
 					color="blue"
 				/>
 				<StatCard
 					icon={Shield}
-					label="Security Cleared"
-					value={DATA.vip.guests.filter(guest => guest.security).length}
+					label="Security Required"
+					value={vipGuests.filter(guest => guest.security_required).length}
 					color="red"
 				/>
 			</div>
@@ -50,6 +59,14 @@ export const VIPPage = () => {
 				<div className="lg:col-span-2">
 					<Card>
 						<CardHead title="VIP Guest List" />
+						{isEditor && (
+							<button
+								className="m-3 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
+								onClick={() => setEditing({})}
+							>
+								+ Add VIP guest
+							</button>
+						)}
 						<div className="overflow-x-auto">
 							<table className="w-full text-sm">
 								<thead>
@@ -70,10 +87,15 @@ export const VIPPage = () => {
 												{header}
 											</th>
 										))}
+										{isEditor && (
+											<th className="whitespace-nowrap px-4 py-3 text-left font-medium text-zinc-600">
+												Actions
+											</th>
+										)}
 									</tr>
 								</thead>
 								<tbody className="divide-y divide-gray-200">
-									{DATA.vip.guests.map((guest, index) => (
+									{guests.map((guest: any, index) => (
 										<tr key={index} className="hover:bg-gray-50">
 											<td className="px-4 py-3">
 												<Link
@@ -122,6 +144,24 @@ export const VIPPage = () => {
 													{guest.status}
 												</Badge>
 											</td>
+											{isEditor && (
+												<td className="px-4 py-3 text-xs">
+													<button
+														className="mr-2 rounded border border-gray-200 px-2 py-1"
+														onClick={() => setEditing(guest)}
+													>
+														Edit
+													</button>
+													{guest.id && (
+														<button
+															className="rounded border border-red-200 px-2 py-1 text-red-600"
+															onClick={() => remove.mutate(guest.id)}
+														>
+															Delete
+														</button>
+													)}
+												</td>
+											)}
 										</tr>
 									))}
 								</tbody>
@@ -130,17 +170,13 @@ export const VIPPage = () => {
 					</Card>
 				</div>
 				<Card>
-					<CardHead title={`VIP Checklist ${done}/${DATA.vip.checklist.length}`} />
+					<CardHead title={`VIP Checklist ${done}/${checklist.length}`} />
 					<div className="p-4">
 						<div className="mb-4">
-							<ProgressBar
-								value={done}
-								max={DATA.vip.checklist.length}
-								color="green"
-							/>
+							<ProgressBar value={done} max={checklist.length} color="green" />
 						</div>
 						<div className="space-y-2.5">
-							{DATA.vip.checklist.map((item, index) => (
+							{checklist.map((item: any, index: number) => (
 								<div key={index} className="flex items-center gap-2.5">
 									<div
 										className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${item.done ? "bg-green-600" : "border border-gray-300 bg-white"}`}
@@ -158,6 +194,46 @@ export const VIPPage = () => {
 					</div>
 				</Card>
 			</div>
+			{editing !== null && (
+				<EntityDrawer
+					open={editing !== null}
+					title={editing?.id ? "Edit VIP guest" : "Add VIP guest"}
+					initial={editing}
+					fields={[
+						{ name: "name", label: "Name" },
+						{ name: "designation", label: "Designation" },
+						{ name: "protocol", label: "Protocol" },
+						{ name: "arrival", label: "Arrival" },
+						{ name: "vehicle", label: "Vehicle" },
+						{
+							name: "security",
+							label: "Security",
+							type: "select",
+							options: ["true", "false"],
+						},
+						{
+							name: "speech",
+							label: "Speech",
+							type: "select",
+							options: ["true", "false"],
+						},
+						{ name: "status", label: "Status" },
+					]}
+					onCancel={() => setEditing(null)}
+					onSave={async row => {
+						await upsert.mutateAsync(row);
+						setEditing(null);
+					}}
+					onDelete={
+						editing?.id
+							? async () => {
+									await remove.mutateAsync(editing.id);
+									setEditing(null);
+								}
+							: undefined
+					}
+				/>
+			)}
 		</div>
 	);
 };

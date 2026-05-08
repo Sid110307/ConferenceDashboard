@@ -47,6 +47,7 @@ export default defineConfig([
 			"prettier/prettier": "warn",
 			"unused-imports/no-unused-imports": "error",
 			"@typescript-eslint/no-unused-vars": "warn",
+			"@typescript-eslint/no-explicit-any": "off",
 		},
 	},
 ]);

@@ -1,16 +1,35 @@
+import { useState } from "react";
+
+import {
+	useDeleteFinanceItem,
+	useFinanceItems,
+	useUpsertFinanceItem,
+} from "@/db/hooks/financeItems";
 import { CheckCircle, Receipt, Star, TrendingUp } from "lucide-react";
 import * as Recharts from "recharts";
 
 import { Badge } from "@/components/Badge";
 import { Card, CardHead } from "@/components/Card";
 import { CustomTooltip } from "@/components/CustomTooltip";
+import EntityDrawer from "@/components/EntityDrawer";
 import { SectionTitle } from "@/components/SectionTitle";
 import { StatCard } from "@/components/StatCard";
 
-import { DATA } from "@/core/data";
+import { useConference } from "@/core/ConferenceContext";
 
 export const FinancePage = () => {
-	const { budget, spent, income } = DATA.finance.summary;
+	const { isEditor } = useConference();
+	const { data: financeRows = [] } = useFinanceItems();
+	const upsert = useUpsertFinanceItem();
+	const remove = useDeleteFinanceItem();
+	const [editing, setEditing] = useState<Record<string, any> | null>(null);
+	const breakdownRows = financeRows.length ? (financeRows as any[]) : [];
+
+	const budget = breakdownRows.reduce((s: number, r: any) => s + (r.budget || 0), 0);
+	const spent = breakdownRows.reduce((s: number, r: any) => s + (r.actual || 0), 0);
+	const income = breakdownRows
+		.filter((r: any) => r.type === "income")
+		.reduce((s: number, r: any) => s + (r.actual || 0), 0);
 
 	return (
 		<div>
@@ -49,7 +68,7 @@ export const FinancePage = () => {
 				<div className="h-64 p-4">
 					<Recharts.ResponsiveContainer width="100%" height="100%">
 						<Recharts.BarChart
-							data={DATA.finance.breakdown}
+							data={breakdownRows}
 							layout="vertical"
 							margin={{ top: 0, right: 40, bottom: 0, left: 64 }}
 						>
@@ -91,6 +110,14 @@ export const FinancePage = () => {
 			</Card>
 			<Card>
 				<CardHead title="Category Breakdown" />
+				{isEditor && (
+					<button
+						className="m-3 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
+						onClick={() => setEditing({})}
+					>
+						+ Add entry
+					</button>
+				)}
 				<div className="overflow-x-auto">
 					<table className="w-full text-sm">
 						<thead>
@@ -106,10 +133,15 @@ export const FinancePage = () => {
 										</th>
 									),
 								)}
+								{isEditor && (
+									<th className="whitespace-nowrap px-5 py-3 text-left font-medium text-zinc-600">
+										Actions
+									</th>
+								)}
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-gray-200">
-							{DATA.finance.breakdown.map((row, index) => {
+							{breakdownRows.map((row: any, index) => {
 								const variance = row.budget - row.actual;
 
 								return (
@@ -147,6 +179,24 @@ export const FinancePage = () => {
 												{variance >= 0 ? "On Track" : "Over Budget"}
 											</Badge>
 										</td>
+										{isEditor && (
+											<td className="px-5 py-3 text-xs">
+												<button
+													className="mr-2 rounded border border-gray-200 px-2 py-1"
+													onClick={() => setEditing(row)}
+												>
+													Edit
+												</button>
+												{row.id && (
+													<button
+														className="rounded border border-red-200 px-2 py-1 text-red-600"
+														onClick={() => remove.mutate(row.id)}
+													>
+														Delete
+													</button>
+												)}
+											</td>
+										)}
 									</tr>
 								);
 							})}
@@ -154,6 +204,37 @@ export const FinancePage = () => {
 					</table>
 				</div>
 			</Card>
+			{editing !== null && (
+				<EntityDrawer
+					open={editing !== null}
+					title={editing?.id ? "Edit finance item" : "Add finance item"}
+					initial={editing}
+					fields={[
+						{ name: "name", label: "Category" },
+						{
+							name: "type",
+							label: "Type",
+							type: "select",
+							options: ["income", "expense"],
+						},
+						{ name: "budget", label: "Budget", type: "number" },
+						{ name: "actual", label: "Actual", type: "number" },
+					]}
+					onCancel={() => setEditing(null)}
+					onSave={async row => {
+						await upsert.mutateAsync(row);
+						setEditing(null);
+					}}
+					onDelete={
+						editing?.id
+							? async () => {
+									await remove.mutateAsync(editing.id);
+									setEditing(null);
+								}
+							: undefined
+					}
+				/>
+			)}
 		</div>
 	);
 };

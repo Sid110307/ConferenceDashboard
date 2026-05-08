@@ -1,6 +1,6 @@
 import React, { type ComponentType } from "react";
 
-import { CountUpNumber } from "@/components/CountUpNumber.tsx";
+import { CountUpNumber } from "@/components/CountUpNumber";
 
 import { ICON_COLORS } from "@/core/data";
 

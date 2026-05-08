@@ -1,3 +1,4 @@
+import { useAttendees } from "@/db/hooks/attendees";
 import { CheckCircle, Clock, Package, QrCode } from "lucide-react";
 
 import { Card, CardHead } from "@/components/Card";
@@ -6,10 +7,24 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { SectionTitle } from "@/components/SectionTitle";
 import { StatCard } from "@/components/StatCard";
 
-import { DATA } from "@/core/data";
-
 export const CheckInPage = () => {
-	const { checkedIn, total } = DATA.overview;
+	const { data: attendees = [] } = useAttendees();
+	const total = attendees.length;
+	const checkedIn = attendees.filter(
+		a => !!a.checked_in_at || a.checkin_status === "checked_in",
+	).length;
+
+	const categoryCounts: Record<string, number> = {};
+	attendees.forEach(a => {
+		const c = (a.category || "Other").toString();
+		categoryCounts[c] = (categoryCounts[c] || 0) + 1;
+	});
+	const colors = ["#60a5fa", "#a78bfa", "#34d399", "#fbbf24", "#f87171"];
+	const categoryBreakdown = Object.entries(categoryCounts).map(([name, value], i) => ({
+		name,
+		value,
+		color: colors[i % colors.length],
+	}));
 
 	return (
 		<div>
@@ -40,7 +55,7 @@ export const CheckInPage = () => {
 						</div>
 						<ProgressBar value={checkedIn} max={total} color="green" />
 					</div>
-					{DATA.categoryBreakdown.map(category => {
+					{categoryBreakdown.map(category => {
 						const checkedInCount = Math.round(category.value * (checkedIn / total));
 						const pct = Math.min(
 							100,

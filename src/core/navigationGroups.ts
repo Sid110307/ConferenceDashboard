@@ -32,7 +32,6 @@ export const DASHBOARD_GROUP: NavGroup = {
 	],
 };
 
-// Participants management group
 export const PARTICIPANTS_GROUP: NavGroup = {
 	label: "Participants",
 	items: [
@@ -60,7 +59,6 @@ export const PARTICIPANTS_GROUP: NavGroup = {
 	],
 };
 
-// Hospitality management group
 export const HOSPITALITY_GROUP: NavGroup = {
 	label: "Hospitality",
 	items: [
@@ -88,7 +86,6 @@ export const HOSPITALITY_GROUP: NavGroup = {
 	],
 };
 
-// Programme management group
 export const PROGRAMME_GROUP: NavGroup = {
 	label: "Programme",
 	items: [
@@ -109,7 +106,6 @@ export const PROGRAMME_GROUP: NavGroup = {
 	],
 };
 
-// Operations management group
 export const OPERATIONS_GROUP: NavGroup = {
 	label: "Operations",
 	items: [
@@ -144,7 +140,6 @@ export const OPERATIONS_GROUP: NavGroup = {
 	],
 };
 
-// Administration group
 export const ADMINISTRATION_GROUP: NavGroup = {
 	label: "Administration",
 	items: [
@@ -172,7 +167,6 @@ export const ADMINISTRATION_GROUP: NavGroup = {
 	],
 };
 
-// Composed navigation groups array
 export const NAVIGATION_GROUPS: NavGroup[] = [
 	DASHBOARD_GROUP,
 	PARTICIPANTS_GROUP,
