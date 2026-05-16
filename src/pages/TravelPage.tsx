@@ -22,7 +22,8 @@ import { Routes as AppRoutes } from "@/core/navigation";
 
 export const TravelPage = () => {
 	const { data: arrivals = [], isLoading } = useTravelArrivals();
-	const { isEditor } = useConference();
+	const _conf = useConference();
+	const isEditor = _conf?.isEditor || false;
 	const upsert = useUpsertTravelArrival();
 	const remove = useDeleteTravelArrival();
 	const [editing, setEditing] = useState<Record<string, any> | null>(null);
@@ -46,7 +47,7 @@ export const TravelPage = () => {
 							"Arrivals, pickups, and transport coordination"
 				}
 			/>
-			<div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+			<div className="mb-5 grid grid-cols-1 sm:grid-cols-2 gap-3 lg:grid-cols-4">
 				{travelModes.map(mode => (
 					<StatCard
 						key={mode.name}
@@ -62,7 +63,7 @@ export const TravelPage = () => {
 					<CardHead title="Today's Arrivals" />
 					{isEditor && (
 						<button
-							className="m-3 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
+							className="mx-4 mt-4 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
 							onClick={() => setEditing({})}
 						>
 							+ Add arrival
@@ -71,7 +72,7 @@ export const TravelPage = () => {
 					<div className="overflow-x-auto">
 						<table className="w-full text-sm">
 							<thead>
-								<tr className="border-b border-gray-200">
+								<tr className="border-b border-gray-100">
 									{[
 										"Name",
 										"From",
@@ -95,7 +96,7 @@ export const TravelPage = () => {
 									)}
 								</tr>
 							</thead>
-							<tbody className="divide-y divide-gray-200">
+							<tbody className="divide-y divide-gray-100">
 								{arrivals.map((arrival: any, index: number) => (
 									<tr key={index} className="hover:bg-gray-50">
 										<td className="whitespace-nowrap px-4 py-3 text-zinc-900">
@@ -139,13 +140,13 @@ export const TravelPage = () => {
 										{isEditor && (
 											<td className="px-4 py-3 text-xs">
 												<button
-													className="mr-2 rounded px-2 py-1 text-xs border border-gray-200"
+													className="mr-2 rounded-md px-2 py-1 text-xs border border-gray-100"
 													onClick={() => setEditing(arrival)}
 												>
 													Edit
 												</button>
 												<button
-													className="rounded px-2 py-1 text-xs border border-red-200 text-red-600"
+													className="rounded-md px-2 py-1 text-xs border border-red-200 text-red-600"
 													onClick={() => remove.mutate(arrival.id)}
 												>
 													Delete

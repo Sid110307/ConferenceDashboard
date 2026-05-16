@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { X } from "lucide-react";
 
@@ -28,37 +28,38 @@ export const EntityDrawer = ({
 }) => {
 	const [form, setForm] = useState<Record<string, any>>(initial || {});
 
-	useEffect(() => {
-		setForm(initial || {});
-	}, [initial]);
-
 	if (!open) return null;
 
 	return (
 		<div className="fixed inset-0 z-40 flex">
-			<div className="absolute inset-0 bg-black/30" onClick={onCancel} />
-			<aside className="ml-auto w-full max-w-md bg-white p-4 shadow-lg">
-				<div className="mb-4 flex items-center justify-between">
-					<h3 className="text-lg font-semibold">{title || "Edit"}</h3>
+			<div
+				className="absolute inset-0 bg-zinc-950/25 backdrop-blur-[2px]"
+				onClick={onCancel}
+			/>
+			<aside className="relative ml-auto flex h-full w-full max-w-md flex-col border-l border-gray-100 bg-white shadow-2xl">
+				<div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+					<h3 className="text-base font-semibold tracking-tight text-zinc-900">
+						{title || "Edit"}
+					</h3>
 					<button
 						onClick={onCancel}
-						className="rounded p-1 text-zinc-600 hover:bg-gray-100"
+						className="-mr-1 rounded-md p-1.5 text-zinc-500 transition-colors hover:bg-gray-100 hover:text-zinc-900"
 					>
 						<X size={16} />
 					</button>
 				</div>
 
-				<div className="space-y-3">
+				<div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
 					{fields.map(field => {
 						const val = form[field.name] ?? "";
 						if (field.type === "textarea") {
 							return (
 								<div key={field.name}>
-									<label className="mb-1 block text-xs text-zinc-600">
+									<label className="mb-1.5 block text-sm font-medium text-zinc-700">
 										{field.label || field.name}
 									</label>
 									<textarea
-										className="w-full rounded border border-gray-200 px-3 py-2 text-sm"
+										className="min-h-24 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-colors placeholder:text-zinc-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
 										value={val}
 										onChange={e =>
 											setForm({ ...form, [field.name]: e.target.value })
@@ -71,11 +72,11 @@ export const EntityDrawer = ({
 						if (field.type === "select") {
 							return (
 								<div key={field.name}>
-									<label className="mb-1 block text-xs text-zinc-600">
+									<label className="mb-1.5 block text-sm font-medium text-zinc-700">
 										{field.label || field.name}
 									</label>
 									<select
-										className="w-full rounded border border-gray-200 px-3 py-2 text-sm"
+										className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-colors focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
 										value={val}
 										onChange={e =>
 											setForm({ ...form, [field.name]: e.target.value })
@@ -94,11 +95,11 @@ export const EntityDrawer = ({
 
 						return (
 							<div key={field.name}>
-								<label className="mb-1 block text-xs text-zinc-600">
+								<label className="mb-1.5 block text-sm font-medium text-zinc-700">
 									{field.label || field.name}
 								</label>
 								<input
-									className="w-full rounded border border-gray-200 px-3 py-2 text-sm"
+									className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-colors placeholder:text-zinc-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
 									type={field.type === "number" ? "number" : "text"}
 									value={val}
 									onChange={e =>
@@ -118,34 +119,36 @@ export const EntityDrawer = ({
 					})}
 				</div>
 
-				<div className="mt-4 flex justify-between">
-					<div className="flex gap-2">
-						{onDelete && (
+				<div className="border-t border-gray-100 px-5 py-4">
+					<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+						<div className="flex gap-2">
+							{onDelete && (
+								<button
+									onClick={async () => {
+										if (confirm("Delete this item?")) await onDelete();
+									}}
+									className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-100"
+								>
+									Delete
+								</button>
+							)}
+						</div>
+						<div className="flex gap-2">
+							<button
+								onClick={onCancel}
+								className="flex-1 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-gray-50 hover:text-zinc-900 sm:flex-none"
+							>
+								Cancel
+							</button>
 							<button
 								onClick={async () => {
-									if (confirm("Delete this item?")) await onDelete();
+									await onSave(form);
 								}}
-								className="rounded bg-red-50 px-3 py-2 text-sm text-red-600 hover:bg-red-100"
+								className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 sm:flex-none"
 							>
-								Delete
+								Save
 							</button>
-						)}
-					</div>
-					<div className="flex gap-2">
-						<button
-							onClick={onCancel}
-							className="rounded border border-gray-200 px-3 py-2 text-sm"
-						>
-							Cancel
-						</button>
-						<button
-							onClick={async () => {
-								await onSave(form);
-							}}
-							className="rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
-						>
-							Save
-						</button>
+						</div>
 					</div>
 				</div>
 			</aside>

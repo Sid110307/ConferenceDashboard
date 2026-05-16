@@ -30,7 +30,7 @@ export const AccommodationPage = () => {
 				title="Accommodation Management"
 				subtitle="Room allocations, occupancy, and issue tracking"
 			/>
-			<div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-3">
+			<div className="mb-5 grid grid-cols-1 sm:grid-cols-2 gap-3 lg:grid-cols-3">
 				{summary.map(room => {
 					const free = room.total - room.occupied;
 					return (
@@ -106,9 +106,9 @@ export const AccommodationPage = () => {
 				</Card>
 				<Card>
 					<CardHead title="Room Issues" />
-					<div className="divide-y divide-gray-200">
+					<div className="divide-y divide-gray-100">
 						{issues.map((issue: any, index: number) => (
-							<div key={index} className="flex items-start justify-between px-5 py-4">
+							<div key={index} className="flex items-start justify-between px-4 py-4">
 								<div>
 									<p className="text-sm font-medium text-zinc-900">
 										{issue.room}

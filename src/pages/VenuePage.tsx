@@ -12,7 +12,8 @@ import { PAGES_META } from "@/core/data";
 
 export const VenuePage = () => {
 	const { data: venues = [], isLoading } = useVenues();
-	const { isEditor } = useConference();
+	const _conf = useConference();
+	const isEditor = _conf?.isEditor || false;
 	const upsert = useUpsertVenue();
 	const remove = useDeleteVenue();
 	const [editing, setEditing] = useState<Record<string, any> | null>(null);
@@ -48,13 +49,13 @@ export const VenuePage = () => {
 									{isEditor && (
 										<div className="flex gap-1">
 											<button
-												className="rounded px-2 py-1 text-xs border border-gray-200"
+												className="rounded-md px-2 py-1 text-xs border border-gray-100"
 												onClick={() => setEditing(venue)}
 											>
 												Edit
 											</button>
 											<button
-												className="rounded px-2 py-1 text-xs border border-red-200 text-red-600"
+												className="rounded-md px-2 py-1 text-xs border border-red-200 text-red-600"
 												onClick={() => remove.mutate(venue.id)}
 											>
 												Delete
@@ -71,7 +72,7 @@ export const VenuePage = () => {
 								].map(([label, ok], itemIndex) => (
 									<span
 										key={itemIndex}
-										className={`rounded border px-2 py-0.5 text-xs ${ok ? "border-blue-200 bg-blue-50 text-blue-700" : "border-gray-200 bg-white text-zinc-500 line-through"}`}
+										className={`rounded-md border px-2 py-0.5 text-xs ${ok ? "border-blue-200 bg-blue-50 text-blue-700" : "border-gray-100 bg-white text-zinc-500 line-through"}`}
 									>
 										{label}
 									</span>

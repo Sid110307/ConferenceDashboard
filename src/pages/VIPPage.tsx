@@ -17,7 +17,8 @@ import { PAGES_META, statusVariant } from "@/core/data";
 import { Routes as AppRoutes } from "@/core/navigation";
 
 export const VIPPage = () => {
-	const { isEditor } = useConference();
+	const _conf = useConference();
+	const isEditor = _conf?.isEditor || false;
 	const { data: vipGuests = [] } = useVipGuests();
 	const upsert = useUpsertVipGuest();
 	const remove = useDeleteVipGuest();
@@ -34,7 +35,7 @@ export const VIPPage = () => {
 					PAGES_META.find(p => p.id === "vip")?.description || "Day 3 Special Programme"
 				}
 			/>
-			<div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+			<div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
 				<StatCard icon={Crown} label="VIP Guests" value={vipGuests.length} color="gold" />
 				<StatCard
 					icon={CheckCircle}
@@ -61,7 +62,7 @@ export const VIPPage = () => {
 						<CardHead title="VIP Guest List" />
 						{isEditor && (
 							<button
-								className="m-3 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
+								className="mx-4 mt-4 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
 								onClick={() => setEditing({})}
 							>
 								+ Add VIP guest
@@ -70,7 +71,7 @@ export const VIPPage = () => {
 						<div className="overflow-x-auto">
 							<table className="w-full text-sm">
 								<thead>
-									<tr className="border-b border-gray-200">
+									<tr className="border-b border-gray-100">
 										{[
 											"Name & Designation",
 											"Protocol",
@@ -94,7 +95,7 @@ export const VIPPage = () => {
 										)}
 									</tr>
 								</thead>
-								<tbody className="divide-y divide-gray-200">
+								<tbody className="divide-y divide-gray-100">
 									{guests.map((guest: any, index) => (
 										<tr key={index} className="hover:bg-gray-50">
 											<td className="px-4 py-3">
@@ -147,14 +148,14 @@ export const VIPPage = () => {
 											{isEditor && (
 												<td className="px-4 py-3 text-xs">
 													<button
-														className="mr-2 rounded border border-gray-200 px-2 py-1"
+														className="mr-2 rounded-md border border-gray-100 px-2 py-1"
 														onClick={() => setEditing(guest)}
 													>
 														Edit
 													</button>
 													{guest.id && (
 														<button
-															className="rounded border border-red-200 px-2 py-1 text-red-600"
+															className="rounded-md border border-red-200 px-2 py-1 text-red-600"
 															onClick={() => remove.mutate(guest.id)}
 														>
 															Delete
@@ -179,7 +180,7 @@ export const VIPPage = () => {
 							{checklist.map((item: any, index: number) => (
 								<div key={index} className="flex items-center gap-2.5">
 									<div
-										className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${item.done ? "bg-green-600" : "border border-gray-300 bg-white"}`}
+										className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${item.done ? "bg-green-600" : "border border-gray-100 bg-white"}`}
 									>
 										{item.done && <Check size={9} className="text-white" />}
 									</div>

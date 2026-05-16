@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 
 interface CardProps {
 	children: ReactNode;
@@ -9,7 +9,7 @@ interface CardProps {
 export const Card = ({ children, className = "", onClick }: CardProps) => {
 	const isInteractive = typeof onClick === "function";
 
-	const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+	const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
 		if (!isInteractive) return;
 		if (e.key === "Enter" || e.key === " ") {
 			e.preventDefault();
@@ -23,7 +23,7 @@ export const Card = ({ children, className = "", onClick }: CardProps) => {
 			tabIndex={isInteractive ? 0 : undefined}
 			onKeyDown={handleKeyDown}
 			onClick={onClick}
-			className={`rounded-xl border border-gray-200 bg-white ${isInteractive ? "cursor-pointer" : ""} ${className}`}
+			className={`overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all ${isInteractive ? "cursor-pointer hover:border-gray-200 hover:shadow-md" : ""} ${className}`}
 		>
 			{children}
 		</div>
@@ -31,8 +31,8 @@ export const Card = ({ children, className = "", onClick }: CardProps) => {
 };
 
 export const CardHead = ({ title, extra }: { title: string; extra?: ReactNode }) => (
-	<div className="flex items-center justify-between border-b border-gray-200 px-5 py-3">
-		<span className="text-sm font-medium text-zinc-900">{title}</span>
+	<div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-5">
+		<span className="text-sm font-semibold tracking-tight text-zinc-900">{title}</span>
 		{extra}
 	</div>
 );

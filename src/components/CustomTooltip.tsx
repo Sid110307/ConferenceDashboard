@@ -18,7 +18,7 @@ export const CustomTooltip = ({
 	}
 
 	return (
-		<div className="rounded-lg border border-gray-200 bg-white p-3 text-xs shadow-xl">
+		<div className="rounded-md bg-white p-3 text-sm shadow-md">
 			<p className="mb-1 font-medium text-zinc-900">{label}</p>
 			{payload.map((item, index) => (
 				<p key={index} style={{ color: item.color }}>

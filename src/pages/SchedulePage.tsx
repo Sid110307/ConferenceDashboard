@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
 import { useConferenceDetails } from "@/db/hooks/conferences";
@@ -17,11 +16,7 @@ export const SchedulePage = () => {
 	const { data: conference } = useConferenceDetails();
 	const { data: sessions = [] } = useSessions();
 	const defaultDay = conference?.current_day || 1;
-	const [activeDay, setActiveDay] = useState(dayParam ? parseInt(dayParam) - 1 : defaultDay - 1);
-
-	useEffect(() => {
-		if (dayParam) setActiveDay(parseInt(dayParam) - 1);
-	}, [dayParam]);
+	const activeDay = dayParam ? parseInt(dayParam, 10) - 1 : defaultDay - 1;
 
 	const typeVariant = (type: string) =>
 		({
@@ -48,7 +43,9 @@ export const SchedulePage = () => {
 				const parsed = JSON.parse(s.extra_data as string);
 				if (parsed?.day) day = Number(parsed.day) || 1;
 			}
-		} catch (e) {}
+		} catch {
+			console.warn("Failed to parse extra data for session", s);
+		}
 		if (!daysMap[day]) daysMap[day] = [];
 		daysMap[day].push(s);
 	});
@@ -66,25 +63,25 @@ export const SchedulePage = () => {
 					"Programme across venues and halls"
 				}
 			/>
-			<div className="mb-5 flex gap-2">
+			<div className="mb-5 flex flex-wrap gap-2">
 				{days.map((day, index) => (
 					<button
 						key={index}
 						onClick={() => navigate(AppRoutes.schedule((index + 1).toString()))}
-						className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${activeDay === index ? "bg-blue-600 text-white" : "bg-white text-zinc-600 hover:bg-gray-50 hover:text-zinc-900 border border-gray-200"}`}
+						className={`rounded-md px-3 py-2 text-sm font-medium transition-all ${activeDay === index ? "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-100" : "border border-gray-200 bg-white text-zinc-600 hover:border-gray-300 hover:bg-gray-50 hover:text-zinc-900"}`}
 					>
 						{day.label}
 					</button>
 				))}
 			</div>
 			<Card>
-				<div className="divide-y divide-gray-200">
+				<div className="divide-y divide-gray-100">
 					{days[activeDay]?.sessions.map((session: any, index: number) => (
 						<div
 							key={index}
-							className={`flex gap-4 px-5 py-4 transition-colors hover:bg-gray-50 ${session.status === "done" ? "opacity-50" : session.status === "ongoing" ? "border-l-2 border-blue-400" : ""}`}
+							className={`flex flex-col gap-3 px-4 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center ${session.status === "done" ? "opacity-50" : session.status === "ongoing" ? "border-l-2 border-blue-500" : ""}`}
 						>
-							<span className="mt-0.5 w-28 shrink-0 font-mono text-xs text-zinc-600">
+							<span className="w-28 shrink-0 font-mono text-xs text-zinc-600">
 								{session.start_time || session.time}
 							</span>
 							<div className="min-w-0 flex-1">
@@ -94,7 +91,7 @@ export const SchedulePage = () => {
 									{session.venue}
 								</p>
 							</div>
-							<div className="flex shrink-0 items-start gap-2">
+							<div className="flex shrink-0 flex-wrap items-start gap-2">
 								<Badge variant={typeVariant(session.session_type || session.type)}>
 									{session.session_type || session.type}
 								</Badge>

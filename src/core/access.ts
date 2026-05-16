@@ -1,16 +1,15 @@
+import { useContext } from "react";
+
 import { neon } from "@/db/neon";
 
-import { useConference } from "@/core/ConferenceContext";
+import { ConferenceCtx } from "@/core/ConferenceContext";
 import type { RoleKey } from "@/core/types";
 
 export const useUserRoles = (): RoleKey[] => {
-	let isEditor = false;
-	let role: string | null = null;
-	try {
-		const ctx = useConference();
-		isEditor = ctx.isEditor;
-		role = ctx.role;
-	} catch {}
+	const ctx = useContext(ConferenceCtx);
+
+	const isEditor = ctx?.isEditor ?? false;
+	const role = ctx?.role ?? null;
 	const { data } = neon.auth.useSession();
 
 	if (!data?.user) return ["all"];

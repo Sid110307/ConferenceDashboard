@@ -16,7 +16,8 @@ import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META } from "@/core/data";
 
 export const LogisticsPage = () => {
-	const { isEditor } = useConference();
+	const _conf = useConference();
+	const isEditor = _conf?.isEditor || false;
 	const { data: rows = [] } = useLogisticsItems();
 	const upsert = useUpsertLogisticsItem();
 	const remove = useDeleteLogisticsItem();
@@ -35,7 +36,7 @@ export const LogisticsPage = () => {
 			<Card>
 				{isEditor && (
 					<button
-						className="m-3 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
+						className="mx-4 mt-4 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
 						onClick={() => setEditing({})}
 					>
 						+ Add item
@@ -44,7 +45,7 @@ export const LogisticsPage = () => {
 				<div className="overflow-x-auto">
 					<table className="w-full text-sm">
 						<thead>
-							<tr className="border-b border-gray-200">
+							<tr className="border-b border-gray-100">
 								{["Item", "Total", "Issued", "Remaining", "% Issued", "Vendor"].map(
 									header => (
 										<th
@@ -63,7 +64,7 @@ export const LogisticsPage = () => {
 								)}
 							</tr>
 						</thead>
-						<tbody className="divide-y divide-gray-200">
+						<tbody className="divide-y divide-gray-100">
 							{tableRows.map((item: any, index) => {
 								const remaining = item.total - item.issued;
 								const pct = item.total
@@ -72,16 +73,16 @@ export const LogisticsPage = () => {
 
 								return (
 									<tr key={index} className="hover:bg-gray-50">
-										<td className="px-5 py-3 font-medium text-zinc-900">
+										<td className="px-4 py-3 font-medium text-zinc-900">
 											{item.item}
 										</td>
-										<td className="px-5 py-3 text-zinc-600">
+										<td className="px-4 py-3 text-zinc-600">
 											{item.total.toLocaleString()}
 										</td>
-										<td className="px-5 py-3 text-zinc-600">
+										<td className="px-4 py-3 text-zinc-600">
 											{item.issued.toLocaleString()}
 										</td>
-										<td className="px-5 py-3">
+										<td className="px-4 py-3">
 											<Badge
 												variant={
 													remaining === 0
@@ -94,7 +95,7 @@ export const LogisticsPage = () => {
 												{remaining.toLocaleString()}
 											</Badge>
 										</td>
-										<td className="w-40 px-5 py-3">
+										<td className="w-40 px-4 py-3">
 											<ProgressBar
 												value={item.issued}
 												max={item.total}
@@ -107,20 +108,20 @@ export const LogisticsPage = () => {
 												}
 											/>
 										</td>
-										<td className="px-5 py-3 text-xs text-zinc-600">
+										<td className="px-4 py-3 text-xs text-zinc-600">
 											{item.vendor}
 										</td>
 										{isEditor && (
-											<td className="px-5 py-3 text-xs">
+											<td className="px-4 py-3 text-xs">
 												<button
-													className="mr-2 rounded border border-gray-200 px-2 py-1"
+													className="mr-2 rounded-md border border-gray-100 px-2 py-1"
 													onClick={() => setEditing(item)}
 												>
 													Edit
 												</button>
 												{item.id && (
 													<button
-														className="rounded border border-red-200 px-2 py-1 text-red-600"
+														className="rounded-md border border-red-200 px-2 py-1 text-red-600"
 														onClick={() => remove.mutate(item.id)}
 													>
 														Delete

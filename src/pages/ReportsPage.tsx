@@ -91,15 +91,14 @@ export const ReportsPage = () => {
 				}
 			/>
 			<div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-				yt{" "}
 				{reports.map((report, index) => (
 					<button
 						key={index}
 						type="button"
 						aria-label={`Open report ${report.name}`}
-						className="group flex w-full cursor-pointer items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-blue-200"
+						className="group flex w-full items-center gap-4 rounded-lg border border-gray-100 bg-white p-4 transition-colors hover:border-blue-200"
 					>
-						<div className="shrink-0 rounded-lg bg-blue-50 p-2.5 text-blue-600">
+						<div className="shrink-0 rounded-md bg-blue-50 p-2.5 text-blue-600">
 							<report.icon size={18} aria-hidden />
 						</div>
 						<div className="min-w-0 flex-1">

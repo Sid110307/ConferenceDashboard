@@ -147,7 +147,7 @@ export const ADMINISTRATION_GROUP: NavGroup = {
 			id: "finance",
 			label: "Finance",
 			icon: Receipt,
-			roles: ["finance", "admin"],
+			roles: ["staff", "admin"],
 			ariaLabel: "Finance and budget",
 		},
 		{

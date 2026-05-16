@@ -1,13 +1,15 @@
+import { useContext } from "react";
+
 import { neon } from "@/db/neon";
 import type { Database } from "@/db/types";
 import { useQuery } from "@tanstack/react-query";
 
-import { useConference } from "@/core/ConferenceContext";
+import { ConferenceCtx } from "@/core/ConferenceContext";
 
 type ConferenceRow = Database["public"]["Tables"]["conferences"]["Row"];
 
 export const useConferenceDetails = () => {
-	const result = useConference();
+	const result = useContext(ConferenceCtx);
 	return useQuery({
 		queryKey: ["conferences", result?.conferenceId || "none"],
 		queryFn: async () => {

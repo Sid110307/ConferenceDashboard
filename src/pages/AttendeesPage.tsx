@@ -16,7 +16,8 @@ import { Routes as AppRoutes } from "@/core/navigation";
 export const AttendeesPage = () => {
 	const [search, setSearch] = useState("");
 	const { data: attendees = [], isLoading } = useAttendees();
-	const { isEditor } = useConference();
+	const _conf = useConference();
+	const isEditor = _conf?.isEditor || false;
 	const upsert = useUpsertAttendee();
 	const remove = useDeleteAttendee();
 	const [editing, setEditing] = useState<Record<string, any> | null>(null);
@@ -62,7 +63,7 @@ export const AttendeesPage = () => {
 						: `${attendees.length} registered participants across ${categories.length} categories`
 				}
 			/>
-			<div className="mb-5 grid grid-cols-3 gap-3 lg:grid-cols-6">
+			<div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
 				{(categories.length
 					? categories.map(name => ({
 							name,
@@ -72,29 +73,31 @@ export const AttendeesPage = () => {
 				).map(category => (
 					<Card
 						key={category.name}
-						className={`cursor-pointer p-3 text-center transition-colors ${catFilter === category.name ? "border-blue-500" : "hover:border-gray-200"}`}
+						className={`cursor-pointer p-3 text-center transition-all ${catFilter === category.name ? "border-blue-200 bg-blue-50/70 ring-1 ring-inset ring-blue-100" : "hover:border-gray-200 hover:shadow-sm"}`}
 						onClick={() =>
 							setCatFilter(catFilter === category.name ? "All" : category.name)
 						}
 					>
-						<div className="text-2xl font-semibold text-zinc-900">{category.value}</div>
+						<div className="text-2xl font-semibold tracking-tight text-zinc-900">
+							{category.value}
+						</div>
 						<div className="mt-0.5 text-xs text-zinc-600">{category.name}</div>
 					</Card>
 				))}
 			</div>
 			<Card className="mb-3">
-				<div className="flex flex-wrap items-center gap-2 p-3">
-					<div className="flex min-w-48 flex-1 items-center gap-2 rounded-lg bg-white px-3 py-2 border border-gray-200">
+				<div className="flex flex-col gap-2 p-3 sm:flex-row sm:flex-wrap sm:items-center">
+					<div className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 shadow-sm">
 						<Search size={14} className="text-zinc-500" />
 						<input
-							className="w-full bg-transparent text-sm text-zinc-900 outline-none placeholder:text-zinc-500"
+							className="w-full bg-transparent text-sm text-zinc-900 outline-none placeholder:text-zinc-400"
 							placeholder="Search by name, ID or institution..."
 							value={search}
 							onChange={event => setSearch(event.target.value)}
 						/>
 					</div>
 					<select
-						className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none"
+						className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition-colors focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
 						value={catFilter}
 						onChange={event => setCatFilter(event.target.value)}
 					>
@@ -103,7 +106,7 @@ export const AttendeesPage = () => {
 						))}
 					</select>
 					<select
-						className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none"
+						className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition-colors focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
 						value={statusFilter}
 						onChange={event => setStatusFilter(event.target.value)}
 					>
@@ -113,7 +116,7 @@ export const AttendeesPage = () => {
 					</select>
 					{isEditor && (
 						<button
-							className="ml-auto rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
+							className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 sm:ml-auto"
 							onClick={() => setEditing({})}
 						>
 							+ Add attendee
@@ -125,7 +128,7 @@ export const AttendeesPage = () => {
 				<div className="overflow-x-auto">
 					<table className="w-full text-sm">
 						<thead>
-							<tr className="border-b border-gray-200">
+							<tr className="border-b border-gray-100">
 								{[
 									"ID",
 									"Name",
@@ -138,25 +141,25 @@ export const AttendeesPage = () => {
 									<th
 										key={header}
 										scope="col"
-										className="whitespace-nowrap px-5 py-3 text-left font-medium text-zinc-600"
+										className="whitespace-nowrap px-4 py-3 text-left font-medium text-zinc-600"
 									>
 										{header}
 									</th>
 								))}
 								{isEditor && (
-									<th className="whitespace-nowrap px-5 py-3 text-left font-medium text-zinc-600">
+									<th className="whitespace-nowrap px-4 py-3 text-left font-medium text-zinc-600">
 										Actions
 									</th>
 								)}
 							</tr>
 						</thead>
-						<tbody className="divide-y divide-gray-200">
+						<tbody className="divide-y divide-gray-100">
 							{filtered.map(attendee => (
 								<tr
 									key={attendee.id}
 									className="transition-colors hover:bg-gray-50"
 								>
-									<td className="px-5 py-3 font-mono text-xs text-blue-600">
+									<td className="px-4 py-3 font-mono text-xs text-blue-600">
 										<Link
 											to={AppRoutes.attendees(attendee.id)}
 											className="hover:underline"
@@ -164,7 +167,7 @@ export const AttendeesPage = () => {
 											{attendee.id}
 										</Link>
 									</td>
-									<td className="whitespace-nowrap px-5 py-3 font-medium text-zinc-900">
+									<td className="whitespace-nowrap px-4 py-3 font-medium text-zinc-900">
 										<Link
 											to={AppRoutes.attendees(attendee.id)}
 											className="hover:text-blue-600 hover:underline"
@@ -172,13 +175,13 @@ export const AttendeesPage = () => {
 											{attendee.name}
 										</Link>
 									</td>
-									<td className="px-5 py-3 text-sm text-zinc-600">
+									<td className="px-4 py-3 text-sm text-zinc-600">
 										{attendee.institution}
 									</td>
-									<td className="whitespace-nowrap px-5 py-3 text-xs text-zinc-600">
+									<td className="whitespace-nowrap px-4 py-3 text-xs text-zinc-600">
 										{attendee.state}
 									</td>
-									<td className="px-5 py-3">
+									<td className="px-4 py-3">
 										<Badge
 											variant={categoryVariant(
 												String(attendee.category || ""),
@@ -187,7 +190,7 @@ export const AttendeesPage = () => {
 											{String(attendee.category || "")}
 										</Badge>
 									</td>
-									<td className="px-5 py-3">
+									<td className="px-4 py-3">
 										<Badge
 											variant={statusVariant(
 												String(
@@ -204,19 +207,19 @@ export const AttendeesPage = () => {
 											)}
 										</Badge>
 									</td>
-									<td className="px-5 py-3 text-xs text-zinc-500">
+									<td className="px-4 py-3 text-xs text-zinc-500">
 										{attendee.travel_mode}
 									</td>
 									{isEditor && (
-										<td className="px-5 py-3 text-xs">
+										<td className="px-4 py-3 text-xs">
 											<button
-												className="mr-2 rounded px-2 py-1 text-xs border border-gray-200"
+												className="mr-2 rounded-md px-2 py-1 text-xs border border-gray-100"
 												onClick={() => setEditing(attendee)}
 											>
 												Edit
 											</button>
 											<button
-												className="rounded px-2 py-1 text-xs border border-red-200 text-red-600"
+												className="rounded-md px-2 py-1 text-xs border border-red-200 text-red-600"
 												onClick={() => remove.mutate(attendee.id)}
 											>
 												Delete

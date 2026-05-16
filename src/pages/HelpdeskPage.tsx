@@ -20,7 +20,8 @@ import { Routes as AppRoutes } from "@/core/navigation";
 
 export const HelpdeskPage = () => {
 	const { data: issues = [], isLoading } = useHelpdeskIssues();
-	const { isEditor } = useConference();
+	const _conf = useConference();
+	const isEditor = _conf?.isEditor || false;
 	const upsert = useUpsertHelpdeskIssue();
 	const remove = useDeleteHelpdeskIssue();
 	const [editing, setEditing] = useState<Record<string, any> | null>(null);
@@ -38,7 +39,7 @@ export const HelpdeskPage = () => {
 							"Real-time problem management and resolution"
 				}
 			/>
-			<div className="mb-5 grid grid-cols-3 gap-3">
+			<div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
 				<StatCard
 					icon={AlertCircle}
 					label="Open"
@@ -62,7 +63,7 @@ export const HelpdeskPage = () => {
 			<Card>
 				{isEditor && (
 					<button
-						className="m-3 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
+						className="mx-4 mt-4 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
 						onClick={() => setEditing({})}
 					>
 						+ Add issue
@@ -71,7 +72,7 @@ export const HelpdeskPage = () => {
 				<div className="overflow-x-auto">
 					<table className="w-full text-sm">
 						<thead>
-							<tr className="border-b border-gray-200">
+							<tr className="border-b border-gray-100">
 								{[
 									"ID",
 									"Attendee",
@@ -96,7 +97,7 @@ export const HelpdeskPage = () => {
 								)}
 							</tr>
 						</thead>
-						<tbody className="divide-y divide-gray-200">
+						<tbody className="divide-y divide-gray-100">
 							{issues.map((issue, index) => {
 								const statusRaw = (issue.issue_status || "") as string;
 								const statusLabel = statusRaw
@@ -106,7 +107,7 @@ export const HelpdeskPage = () => {
 									: "";
 								return (
 									<tr key={index} className="hover:bg-gray-50">
-										<td className="px-5 py-3 font-mono text-xs text-blue-600">
+										<td className="px-4 py-3 font-mono text-xs text-blue-600">
 											<Link
 												to={AppRoutes.helpdesk(issue.id)}
 												className="hover:underline"
@@ -114,7 +115,7 @@ export const HelpdeskPage = () => {
 												{issue.id}
 											</Link>
 										</td>
-										<td className="px-5 py-3 text-zinc-900">
+										<td className="px-4 py-3 text-zinc-900">
 											<Link
 												to={AppRoutes.helpdesk(issue.id)}
 												className="hover:text-blue-600 hover:underline"
@@ -122,10 +123,10 @@ export const HelpdeskPage = () => {
 												{issue.reported_by_name || issue.attendee}
 											</Link>
 										</td>
-										<td className="px-5 py-3 text-xs text-zinc-600">
+										<td className="px-4 py-3 text-xs text-zinc-600">
 											{issue.issue_type}
 										</td>
-										<td className="px-5 py-3">
+										<td className="px-4 py-3">
 											<Badge
 												variant={
 													(issue.priority as string) === "high" ||
@@ -141,7 +142,7 @@ export const HelpdeskPage = () => {
 												{issue.priority}
 											</Badge>
 										</td>
-										<td className="px-5 py-3 text-xs text-zinc-600">
+										<td className="px-4 py-3 text-xs text-zinc-600">
 											{issue.assigned_team}
 										</td>
 										<td className="px-5 py-3">
@@ -153,15 +154,15 @@ export const HelpdeskPage = () => {
 											{issue.created_at}
 										</td>
 										{isEditor && (
-											<td className="px-5 py-3 text-xs">
+											<td className="px-4 py-3 text-xs">
 												<button
-													className="mr-2 rounded px-2 py-1 text-xs border border-gray-200"
+													className="mr-2 rounded-md px-2 py-1 text-xs border border-gray-100"
 													onClick={() => setEditing(issue)}
 												>
 													Edit
 												</button>
 												<button
-													className="rounded px-2 py-1 text-xs border border-red-200 text-red-600"
+													className="rounded-md px-2 py-1 text-xs border border-red-200 text-red-600"
 													onClick={() => remove.mutate(issue.id)}
 												>
 													Delete

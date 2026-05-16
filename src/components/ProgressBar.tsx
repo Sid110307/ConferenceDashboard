@@ -16,11 +16,11 @@ export const ProgressBar = ({
 	}[color];
 
 	return (
-		<div className="flex items-center gap-2">
-			<div className="h-1.5 flex-1 rounded-full bg-gray-200">
-				<div className={`${bar} h-1.5 rounded-full`} style={{ width: `${pct}%` }} />
+		<div className="flex items-center gap-3">
+			<div className="h-2 flex-1 rounded-md bg-gray-200">
+				<div className={`${bar} h-2 rounded-md`} style={{ width: `${pct}%` }} />
 			</div>
-			<span className="w-7 text-right text-xs text-zinc-700">{pct}%</span>
+			<span className="w-10 text-right text-xs text-zinc-700">{pct}%</span>
 		</div>
 	);
 };

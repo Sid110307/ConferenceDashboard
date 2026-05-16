@@ -16,7 +16,8 @@ import { Routes as AppRoutes } from "@/core/navigation";
 
 export const VolunteersPage = () => {
 	const { data: volunteers = [], isLoading } = useVolunteers();
-	const { isEditor } = useConference();
+	const _conf = useConference();
+	const isEditor = _conf?.isEditor || false;
 	const upsert = useUpsertVolunteer();
 	const remove = useDeleteVolunteer();
 	const [editing, setEditing] = useState<Record<string, any> | null>(null);
@@ -29,7 +30,7 @@ export const VolunteersPage = () => {
 					"Team assignments, shifts, and on-ground operations"
 				}
 			/>
-			<div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+			<div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
 				<StatCard
 					icon={UserCheck}
 					label="Total Volunteers"
@@ -79,7 +80,7 @@ export const VolunteersPage = () => {
 			<Card>
 				{isEditor && (
 					<button
-						className="m-3 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
+						className="mx-4 mt-4 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
 						onClick={() => setEditing({})}
 					>
 						+ Add volunteer
@@ -88,7 +89,7 @@ export const VolunteersPage = () => {
 				<div className="overflow-x-auto">
 					<table className="w-full text-sm">
 						<thead>
-							<tr className="border-b border-gray-200">
+							<tr className="border-b border-gray-100">
 								{["Name", "Role", "Location", "Shift", "Team", "Status"].map(
 									header => (
 										<th
@@ -107,10 +108,10 @@ export const VolunteersPage = () => {
 								)}
 							</tr>
 						</thead>
-						<tbody className="divide-y divide-gray-200">
+						<tbody className="divide-y divide-gray-100">
 							{volunteers.map((volunteer, index) => (
 								<tr key={index} className="hover:bg-gray-50">
-									<td className="px-5 py-3 font-medium text-zinc-900">
+									<td className="px-4 py-3 font-medium text-zinc-900">
 										<Link
 											to={AppRoutes.volunteers(
 												(volunteer.name || "")
@@ -122,21 +123,21 @@ export const VolunteersPage = () => {
 											{volunteer.name}
 										</Link>
 									</td>
-									<td className="px-5 py-3 text-xs text-zinc-600">
+									<td className="px-4 py-3 text-xs text-zinc-600">
 										{volunteer.role}
 									</td>
-									<td className="px-5 py-3 text-xs text-zinc-600">
+									<td className="px-4 py-3 text-xs text-zinc-600">
 										{volunteer.location}
 									</td>
-									<td className="px-5 py-3 font-mono text-xs text-zinc-600">
+									<td className="px-4 py-3 font-mono text-xs text-zinc-600">
 										{volunteer.shift_start
 											? `${volunteer.shift_start}${volunteer.shift_end ? ` - ${volunteer.shift_end}` : ""}`
 											: ""}
 									</td>
-									<td className="px-5 py-3">
+									<td className="px-4 py-3">
 										<Badge variant="blue">{String(volunteer.team || "")}</Badge>
 									</td>
-									<td className="px-5 py-3">
+									<td className="px-4 py-3">
 										<Badge
 											variant={
 												String(volunteer.status_label).toLowerCase() ===
@@ -149,15 +150,15 @@ export const VolunteersPage = () => {
 										</Badge>
 									</td>
 									{isEditor && (
-										<td className="px-5 py-3 text-xs">
+										<td className="px-4 py-3 text-xs">
 											<button
-												className="mr-2 rounded px-2 py-1 text-xs border border-gray-200"
+												className="mr-2 rounded-md px-2 py-1 text-xs border border-gray-100"
 												onClick={() => setEditing(volunteer)}
 											>
 												Edit
 											</button>
 											<button
-												className="rounded px-2 py-1 text-xs border border-red-200 text-red-600"
+												className="rounded-md px-2 py-1 text-xs border border-red-200 text-red-600"
 												onClick={() => remove.mutate(volunteer.id)}
 											>
 												Delete

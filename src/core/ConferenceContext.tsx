@@ -9,8 +9,8 @@ interface Ctx {
 	isEditor: boolean;
 	role: string | null;
 }
-const ConferenceCtx = createContext<Ctx | null>(null);
 
+export const ConferenceCtx = createContext<Ctx | null>(null);
 export const ConferenceProvider = ({ children }: { children: React.ReactNode }) => {
 	const { conferenceId } = useParams<{ conferenceId: string }>();
 	const { data: session } = neon.auth.useSession();
@@ -29,6 +29,12 @@ export const ConferenceProvider = ({ children }: { children: React.ReactNode }) 
 				.maybeSingle(),
 	});
 
+	if (!conferenceId)
+		return (
+			<div className="p-5 text-center">
+				<p className="text-red-500">Error: Conference ID is required.</p>
+			</div>
+		);
 	return (
 		<ConferenceCtx.Provider
 			value={{
@@ -42,4 +48,9 @@ export const ConferenceProvider = ({ children }: { children: React.ReactNode }) 
 	);
 };
 
-export const useConference = () => useContext(ConferenceCtx);
+export const useConference = () => {
+	const ctx = useContext(ConferenceCtx);
+	if (!ctx) throw new Error("useConference must be used within a ConferenceProvider");
+
+	return ctx;
+};

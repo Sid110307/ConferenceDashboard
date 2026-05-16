@@ -46,15 +46,15 @@ export const statusVariant = (status: string): string =>
 	STATUS_VARIANTS[status as keyof typeof STATUS_VARIANTS] || "gray";
 
 export const VARIANTS: Record<string, string> = {
-	blue: "bg-blue-50 text-blue-700 border-blue-200",
-	green: "bg-green-50 text-green-700 border-green-200",
-	yellow: "bg-amber-50 text-amber-700 border-amber-200",
-	red: "bg-red-50 text-red-700 border-red-200",
-	purple: "bg-purple-50 text-purple-700 border-purple-200",
-	orange: "bg-orange-50 text-orange-700 border-orange-200",
-	gold: "bg-yellow-50 text-yellow-700 border-yellow-200",
-	pink: "bg-pink-50 text-pink-700 border-pink-200",
-	gray: "bg-gray-50 text-zinc-700 border-gray-200",
+	blue: "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-100",
+	green: "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-100",
+	yellow: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-100",
+	red: "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-100",
+	purple: "bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-100",
+	orange: "bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-100",
+	gold: "bg-yellow-50 text-yellow-700 ring-1 ring-inset ring-yellow-100",
+	pink: "bg-pink-50 text-pink-700 ring-1 ring-inset ring-pink-100",
+	gray: "bg-gray-50 text-zinc-600 ring-1 ring-inset ring-gray-100",
 };
 
 export const ICON_COLORS: Record<string, string> = {

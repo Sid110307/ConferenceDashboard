@@ -115,7 +115,7 @@ export const ConferenceUUIDPicker = () => {
 							onChange={e => handleChange(index, e.target.value)}
 							onKeyDown={e => handleKeyDown(index, e)}
 							onPaste={e => handlePaste(index, e)}
-							className="h-12 w-11 rounded-lg border border-gray-200 bg-white text-center text-lg font-semibold text-zinc-900 shadow-sm transition-all placeholder:text-zinc-400 hover:border-gray-300 focus:border-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:h-14 sm:w-12 sm:text-xl"
+							className="h-12 w-11 rounded-md border border-gray-100 bg-white text-center text-lg font-semibold text-zinc-900 shadow-sm transition-all placeholder:text-zinc-400 hover:border-gray-300 focus:border-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:h-14 sm:w-12 sm:text-xl"
 							placeholder="0"
 							aria-label={`Conference ID character ${index + 1}`}
 							autoComplete="off"
@@ -123,14 +123,14 @@ export const ConferenceUUIDPicker = () => {
 					))}
 				</div>
 				{error && (
-					<div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-center text-sm text-red-700">
+					<div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-center text-sm text-red-700">
 						{error}
 					</div>
 				)}
 				<button
 					onClick={handleSubmit}
 					disabled={!isFilled}
-					className={`w-full rounded-lg px-4 py-3 text-sm font-semibold transition-all ${
+					className={`w-full rounded-md px-4 py-3 text-sm font-semibold transition-all ${
 						isFilled
 							? "bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.99]"
 							: "cursor-not-allowed bg-gray-200 text-gray-500"

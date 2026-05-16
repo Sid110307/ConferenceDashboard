@@ -18,7 +18,8 @@ import { StatCard } from "@/components/StatCard";
 import { useConference } from "@/core/ConferenceContext";
 
 export const FinancePage = () => {
-	const { isEditor } = useConference();
+	const _conf = useConference();
+	const isEditor = _conf?.isEditor || false;
 	const { data: financeRows = [] } = useFinanceItems();
 	const upsert = useUpsertFinanceItem();
 	const remove = useDeleteFinanceItem();
@@ -37,7 +38,7 @@ export const FinancePage = () => {
 				title="Finance & Budget Tracking"
 				subtitle="Budget overview, expenditure, and income management"
 			/>
-			<div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+			<div className="mb-5 grid grid-cols-1 sm:grid-cols-2 gap-3 lg:grid-cols-4">
 				<StatCard
 					icon={Receipt}
 					label="Total Budget"
@@ -112,7 +113,7 @@ export const FinancePage = () => {
 				<CardHead title="Category Breakdown" />
 				{isEditor && (
 					<button
-						className="m-3 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
+						className="mx-4 mt-4 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
 						onClick={() => setEditing({})}
 					>
 						+ Add entry
@@ -121,7 +122,7 @@ export const FinancePage = () => {
 				<div className="overflow-x-auto">
 					<table className="w-full text-sm">
 						<thead>
-							<tr className="border-b border-gray-200">
+							<tr className="border-b border-gray-100">
 								{["Category", "Type", "Budget", "Actual", "Variance", "Status"].map(
 									header => (
 										<th
@@ -140,56 +141,56 @@ export const FinancePage = () => {
 								)}
 							</tr>
 						</thead>
-						<tbody className="divide-y divide-gray-200">
+						<tbody className="divide-y divide-gray-100">
 							{breakdownRows.map((row: any, index) => {
 								const variance = row.budget - row.actual;
 
 								return (
 									<tr key={index} className="hover:bg-gray-50">
-										<td className="px-5 py-3 font-medium text-zinc-900">
+										<td className="px-4 py-3 font-medium text-zinc-900">
 											{row.name}
 										</td>
-										<td className="px-5 py-3">
+										<td className="px-4 py-3">
 											<Badge
 												variant={row.type === "income" ? "green" : "blue"}
 											>
 												{row.type}
 											</Badge>
 										</td>
-										<td className="px-5 py-3 text-zinc-600">
+										<td className="px-4 py-3 text-zinc-600">
 											INR {row.budget.toLocaleString()}
 										</td>
-										<td className="px-5 py-3 text-zinc-600">
+										<td className="px-4 py-3 text-zinc-600">
 											INR {row.actual.toLocaleString()}
 										</td>
-										<td className="px-5 py-3">
+										<td className="px-4 py-3">
 											<span
 												className={
 													variance >= 0
-														? "text-green-400"
-														: "text-red-400"
+														? "text-emerald-600"
+														: "text-rose-600"
 												}
 											>
 												INR {Math.abs(variance).toLocaleString()}{" "}
 												{variance >= 0 ? "under" : "over"}
 											</span>
 										</td>
-										<td className="px-5 py-3">
+										<td className="px-4 py-3">
 											<Badge variant={variance >= 0 ? "green" : "red"}>
 												{variance >= 0 ? "On Track" : "Over Budget"}
 											</Badge>
 										</td>
 										{isEditor && (
-											<td className="px-5 py-3 text-xs">
+											<td className="px-4 py-3 text-xs">
 												<button
-													className="mr-2 rounded border border-gray-200 px-2 py-1"
+													className="mr-2 rounded-md border border-gray-100 px-2 py-1"
 													onClick={() => setEditing(row)}
 												>
 													Edit
 												</button>
 												{row.id && (
 													<button
-														className="rounded border border-red-200 px-2 py-1 text-red-600"
+														className="rounded-md border border-red-200 px-2 py-1 text-red-600"
 														onClick={() => remove.mutate(row.id)}
 													>
 														Delete

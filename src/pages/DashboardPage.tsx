@@ -88,7 +88,7 @@ export const DashboardPage = () => {
 				title={PAGES_META.find(p => p.id === "dashboard")?.label || "Dashboard"}
 				subtitle={`${meta.name}  ·  ${meta.dates}  ·  Day ${meta.currentDay} of ${schedule.length}`}
 			/>
-			<div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+			<div className="mb-5 grid grid-cols-1 sm:grid-cols-2 gap-3 lg:grid-cols-4">
 				<Link to={AppRoutes.attendees()}>
 					<StatCard
 						icon={Users}
@@ -227,7 +227,7 @@ export const DashboardPage = () => {
 			<Link to={AppRoutes.schedule(meta.currentDay.toString())}>
 				<Card>
 					<CardHead title={`Today's Schedule - Day ${meta.currentDay}`} />
-					<div className="divide-y divide-gray-200">
+					<div className="divide-y divide-gray-100">
 						{schedule[meta.currentDay - 1]?.sessions.map(
 							(session: any, index: number) => (
 								<div

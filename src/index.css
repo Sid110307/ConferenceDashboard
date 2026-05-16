@@ -25,11 +25,31 @@
 }
 
 @layer base {
+    html {
+        color-scheme: light;
+    }
+
     body {
         @apply font-sans;
+        @apply bg-gray-50 text-zinc-900 antialiased;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
 
     * {
         @apply box-border;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+        font: inherit;
+    }
+
+    ::selection {
+        background: #dbeafe;
+        color: #0f172a;
     }
 }

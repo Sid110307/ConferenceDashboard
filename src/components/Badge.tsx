@@ -9,7 +9,7 @@ type BadgeProps = {
 
 export const Badge = ({ children, variant = "gray" }: BadgeProps) => (
 	<span
-		className={`inline-block rounded border px-1.5 py-0.5 text-xs font-medium ${VARIANTS[variant] || VARIANTS.gray}`}
+		className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-tight ${VARIANTS[variant] || VARIANTS.gray}`}
 	>
 		{children}
 	</span>

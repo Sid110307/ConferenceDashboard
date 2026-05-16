@@ -13,7 +13,8 @@ import { PAGES_META } from "@/core/data";
 
 export const FoodPage = () => {
 	const { data: plans = [], isLoading } = useFoodPlans();
-	const { isEditor } = useConference();
+	const _conf = useConference();
+	const isEditor = _conf?.isEditor || false;
 	const upsert = useUpsertFoodPlan();
 	const remove = useDeleteFoodPlan();
 	const [editing, setEditing] = useState<Record<string, any> | null>(null);
@@ -56,15 +57,17 @@ export const FoodPage = () => {
 							"Meal counts, dietary requirements, and catering status"
 				}
 			/>
-			<div className="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
-				{isEditor && (
+			{isEditor && (
+				<div className="mb-4 flex justify-end">
 					<button
-						className="mb-3 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
+						className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
 						onClick={() => setEditing({})}
 					>
 						+ Add plan
 					</button>
-				)}
+				</div>
+			)}
+			<div className="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
 				<Card>
 					<CardHead title="Day-wise Meal Counts" />
 					<div className="h-52 p-4">
@@ -138,14 +141,6 @@ export const FoodPage = () => {
 						)}
 					</div>
 				</Card>
-				{isEditor && (
-					<button
-						className="mb-3 rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
-						onClick={() => setEditing({})}
-					>
-						+ Add plan
-					</button>
-				)}
 				<Card>
 					<CardHead title="Dietary Requirements" />
 					<div className="h-52 p-4">
@@ -185,7 +180,7 @@ export const FoodPage = () => {
 				<div className="overflow-x-auto">
 					<table className="w-full text-sm">
 						<thead>
-							<tr className="border-b border-gray-200">
+							<tr className="border-b border-gray-100">
 								{[
 									"Day",
 									"Breakfast",
@@ -203,36 +198,36 @@ export const FoodPage = () => {
 								))}
 							</tr>
 						</thead>
-						<tbody className="divide-y divide-gray-200">
+						<tbody className="divide-y divide-gray-100">
 							{daywise.map((day: any, index) => (
 								<tr
 									key={index}
-									className={`hover:bg-gray-50 ${String(day.day).toLowerCase().includes("vip") ? "text-yellow-600" : ""}`}
+									className={`hover:bg-gray-50 ${String(day.day).toLowerCase().includes("vip") ? "text-amber-700" : ""}`}
 								>
-									<td className="px-5 py-3 font-medium text-zinc-900">
+									<td className="px-4 py-3 font-medium text-zinc-900">
 										{day.day}
 									</td>
-									<td className="px-5 py-3 text-zinc-600">{day.breakfast}</td>
-									<td className="px-5 py-3 text-zinc-600">{day.lunch}</td>
-									<td className="px-5 py-3 text-zinc-600">{day.tea}</td>
-									<td className="px-5 py-3 text-zinc-600">{day.dinner}</td>
-									<td className="px-5 py-3 font-semibold text-zinc-900">
+									<td className="px-4 py-3 text-zinc-600">{day.breakfast}</td>
+									<td className="px-4 py-3 text-zinc-600">{day.lunch}</td>
+									<td className="px-4 py-3 text-zinc-600">{day.tea}</td>
+									<td className="px-4 py-3 text-zinc-600">{day.dinner}</td>
+									<td className="px-4 py-3 font-semibold text-zinc-900">
 										{(day.breakfast || 0) +
 											(day.lunch || 0) +
 											(day.tea || 0) +
 											(day.dinner || 0)}
 									</td>
 									{isEditor && (
-										<td className="px-5 py-3 text-xs">
+										<td className="px-4 py-3 text-xs">
 											<button
-												className="mr-2 rounded px-2 py-1 text-xs border border-gray-200"
+												className="mr-2 rounded-md px-2 py-1 text-xs border border-gray-100"
 												onClick={() => setEditing(day)}
 											>
 												Edit
 											</button>
 											{day.id && (
 												<button
-													className="rounded px-2 py-1 text-xs border border-red-200 text-red-600"
+													className="rounded-md px-2 py-1 text-xs border border-red-200 text-red-600"
 													onClick={() => remove.mutate(day.id)}
 												>
 													Delete
