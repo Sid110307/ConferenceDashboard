@@ -7,7 +7,7 @@ export const ProgressBar = ({
 	max: number;
 	color?: string;
 }) => {
-	const pct = Math.min(100, Math.round((value / max) * 100));
+	const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
 	const bar = {
 		blue: "bg-blue-500",
 		green: "bg-green-500",

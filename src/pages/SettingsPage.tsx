@@ -2,7 +2,9 @@ import { useState } from "react";
 
 import { useAccommodationRooms } from "@/db/hooks/accommodationRooms";
 import { useAttendees } from "@/db/hooks/attendees";
+import { useConferenceDetails } from "@/db/hooks/conferences";
 import { useHelpdeskIssues } from "@/db/hooks/helpdeskIssues";
+import { AlertCircle, Database, Palette, Settings, Shield, Users } from "lucide-react";
 
 import { Card } from "@/components/Card";
 import { SectionTitle } from "@/components/SectionTitle";
@@ -10,16 +12,17 @@ import { SectionTitle } from "@/components/SectionTitle";
 import { PAGES_META } from "@/core/data";
 
 export const SettingsPage = () => {
+	const { data: conference } = useConferenceDetails();
 	const { data: attendees = [] } = useAttendees();
 	const { data: issues = [] } = useHelpdeskIssues();
 	const { data: rooms = [] } = useAccommodationRooms();
 
 	const [meta, setMeta] = useState({
-		name: "",
-		shortName: "",
-		dates: "",
-		venue: "",
-		currentDay: 1,
+		name: conference?.name || "",
+		shortName: conference?.short_name || "",
+		dates: `${conference?.start_date} — ${conference?.end_date}` || "",
+		venue: conference?.venue_name || "",
+		currentDay: conference?.current_day || 1,
 	});
 
 	const totalCapacity = attendees.length || 0;
@@ -36,6 +39,38 @@ export const SettingsPage = () => {
 		a => (a.category || "").toString().toLowerCase() === "vip",
 	).length;
 
+	const sections = [
+		{
+			title: "Conference Profile",
+			icon: Settings,
+			description: "Core conference information",
+			fields: [
+				{ label: "Conference Name", key: "name" },
+				{ label: "Short Name", key: "shortName" },
+				{ label: "Dates", key: "dates" },
+				{ label: "Venue", key: "venue" },
+			],
+		},
+		{
+			title: "Theme & Branding",
+			icon: Palette,
+			description: "Visual settings",
+			fields: [],
+		},
+		{
+			title: "Roles & Access",
+			icon: Shield,
+			description: "User roles and permissions",
+			fields: [],
+		},
+		{
+			title: "Data Management",
+			icon: Database,
+			description: "Import/export and backup",
+			fields: [],
+		},
+	];
+
 	return (
 		<div>
 			<SectionTitle
@@ -45,12 +80,15 @@ export const SettingsPage = () => {
 					"Conference metadata and dashboard settings"
 				}
 			/>
-
-			<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+			<div className="mb-4">
+				<div className="mb-3 flex items-center gap-2">
+					<Settings size={20} className="text-zinc-900" />
+					<div>
+						<h2 className="text-lg font-semibold text-zinc-900">Conference Profile</h2>
+						<p className="text-xs text-zinc-500">Core conference information</p>
+					</div>
+				</div>
 				<Card className="p-6">
-					<h3 className="mb-4 text-sm font-semibold tracking-tight text-zinc-900">
-						Conference Details
-					</h3>
 					<div className="space-y-4">
 						{[
 							{ label: "Conference Name", key: "name" },
@@ -75,43 +113,110 @@ export const SettingsPage = () => {
 							</div>
 						))}
 						<button className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700">
-							Save Changes
+							Save Conference Details
 						</button>
 					</div>
 				</Card>
-
+			</div>
+			<div className="mb-4">
+				<div className="mb-3 flex items-center gap-2">
+					<Users size={20} className="text-zinc-900" />
+					<div>
+						<h2 className="text-lg font-semibold text-zinc-900">Live Overview</h2>
+						<p className="text-xs text-zinc-500">Current conference status</p>
+					</div>
+				</div>
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+					{[
+						["Current Day", `Day ${meta.currentDay}`, "text-blue-600"],
+						["Total Capacity", `${totalCapacity} attendees`, "text-zinc-900"],
+						[
+							"Check-in Rate",
+							totalCapacity
+								? `${Math.round((checkedInCount / totalCapacity) * 100)}%`
+								: "N/A",
+							"text-emerald-600",
+						],
+						[
+							"Room Occupancy",
+							`${Math.round((roomsTotal ? roomsAssigned / roomsTotal : 0) * 100)}%`,
+							"text-blue-600",
+						],
+						["Open Issues", `${openIssues} issues`, "text-rose-600"],
+						["VIP Confirmed", `${vipConfirmed} VIPs`, "text-amber-600"],
+					].map(([label, value, colorClass]) => (
+						<Card key={String(label)} className="p-4">
+							<p className="text-xs font-medium text-zinc-600">{label}</p>
+							<p className={`mt-2 text-2xl font-semibold ${colorClass}`}>{value}</p>
+						</Card>
+					))}
+				</div>
+			</div>
+			<div className="mb-4">
+				<div className="mb-3 flex items-center gap-2">
+					<Palette size={20} className="text-zinc-900" />
+					<div>
+						<h2 className="text-lg font-semibold text-zinc-900">Theme & Branding</h2>
+						<p className="text-xs text-zinc-500">Visual customization</p>
+					</div>
+				</div>
 				<Card className="p-6">
-					<h3 className="mb-4 text-sm font-semibold tracking-tight text-zinc-900">
-						Live Overview
-					</h3>
+					<div className="space-y-4">
+						<div>
+							<label className="mb-1.5 block text-xs font-medium text-zinc-600">
+								Primary Color
+							</label>
+							<div className="flex items-center gap-3">
+								<input
+									type="color"
+									value="#2563eb"
+									className="h-10 w-16 rounded-md border border-gray-200 cursor-pointer"
+								/>
+								<span className="text-sm text-zinc-600">#2563eb</span>
+							</div>
+						</div>
+						<button className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700">
+							Save Theme
+						</button>
+					</div>
+				</Card>
+			</div>
+			<div className="mb-4">
+				<div className="mb-3 flex items-center gap-2">
+					<Shield size={20} className="text-zinc-900" />
+					<div>
+						<h2 className="text-lg font-semibold text-zinc-900">Roles & Access</h2>
+						<p className="text-xs text-zinc-500">User permissions and roles</p>
+					</div>
+				</div>
+				<Card className="p-6">
 					<div className="space-y-3">
-						{[
-							["Current Day", `Day ${meta.currentDay} of 3`, "text-zinc-900"],
-							["Total Capacity", totalCapacity, "text-zinc-900"],
-							[
-								"Check-in Rate",
-								totalCapacity
-									? `${Math.round((checkedInCount / totalCapacity) * 100)}%`
-									: "N/A",
-								"text-emerald-600",
-							],
-							[
-								"Room Occupancy",
-								`${Math.round((roomsTotal ? roomsAssigned / roomsTotal : 0) * 100)}%`,
-								"text-blue-600",
-							],
-							["Open Issues", openIssues, "text-rose-600"],
-							["VIP Confirmed", vipConfirmed, "text-amber-600"],
-						].map(([label, value, colorClass]) => (
+						{["Admin", "Staff", "Viewer"].map(role => (
 							<div
-								key={String(label)}
-								className="flex items-center justify-between border-b border-gray-100 py-1.5 last:border-0"
+								key={role}
+								className="flex items-center justify-between rounded-md bg-gray-50 p-3"
 							>
-								<span className="text-sm text-zinc-600">{label}</span>
-								<span className={`text-sm font-medium ${colorClass}`}>{value}</span>
+								<span className="text-sm font-medium text-zinc-900">{role}</span>
+								<button className="rounded-md border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-zinc-700 transition-colors hover:bg-gray-50">
+									Manage
+								</button>
 							</div>
 						))}
 					</div>
+				</Card>
+			</div>
+			<div>
+				<div className="mb-3 flex items-center gap-2">
+					<AlertCircle size={20} className="text-red-600" />
+					<div>
+						<h2 className="text-lg font-semibold text-zinc-900">Danger Zone</h2>
+						<p className="text-xs text-zinc-500">Irreversible actions</p>
+					</div>
+				</div>
+				<Card className="border-red-200 bg-red-50 p-6">
+					<button className="rounded-md border border-red-300 bg-red-100 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-200">
+						Reset Conference Data
+					</button>
 				</Card>
 			</div>
 		</div>

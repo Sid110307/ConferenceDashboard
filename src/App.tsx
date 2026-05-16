@@ -1,8 +1,8 @@
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Link, Outlet, Route, Routes, useLocation } from "react-router";
 
 import { useConferenceDetails } from "@/db/hooks/conferences";
-import { ChevronDown, ChevronRight, Menu, Star } from "lucide-react";
+import { ChevronDown, Menu, Star } from "lucide-react";
 
 import { PAGES } from "@/pages";
 import { AuthPage } from "@/pages/AuthPage.tsx";
@@ -14,162 +14,53 @@ import { ConferenceProvider } from "@/core/ConferenceContext";
 import { Routes as AppRoutes } from "@/core/navigation";
 import { NAVIGATION_GROUPS } from "@/core/navigationGroups";
 
-const ConferenceShell = () => (
-	<ConferenceProvider>
-		<Outlet />
-	</ConferenceProvider>
-);
-
-type ExpandKey = string;
-
-type SidebarProps = {
-	visibleNavGroups: any[];
-	activePage: string;
-	expanded: Record<ExpandKey, boolean>;
-	toggle: (label: ExpandKey) => void;
-	setSidebarOpen: (open: boolean) => void;
-	conference: any;
-};
-
-const Sidebar = ({
-	visibleNavGroups,
-	activePage,
-	expanded,
-	toggle,
-	setSidebarOpen,
-	conference,
-}: SidebarProps) => (
-	<div className="flex h-full w-64 flex-col border-r border-gray-100 bg-white/95">
-		<Link to={AppRoutes.dashboard()} className="border-b border-gray-100 p-4">
-			<div className="flex items-center gap-3">
-				<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-600">
-					<Star size={15} className="text-white" />
-				</div>
-				<div className="min-w-0">
-					<p className="truncate text-sm font-semibold text-zinc-900">
-						{conference?.short_name || conference?.name || "Conference"}
-					</p>
-					<p className="text-xs text-zinc-600">
-						{conference
-							? `${conference.start_date || ""} — ${conference.end_date || ""}`
-							: ""}
-					</p>
-				</div>
-			</div>
-		</Link>
-		<nav className="flex-1 space-y-1 overflow-y-auto p-2">
-			{visibleNavGroups.map((group, groupIndex) => {
-				return (
-					<div key={groupIndex}>
-						{group.label === null ? (
-							group.items.map((item: any) => (
-								<Link
-									key={item.id}
-									to={
-										item.id === "dashboard"
-											? AppRoutes.dashboard()
-											: AppRoutes[item.id as keyof typeof AppRoutes]?.() ||
-												"/"
-									}
-									onClick={() => setSidebarOpen(false)}
-									aria-label={item.ariaLabel || item.label}
-									className={`mb-1 flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
-										activePage === item.id
-											? "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-100"
-											: "text-zinc-600 hover:bg-gray-50 hover:text-zinc-900"
-									}`}
-								>
-									<item.icon size={15} aria-hidden />
-									{item.label}
-								</Link>
-							))
-						) : (
-							<div className="mb-1">
-								<button
-									onClick={() => toggle(group.label as ExpandKey)}
-									aria-expanded={expanded[group.label as ExpandKey]}
-									className="flex w-full items-center justify-between px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-700 transition-colors hover:text-zinc-900"
-								>
-									<span>{group.label}</span>
-									<ChevronDown
-										size={11}
-										aria-hidden
-										className={`transition-transform ${expanded[group.label as ExpandKey] ? "rotate-180" : ""}`}
-									/>
-								</button>
-								{expanded[group.label as ExpandKey] && (
-									<div
-										className="space-y-0.5"
-										role="region"
-										aria-label={`${group.label} items`}
-									>
-										{group.items.map((item: any) => (
-											<Link
-												key={item.id}
-												to={
-													item.id === "dashboard"
-														? AppRoutes.dashboard()
-														: AppRoutes[
-																item.id as keyof typeof AppRoutes
-															]?.() || "/"
-												}
-												onClick={() => setSidebarOpen(false)}
-												aria-label={item.ariaLabel || item.label}
-												className={`flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-sm transition-colors ${
-													activePage === item.id
-														? "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-100"
-														: "text-zinc-600 hover:bg-gray-50 hover:text-zinc-900"
-												}`}
-											>
-												<item.icon size={14} aria-hidden />
-												{item.label}
-											</Link>
-										))}
-									</div>
-								)}
-							</div>
-						)}
-					</div>
-				);
-			})}
-		</nav>
-		<div className="border-t border-gray-100 p-3">
-			<p className="truncate text-center text-xs text-zinc-700">
-				{conference?.venue_name || conference?.venue_address || ""}
-			</p>
-		</div>
-	</div>
-);
-export default function App() {
+const ConferenceDashboardShell = () => {
 	const location = useLocation();
 	const [sidebarOpen, setSidebarOpen] = useState(false);
-	const [expanded, setExpanded] = useState<Record<ExpandKey, boolean>>({});
+	const [expanded, setExpanded] = useState<Record<string, boolean>>({
+		Participants: true,
+		Hospitality: true,
+		Programme: true,
+		Operations: true,
+		Administration: false,
+	});
 
-	const toggle = (label: ExpandKey) => setExpanded(prev => ({ ...prev, [label]: !prev[label] }));
+	const toggle = (label: string) => setExpanded(prev => ({ ...prev, [label]: !prev[label] }));
 
 	const userRoles = useUserRoles();
 	const { data: conference } = useConferenceDetails();
+
 	const visibleNavGroups = NAVIGATION_GROUPS.map(group => ({
 		...group,
 		items: group.items.filter(item => item.roles?.some(role => userRoles.includes(role))),
 	})).filter(group => group.items.length > 0);
 	const allItems = visibleNavGroups.flatMap(group => group.items);
 
+	useEffect(() => {
+		const currentPageId = getCurrentPageId();
+		const activeGroup = visibleNavGroups.find(g => g.items.some(i => i.id === currentPageId));
+		if (activeGroup?.label !== null && activeGroup?.label) {
+			setExpanded(prev => ({ ...prev, [activeGroup.label as string]: true }));
+		}
+	}, [location.pathname]);
+
 	const getCurrentPageId = () => {
 		const path = location.pathname;
-		if (path === "/") return "dashboard";
-		const segment = path.split("/")[1];
+		const parts = path.split("/").filter(Boolean);
+
+		if (parts[0] !== "c" || !parts[2]) return "dashboard";
 		const foundItem = allItems.find(item => {
-			const pagePath = segment.replace(/-/g, "").toLowerCase();
+			const pagePath = parts[2].replace(/-/g, "").toLowerCase();
 			return item.id.replace(/-/g, "").toLowerCase() === pagePath;
 		});
 		return foundItem?.id || "dashboard";
 	};
+
 	const activePage = getCurrentPageId();
 	const current = allItems.find(item => item.id === activePage);
 
 	return (
-		<div className="flex h-screen overflow-hidden bg-gray-50 text-zinc-900">
+		<div className="flex h-full overflow-hidden bg-gray-50 text-zinc-900">
 			<div className="hidden shrink-0 lg:block">
 				<Sidebar
 					visibleNavGroups={visibleNavGroups}
@@ -199,65 +90,205 @@ export default function App() {
 				</div>
 			)}
 			<div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-				<div className="flex shrink-0 items-center gap-3 border-b border-gray-100 bg-white/95 px-4 py-2.5 shadow-sm shadow-zinc-950/5">
-					<button
-						onClick={() => setSidebarOpen(true)}
-						aria-label="Open sidebar"
-						className="rounded-md border border-gray-200 bg-white p-1.5 text-zinc-600 transition-colors hover:bg-gray-50 hover:text-zinc-900 lg:hidden"
-					>
-						<Menu size={17} aria-hidden />
-					</button>
-					{activePage !== "dashboard" && (
-						<div className="flex flex-1 items-center gap-1.5 text-xs text-zinc-600">
-							<span>
+				<div className="flex h-14 shrink-0 items-center justify-between border-b border-gray-100 bg-white/95 px-4 shadow-sm">
+					<div className="flex items-center gap-3">
+						<button
+							onClick={() => setSidebarOpen(true)}
+							aria-label="Open sidebar"
+							className="rounded-md border border-gray-200 bg-white p-1.5 text-zinc-600 transition-colors hover:bg-gray-50 hover:text-zinc-900 lg:hidden"
+						>
+							<Menu size={17} aria-hidden />
+						</button>
+						<div>
+							<p className="text-sm font-semibold text-zinc-900">
+								{current?.label || "Dashboard"}
+							</p>
+							<p className="text-xs text-zinc-500">
 								{conference?.short_name || conference?.name || "Conference"}
-							</span>
-							<ChevronRight size={12} />
-							<span className="text-zinc-500">{current?.label || "Dashboard"}</span>
+								{conference?.current_day && ` · Day ${conference.current_day}`}
+							</p>
 						</div>
-					)}
+					</div>
 				</div>
-				<div className="flex-1 overflow-y-auto p-4 lg:p-6">
-					<Suspense fallback={<div>Loading...</div>}>
-						<Routes>
-							<Route path="/auth/*" element={<AuthPage />} />
-							<Route path="/" element={<ConferenceUUIDPicker />} />
-							<Route path="/c/:conferenceId/*" element={<ConferenceShell />}>
-								<Route index element={<PAGES.dashboard />} />
-								<Route path="attendees" element={<PAGES.attendees />} />
-								<Route path="attendees/:id" element={<PAGES.attendees />} />
-								<Route path="checkin" element={<PAGES.checkin />} />
-								<Route path="checkin/:id" element={<PAGES.checkin />} />
-								<Route path="accommodation" element={<PAGES.accommodation />} />
-								<Route path="accommodation/:id" element={<PAGES.accommodation />} />
-								<Route path="travel" element={<PAGES.travel />} />
-								<Route path="travel/:id" element={<PAGES.travel />} />
-								<Route path="feedback" element={<PAGES.feedback />} />
-								<Route path="feedback/:id" element={<PAGES.feedback />} />
-								<Route path="food" element={<PAGES.food />} />
-								<Route path="food/:day" element={<PAGES.food />} />
-								<Route path="schedule" element={<PAGES.schedule />} />
-								<Route path="schedule/:day" element={<PAGES.schedule />} />
-								<Route path="vip" element={<PAGES.vip />} />
-								<Route path="vip/:id" element={<PAGES.vip />} />
-								<Route path="logistics" element={<PAGES.logistics />} />
-								<Route path="logistics/:id" element={<PAGES.logistics />} />
-								<Route path="venue" element={<PAGES.venue />} />
-								<Route path="venue/:id" element={<PAGES.venue />} />
-								<Route path="volunteers" element={<PAGES.volunteers />} />
-								<Route path="volunteers/:id" element={<PAGES.volunteers />} />
-								<Route path="helpdesk" element={<PAGES.helpdesk />} />
-								<Route path="helpdesk/:id" element={<PAGES.helpdesk />} />
-								<Route path="finance" element={<PAGES.finance />} />
-								<Route path="finance/:id" element={<PAGES.finance />} />
-								<Route path="reports" element={<PAGES.reports />} />
-								<Route path="settings" element={<PAGES.settings />} />
-							</Route>
-						</Routes>
-					</Suspense>
+				<main className="flex-1 overflow-y-auto p-4 lg:p-6">
+					<div className="mx-auto w-full max-w-[1600px]">
+						<Suspense fallback={<div>Loading...</div>}>
+							<Outlet />
+						</Suspense>
+					</div>
 					<div className="h-8" />
+				</main>
+			</div>
+		</div>
+	);
+};
+
+const ConferenceLayout = () => (
+	<ConferenceProvider>
+		<ConferenceDashboardShell />
+	</ConferenceProvider>
+);
+
+type SidebarProps = {
+	visibleNavGroups: any[];
+	activePage: string;
+	expanded: Record<string, boolean>;
+	toggle: (label: string) => void;
+	setSidebarOpen: (open: boolean) => void;
+	conference: any;
+};
+
+const Sidebar = ({
+	visibleNavGroups,
+	activePage,
+	expanded,
+	toggle,
+	setSidebarOpen,
+	conference,
+}: SidebarProps) => (
+	<div className="flex h-full w-72 flex-col border-r border-gray-100 bg-white/95">
+		<Link to={AppRoutes.dashboard()} className="border-b border-gray-100 p-4">
+			<div className="flex items-center gap-3">
+				<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-600">
+					<Star size={15} className="text-white" />
+				</div>
+				<div className="min-w-0">
+					<p className="truncate text-sm font-semibold text-zinc-900">
+						{conference?.short_name || conference?.name || "Conference"}
+					</p>
+					<p className="text-xs text-zinc-600">
+						{conference
+							? `${conference.start_date || ""} — ${conference.end_date || ""}`
+							: ""}
+					</p>
 				</div>
 			</div>
+		</Link>
+		<nav className="flex-1 space-y-1 overflow-y-auto p-2">
+			{visibleNavGroups.map((group, groupIndex) => {
+				return (
+					<div key={groupIndex}>
+						{group.label === null ? (
+							group.items.map((item: any) => (
+								<Link
+									key={item.id}
+									to={
+										item.id === "dashboard"
+											? AppRoutes.dashboard()
+											: AppRoutes[item.id as keyof typeof AppRoutes]?.() ||
+												"."
+									}
+									onClick={() => setSidebarOpen(false)}
+									aria-label={item.ariaLabel || item.label}
+									className={`mb-1 flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
+										activePage === item.id
+											? "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-100"
+											: "text-zinc-600 hover:bg-gray-50 hover:text-zinc-900"
+									}`}
+								>
+									<item.icon size={15} aria-hidden />
+									{item.label}
+								</Link>
+							))
+						) : (
+							<div className="mb-1">
+								<button
+									onClick={() => toggle(group.label as string)}
+									aria-expanded={expanded[group.label as string]}
+									className="flex w-full items-center justify-between px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-700 transition-colors hover:text-zinc-900"
+								>
+									<span>{group.label}</span>
+									<ChevronDown
+										size={11}
+										aria-hidden
+										className={`transition-transform ${expanded[group.label as string] ? "rotate-180" : ""}`}
+									/>
+								</button>
+								{expanded[group.label as string] && (
+									<div
+										className="space-y-0.5"
+										role="region"
+										aria-label={`${group.label} items`}
+									>
+										{group.items.map((item: any) => (
+											<Link
+												key={item.id}
+												to={
+													item.id === "dashboard"
+														? AppRoutes.dashboard()
+														: AppRoutes[
+																item.id as keyof typeof AppRoutes
+															]?.() || "."
+												}
+												onClick={() => setSidebarOpen(false)}
+												aria-label={item.ariaLabel || item.label}
+												className={`flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-sm transition-colors ${
+													activePage === item.id
+														? "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-100"
+														: "text-zinc-600 hover:bg-gray-50 hover:text-zinc-900"
+												}`}
+											>
+												<item.icon size={14} aria-hidden />
+												{item.label}
+											</Link>
+										))}
+									</div>
+								)}
+							</div>
+						)}
+					</div>
+				);
+			})}
+		</nav>
+		<div className="border-t border-gray-100 p-3">
+			<p className="truncate text-xs font-medium text-zinc-900">
+				{conference?.venue_name || ""}
+			</p>
+			<p className="truncate text-[11px] text-zinc-500">{conference?.venue_address || ""}</p>
+		</div>
+	</div>
+);
+
+export default function App() {
+	return (
+		<div>
+			<Suspense fallback={<div>Loading...</div>}>
+				<Routes>
+					<Route path="/auth/*" element={<AuthPage />} />
+					<Route path="/" element={<ConferenceUUIDPicker />} />
+					<Route path="/c/:conferenceId/*" element={<ConferenceLayout />}>
+						<Route index element={<PAGES.dashboard />} />
+						<Route path="attendees" element={<PAGES.attendees />} />
+						<Route path="attendees/:id" element={<PAGES.attendees />} />
+						<Route path="checkin" element={<PAGES.checkin />} />
+						<Route path="checkin/:id" element={<PAGES.checkin />} />
+						<Route path="accommodation" element={<PAGES.accommodation />} />
+						<Route path="accommodation/:id" element={<PAGES.accommodation />} />
+						<Route path="travel" element={<PAGES.travel />} />
+						<Route path="travel/:id" element={<PAGES.travel />} />
+						<Route path="feedback" element={<PAGES.feedback />} />
+						<Route path="feedback/:id" element={<PAGES.feedback />} />
+						<Route path="food" element={<PAGES.food />} />
+						<Route path="food/:day" element={<PAGES.food />} />
+						<Route path="schedule" element={<PAGES.schedule />} />
+						<Route path="schedule/:day" element={<PAGES.schedule />} />
+						<Route path="vip" element={<PAGES.vip />} />
+						<Route path="vip/:id" element={<PAGES.vip />} />
+						<Route path="logistics" element={<PAGES.logistics />} />
+						<Route path="logistics/:id" element={<PAGES.logistics />} />
+						<Route path="venue" element={<PAGES.venue />} />
+						<Route path="venue/:id" element={<PAGES.venue />} />
+						<Route path="volunteers" element={<PAGES.volunteers />} />
+						<Route path="volunteers/:id" element={<PAGES.volunteers />} />
+						<Route path="helpdesk" element={<PAGES.helpdesk />} />
+						<Route path="helpdesk/:id" element={<PAGES.helpdesk />} />
+						<Route path="finance" element={<PAGES.finance />} />
+						<Route path="finance/:id" element={<PAGES.finance />} />
+						<Route path="reports" element={<PAGES.reports />} />
+						<Route path="settings" element={<PAGES.settings />} />
+					</Route>
+				</Routes>
+			</Suspense>
 		</div>
 	);
 }

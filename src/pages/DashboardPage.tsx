@@ -6,6 +6,7 @@ import { useConferenceDetails } from "@/db/hooks/conferences";
 import { useFoodPlans } from "@/db/hooks/foodPlans";
 import { useHelpdeskIssues } from "@/db/hooks/helpdeskIssues";
 import { useSessions } from "@/db/hooks/sessions";
+import { useTravelArrivals } from "@/db/hooks/travelArrivals";
 import { useVipGuests } from "@/db/hooks/vipGuests";
 import { AlertCircle, Bed, CheckCircle, Clock, Crown, Plane, Users, Utensils } from "lucide-react";
 import * as Recharts from "recharts";
@@ -27,12 +28,46 @@ export const DashboardPage = () => {
 	const { data: issues = [] } = useHelpdeskIssues();
 	const { data: foodPlans = [] } = useFoodPlans();
 	const { data: sessions = [] } = useSessions();
+	const { data: travelArrivals = [] } = useTravelArrivals();
 
 	const meta = {
 		name: conference?.name || "",
 		dates: conference ? `${conference.start_date || ""} — ${conference.end_date || ""}` : "",
 		currentDay: conference?.current_day || 1,
+		totalDays: (conference as any)?.total_days || 1,
 	} as any;
+
+	const sessionsByDay = sessions.reduce(
+		(acc, session) => {
+			const day = (session as any).day_number || meta.currentDay;
+			if (!acc[day]) acc[day] = [];
+			acc[day].push({
+				time: session.start_time || "",
+				title: session.title || "",
+				speaker: (session as any).speaker || "-",
+				venue: (session as any).venue || "",
+				status: (session as any).status || "upcoming",
+			});
+			return acc;
+		},
+		{} as Record<number, any[]>,
+	);
+
+	const mealCountToday = foodPlans
+		.filter(
+			(p: any) =>
+				(p as any).day_number === meta.currentDay ||
+				(p as any).meal_date === new Date(meta.currentDay).toISOString().split("T")[0],
+		)
+		.reduce(
+			(s: number, p: any) =>
+				s + ((p.breakfast || 0) + (p.lunch || 0) + (p.tea || 0) + (p.dinner || 0)),
+			0,
+		);
+
+	const pendingTravel = travelArrivals.filter(
+		(ta: any) => !ta.arrival_time || !ta.pickup_assigned || ta.status === "pending",
+	).length;
 
 	const overview = {
 		total: attendees.length,
@@ -41,12 +76,8 @@ export const DashboardPage = () => {
 		roomsAssigned: rooms.reduce((s: number, r: any) => s + (r.occupied_count || 0), 0),
 		roomsTotal: rooms.reduce((s: number, r: any) => s + (r.capacity || 0), 0),
 		vip: vipGuests.length,
-		mealCountToday: foodPlans.reduce(
-			(s: number, p: any) =>
-				s + ((p.breakfast || 0) + (p.lunch || 0) + (p.tea || 0) + (p.dinner || 0)),
-			0,
-		),
-		pendingTravel: 0,
+		mealCountToday,
+		pendingTravel,
 		openIssues: issues.filter(i => i.issue_status === "open").length,
 	} as any;
 
@@ -70,23 +101,11 @@ export const DashboardPage = () => {
 		},
 	];
 
-	const schedule = [
-		{
-			sessions: sessions.map(s => ({
-				time: s.start_time || "",
-				title: s.title || "",
-				speaker: s.speaker || "-",
-				venue: s.venue || "",
-				status: s.status || "upcoming",
-			})),
-		},
-	];
-
 	return (
 		<div>
 			<SectionTitle
 				title={PAGES_META.find(p => p.id === "dashboard")?.label || "Dashboard"}
-				subtitle={`${meta.name}  ·  ${meta.dates}  ·  Day ${meta.currentDay} of ${schedule.length}`}
+				subtitle={`${meta.name}  ·  ${meta.dates}  ·  Day ${meta.currentDay} of ${meta.totalDays}`}
 			/>
 			<div className="mb-5 grid grid-cols-1 sm:grid-cols-2 gap-3 lg:grid-cols-4">
 				<Link to={AppRoutes.attendees()}>
@@ -148,7 +167,7 @@ export const DashboardPage = () => {
 						icon={Clock}
 						label="Current Day"
 						value={`Day ${meta.currentDay}`}
-						sub={`of ${schedule.length} days`}
+						sub={`of ${meta.totalDays} days`}
 						color="gray"
 					/>
 				</Link>
@@ -199,37 +218,43 @@ export const DashboardPage = () => {
 				<Card>
 					<CardHead title="Participant Mix" />
 					<div className="h-52 p-4">
-						<Recharts.ResponsiveContainer width="100%" height="100%">
-							<Recharts.PieChart>
-								<Recharts.Pie
-									data={categoryBreakdown}
-									cx="50%"
-									cy="50%"
-									innerRadius={52}
-									outerRadius={72}
-									dataKey="value"
-									paddingAngle={3}
-								>
-									{categoryBreakdown.map((entry, index) => (
-										<Recharts.Cell key={index} fill={entry.color} />
-									))}
-								</Recharts.Pie>
-								<Recharts.Tooltip content={<CustomTooltip />} />
-								<Recharts.Legend
-									wrapperStyle={{ color: "#a1a1aa", fontSize: 11 }}
-									iconSize={8}
-								/>
-							</Recharts.PieChart>
-						</Recharts.ResponsiveContainer>
+						{categoryBreakdown.length ? (
+							<Recharts.ResponsiveContainer width="100%" height="100%">
+								<Recharts.PieChart>
+									<Recharts.Pie
+										data={categoryBreakdown}
+										cx="50%"
+										cy="50%"
+										innerRadius={52}
+										outerRadius={72}
+										dataKey="value"
+										paddingAngle={3}
+									>
+										{categoryBreakdown.map((entry, index) => (
+											<Recharts.Cell key={index} fill={entry.color} />
+										))}
+									</Recharts.Pie>
+									<Recharts.Tooltip content={<CustomTooltip />} />
+									<Recharts.Legend
+										wrapperStyle={{ color: "#a1a1aa", fontSize: 11 }}
+										iconSize={8}
+									/>
+								</Recharts.PieChart>
+							</Recharts.ResponsiveContainer>
+						) : (
+							<div className="flex h-full items-center justify-center text-center">
+								<p className="text-xs text-zinc-500">No participant data yet</p>
+							</div>
+						)}
 					</div>
 				</Card>
 			</div>
-			<Link to={AppRoutes.schedule(meta.currentDay.toString())}>
-				<Card>
-					<CardHead title={`Today's Schedule - Day ${meta.currentDay}`} />
-					<div className="divide-y divide-gray-100">
-						{schedule[meta.currentDay - 1]?.sessions.map(
-							(session: any, index: number) => (
+			{sessionsByDay[meta.currentDay]?.length ? (
+				<Link to={AppRoutes.schedule(meta.currentDay.toString())}>
+					<Card>
+						<CardHead title={`Today's Schedule - Day ${meta.currentDay}`} />
+						<div className="divide-y divide-gray-100">
+							{sessionsByDay[meta.currentDay].map((session: any, index: number) => (
 								<div
 									key={index}
 									className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-gray-50"
@@ -258,11 +283,18 @@ export const DashboardPage = () => {
 										{session.status}
 									</Badge>
 								</div>
-							),
-						)}
+							))}
+						</div>
+					</Card>
+				</Link>
+			) : (
+				<Card>
+					<CardHead title={`Today's Schedule - Day ${meta.currentDay}`} />
+					<div className="flex h-32 items-center justify-center">
+						<p className="text-xs text-zinc-500">No sessions scheduled for today</p>
 					</div>
 				</Card>
-			</Link>
+			)}
 		</div>
 	);
 };

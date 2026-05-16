@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { X } from "lucide-react";
 
@@ -28,6 +28,12 @@ export const EntityDrawer = ({
 }) => {
 	const [form, setForm] = useState<Record<string, any>>(initial || {});
 
+	useEffect(() => {
+		if (open) {
+			setForm(initial || {});
+		}
+	}, [open, initial]);
+
 	if (!open) return null;
 
 	return (
@@ -36,7 +42,12 @@ export const EntityDrawer = ({
 				className="absolute inset-0 bg-zinc-950/25 backdrop-blur-[2px]"
 				onClick={onCancel}
 			/>
-			<aside className="relative ml-auto flex h-full w-full max-w-md flex-col border-l border-gray-100 bg-white shadow-2xl">
+			<aside
+				className="relative ml-auto flex h-full w-full max-w-md flex-col border-l border-gray-100 bg-white shadow-2xl sm:rounded-l-xl"
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="drawer-title"
+			>
 				<div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
 					<h3 className="text-base font-semibold tracking-tight text-zinc-900">
 						{title || "Edit"}

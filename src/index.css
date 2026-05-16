@@ -19,9 +19,62 @@
     --color-destruct: #ef4444;
     --color-destruct-h: #dc2626;
     --color-success: #22c55e;
+    --color-warning: #f59e0b;
+    --color-info: #06b6d4;
+    --color-pending: #8b5cf6;
 
     --font-sans: Outfit, "Segoe UI", Arial, sans-serif;
     --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+}
+
+@layer components {
+    .bg-appbg {
+        @apply bg-gray-50;
+    }
+
+    .bg-cardbg {
+        @apply bg-white;
+    }
+
+    .bg-accent {
+        @apply bg-blue-600;
+    }
+
+    .bg-accent-light {
+        @apply bg-blue-50;
+    }
+
+    .text-primary {
+        @apply text-zinc-900;
+    }
+
+    .text-secondary {
+        @apply text-zinc-600;
+    }
+
+    .text-muted {
+        @apply text-zinc-500;
+    }
+
+    .text-accent {
+        @apply text-blue-600;
+    }
+
+    .text-success {
+        @apply text-emerald-600;
+    }
+
+    .text-destruct {
+        @apply text-red-600;
+    }
+
+    .text-warning {
+        @apply text-amber-600;
+    }
+
+    .border-card {
+        @apply border-gray-100;
+    }
 }
 
 @layer base {
