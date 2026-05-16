@@ -25,7 +25,7 @@ export const AccommodationPage = () => {
 	const summary = Object.values(summaryMap);
 
 	return (
-		<div>
+		<div className="flex gap-4 flex-col">
 			<SectionTitle
 				title="Accommodation Management"
 				subtitle="Room allocations, occupancy, and issue tracking"

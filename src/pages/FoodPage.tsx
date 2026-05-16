@@ -47,7 +47,7 @@ export const FoodPage = () => {
 	}
 
 	return (
-		<div>
+		<div className="flex gap-4 flex-col">
 			<SectionTitle
 				title={PAGES_META.find(p => p.id === "food")?.label || "Food & Catering"}
 				subtitle={

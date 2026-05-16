@@ -1,7 +1,11 @@
 import { useState } from "react";
 
-import { useAttendees } from "@/db/hooks/attendees";
+
+
+import { useAttendees, useUpsertAttendee } from "@/db/hooks/attendees";
 import { CheckCircle, Clock, Package, QrCode, Search } from "lucide-react";
+
+
 
 import { Badge } from "@/components/Badge";
 import { Card, CardHead } from "@/components/Card";
@@ -10,8 +14,14 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { SectionTitle } from "@/components/SectionTitle";
 import { StatCard } from "@/components/StatCard";
 
+
+
+
+
 export const CheckInPage = () => {
 	const { data: attendees = [] } = useAttendees();
+	const upsert = useUpsertAttendee();
+
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedAttendee, setSelectedAttendee] = useState<any>(null);
 
@@ -52,8 +62,33 @@ export const CheckInPage = () => {
 		color: colors[i % colors.length],
 	}));
 
+	const handleCheckIn = async () => {
+		if (!selectedAttendee) return;
+
+		const updated = {
+			...selectedAttendee,
+			checkin_status: "checked_in",
+			checked_in_at: new Date().toISOString(),
+		};
+
+		await upsert.mutateAsync(updated);
+		setSelectedAttendee(updated);
+	};
+
+	const handlePrintBadge = async () => {
+		if (!selectedAttendee) return;
+
+		const updated = {
+			...selectedAttendee,
+			badge_printed: true,
+		};
+
+		await upsert.mutateAsync(updated);
+		setSelectedAttendee(updated);
+	};
+
 	return (
-		<div>
+		<div className="flex gap-4 flex-col">
 			<SectionTitle
 				title="Check-in & Badge Management"
 				subtitle="Real-time entry tracking and badge distribution"
@@ -160,12 +195,18 @@ export const CheckInPage = () => {
 						</div>
 						<div className="flex gap-2 pt-2">
 							{!selectedAttendee.checked_in_at && (
-								<button className="flex-1 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700">
+								<button
+									onClick={handleCheckIn}
+									className="flex-1 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
+								>
 									✓ Check In
 								</button>
 							)}
 							{selectedAttendee.checked_in_at && !selectedAttendee.badge_printed && (
-								<button className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700">
+								<button
+									onClick={handlePrintBadge}
+									className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+								>
 									🖨️ Print Badge
 								</button>
 							)}

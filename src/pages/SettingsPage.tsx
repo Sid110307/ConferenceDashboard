@@ -72,7 +72,7 @@ export const SettingsPage = () => {
 	];
 
 	return (
-		<div>
+		<div className="flex gap-4 flex-col">
 			<SectionTitle
 				title={PAGES_META.find(p => p.id === "settings")?.label || "Settings"}
 				subtitle={

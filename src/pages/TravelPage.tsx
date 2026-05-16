@@ -55,7 +55,7 @@ export const TravelPage = () => {
 	const travelModes = Object.entries(modeCounts).map(([name, count]) => ({ name, count }));
 
 	return (
-		<div>
+		<div className="flex gap-4 flex-col">
 			<SectionTitle
 				title={PAGES_META.find(p => p.id === "travel")?.label || "Travel"}
 				subtitle={

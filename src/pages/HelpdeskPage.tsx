@@ -27,7 +27,7 @@ export const HelpdeskPage = () => {
 	const [editing, setEditing] = useState<Record<string, any> | null>(null);
 
 	return (
-		<div>
+		<div className="flex gap-4 flex-col">
 			<SectionTitle
 				title={
 					PAGES_META.find(p => p.id === "helpdesk")?.label || "Helpdesk & Issue Tracker"

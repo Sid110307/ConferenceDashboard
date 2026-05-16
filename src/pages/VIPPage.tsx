@@ -28,7 +28,7 @@ export const VIPPage = () => {
 	const done = checklist.filter((item: any) => item.done).length;
 
 	return (
-		<div>
+		<div className="flex gap-4 flex-col">
 			<SectionTitle
 				title={PAGES_META.find(p => p.id === "vip")?.label || "VIP"}
 				subtitle={

@@ -53,7 +53,7 @@ export const FinancePage = () => {
 		.slice(0, 5);
 
 	return (
-		<div>
+		<div className="flex gap-4 flex-col">
 			<SectionTitle
 				title="Finance & Budget Tracking"
 				subtitle="Budget overview, expenditure, sponsorship, and income management"

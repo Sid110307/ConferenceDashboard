@@ -55,7 +55,7 @@ export const SchedulePage = () => {
 		.map(d => ({ label: `Day ${d}`, sessions: daysMap[Number(d)] }));
 
 	return (
-		<div>
+		<div className="flex gap-4 flex-col">
 			<SectionTitle
 				title={PAGES_META.find(p => p.id === "schedule")?.label || "Schedule"}
 				subtitle={

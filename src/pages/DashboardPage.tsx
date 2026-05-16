@@ -1,5 +1,7 @@
 import { Link } from "react-router";
 
+
+
 import { useAccommodationRooms } from "@/db/hooks/accommodationRooms";
 import { useAttendees } from "@/db/hooks/attendees";
 import { useConferenceDetails } from "@/db/hooks/conferences";
@@ -11,14 +13,22 @@ import { useVipGuests } from "@/db/hooks/vipGuests";
 import { AlertCircle, Bed, CheckCircle, Clock, Crown, Plane, Users, Utensils } from "lucide-react";
 import * as Recharts from "recharts";
 
+
+
 import { Badge } from "@/components/Badge";
 import { Card, CardHead } from "@/components/Card";
 import { CustomTooltip } from "@/components/CustomTooltip";
 import { SectionTitle } from "@/components/SectionTitle";
 import { StatCard } from "@/components/StatCard";
 
+
+
 import { PAGES_META } from "@/core/data";
 import { Routes as AppRoutes } from "@/core/navigation";
+
+
+
+
 
 export const DashboardPage = () => {
 	const { data: conference } = useConferenceDetails();
@@ -30,11 +40,16 @@ export const DashboardPage = () => {
 	const { data: sessions = [] } = useSessions();
 	const { data: travelArrivals = [] } = useTravelArrivals();
 
+	const totalDaysInferred = Math.max(
+		conference?.current_day || 1,
+		...sessions.map((s: any) => Number(s.day_number || 1)),
+		...foodPlans.map((p: any) => Number(p.day_number || 1)),
+	);
 	const meta = {
 		name: conference?.name || "",
 		dates: conference ? `${conference.start_date || ""} — ${conference.end_date || ""}` : "",
 		currentDay: conference?.current_day || 1,
-		totalDays: (conference as any)?.total_days || 1,
+		totalDays: (conference as any)?.total_days || totalDaysInferred,
 	} as any;
 
 	const sessionsByDay = sessions.reduce(
@@ -53,11 +68,20 @@ export const DashboardPage = () => {
 		{} as Record<number, any[]>,
 	);
 
+	const currentDate =
+		conference?.start_date && conference?.current_day
+			? new Date(
+					new Date(conference.start_date).getTime() +
+						(conference.current_day - 1) * 24 * 60 * 60 * 1000,
+				)
+					.toISOString()
+					.split("T")[0]
+			: null;
 	const mealCountToday = foodPlans
-		.filter(
-			(p: any) =>
-				(p as any).day_number === meta.currentDay ||
-				(p as any).meal_date === new Date(meta.currentDay).toISOString().split("T")[0],
+		.filter((p: any) =>
+			p.day_number
+				? Number(p.day_number) === Number(meta.currentDay)
+				: currentDate && p.meal_date === currentDate,
 		)
 		.reduce(
 			(s: number, p: any) =>
@@ -102,7 +126,7 @@ export const DashboardPage = () => {
 	];
 
 	return (
-		<div>
+		<div className="flex gap-4 flex-col">
 			<SectionTitle
 				title={PAGES_META.find(p => p.id === "dashboard")?.label || "Dashboard"}
 				subtitle={`${meta.name}  ·  ${meta.dates}  ·  Day ${meta.currentDay} of ${meta.totalDays}`}

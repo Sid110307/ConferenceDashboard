@@ -1,26 +1,35 @@
-export const Routes = {
-	dashboard: () => ".",
-	attendees: (attendeeId?: string) => (attendeeId ? `attendees/${attendeeId}` : "attendees"),
-	checkin: (checkInId?: string) => (checkInId ? `checkin/${checkInId}` : "checkin"),
-	accommodation: (roomId?: string) => (roomId ? `accommodation/${roomId}` : "accommodation"),
-	travel: (travelId?: string) => (travelId ? `travel/${travelId}` : "travel"),
-	feedback: (feedbackId?: string) => (feedbackId ? `feedback/${feedbackId}` : "feedback"),
-	food: (dayId?: string) => (dayId ? `food/${dayId}` : "food"),
-	schedule: (dayId?: string) => (dayId ? `schedule/${dayId}` : "schedule"),
-	vip: (vipId?: string) => (vipId ? `vip/${vipId}` : "vip"),
-	logistics: (logisticsId?: string) => (logisticsId ? `logistics/${logisticsId}` : "logistics"),
-	venue: (venueId?: string) => (venueId ? `venue/${venueId}` : "venue"),
-	volunteers: (volunteerId?: string) =>
-		volunteerId ? `volunteers/${volunteerId}` : "volunteers",
-	helpdesk: (issueId?: string) => (issueId ? `helpdesk/${issueId}` : "helpdesk"),
-	finance: (financialId?: string) => (financialId ? `finance/${financialId}` : "finance"),
-	reports: () => "reports",
-	settings: () => "settings",
+const formatPath = (conferenceid: string | undefined, path: string): string => {
+	return conferenceid ? `/c/${conferenceid}/${path}` : path;
 };
 
-/**
- * Absolute route helper for linking TO a conference from outside
- * Use this from pages that are NOT inside the conference shell
- */
-export const conferencePath = (conferenceId: string, path = "") =>
-	path ? `/c/${conferenceId}/${path}` : `/c/${conferenceId}`;
+export const Routes = {
+	dashboard: (conferenceid?: string) => formatPath(conferenceid, ""),
+	attendees: (conferenceid?: string, attendeeId?: string) =>
+		formatPath(conferenceid, attendeeId ? `attendees/${attendeeId}` : "attendees"),
+	checkin: (conferenceid?: string, checkInId?: string) =>
+		formatPath(conferenceid, checkInId ? `checkin/${checkInId}` : "checkin"),
+	accommodation: (conferenceid?: string, roomId?: string) =>
+		formatPath(conferenceid, roomId ? `accommodation/${roomId}` : "accommodation"),
+	travel: (conferenceid?: string, travelId?: string) =>
+		formatPath(conferenceid, travelId ? `travel/${travelId}` : "travel"),
+	feedback: (conferenceid?: string, feedbackId?: string) =>
+		formatPath(conferenceid, feedbackId ? `feedback/${feedbackId}` : "feedback"),
+	food: (conferenceid?: string, dayId?: string) =>
+		formatPath(conferenceid, dayId ? `food/${dayId}` : "food"),
+	schedule: (conferenceid?: string, dayId?: string) =>
+		formatPath(conferenceid, dayId ? `schedule/${dayId}` : "schedule"),
+	vip: (conferenceid?: string, vipId?: string) =>
+		formatPath(conferenceid, vipId ? `vip/${vipId}` : "vip"),
+	logistics: (conferenceid?: string, logisticsId?: string) =>
+		formatPath(conferenceid, logisticsId ? `logistics/${logisticsId}` : "logistics"),
+	venue: (conferenceid?: string, venueId?: string) =>
+		formatPath(conferenceid, venueId ? `venue/${venueId}` : "venue"),
+	volunteers: (conferenceid?: string, volunteerId?: string) =>
+		formatPath(conferenceid, volunteerId ? `volunteers/${volunteerId}` : "volunteers"),
+	helpdesk: (conferenceid?: string, issueId?: string) =>
+		formatPath(conferenceid, issueId ? `helpdesk/${issueId}` : "helpdesk"),
+	finance: (conferenceid?: string, financialId?: string) =>
+		formatPath(conferenceid, financialId ? `finance/${financialId}` : "finance"),
+	reports: (conferenceid?: string) => formatPath(conferenceid, "reports"),
+	settings: (conferenceid?: string) => formatPath(conferenceid, "settings"),
+};

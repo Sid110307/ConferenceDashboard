@@ -5,7 +5,7 @@ import { SectionTitle } from "@/components/SectionTitle";
 import { StatCard } from "@/components/StatCard";
 
 export const FeedbackPage = () => (
-	<div>
+	<div className="flex gap-4 flex-col">
 		<SectionTitle
 			title="Feedback & Certificates"
 			subtitle="Post-event feedback and certificate management"

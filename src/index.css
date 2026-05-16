@@ -83,8 +83,7 @@
     }
 
     body {
-        @apply font-sans;
-        @apply bg-gray-50 text-zinc-900 antialiased;
+        @apply font-sans bg-gray-50 text-zinc-900 antialiased;
         text-rendering: optimizeLegibility;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;

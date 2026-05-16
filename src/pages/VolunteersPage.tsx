@@ -22,7 +22,7 @@ export const VolunteersPage = () => {
 	const remove = useDeleteVolunteer();
 	const [editing, setEditing] = useState<Record<string, any> | null>(null);
 	return (
-		<div>
+		<div className="flex gap-4 flex-col">
 			<SectionTitle
 				title={PAGES_META.find(p => p.id === "volunteers")?.label || "Volunteers"}
 				subtitle={

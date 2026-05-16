@@ -25,7 +25,7 @@ export const LogisticsPage = () => {
 	const tableRows = rows;
 
 	return (
-		<div>
+		<div className="flex gap-4 flex-col">
 			<SectionTitle
 				title={PAGES_META.find(p => p.id === "logistics")?.label || "Logistics & Inventory"}
 				subtitle={
