@@ -12,7 +12,7 @@ export const useConferenceDetails = () => {
 	const result = useContext(ConferenceCtx);
 	return useQuery({
 		queryKey: ["conferences", result?.conferenceId || "none"],
-		queryFn: async () => {
+		queryFn: async (): Promise<ConferenceRow | null> => {
 			if (!result?.conferenceId) return null;
 			const { data, error } = await neon
 				.from("conferences")

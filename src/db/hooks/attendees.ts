@@ -28,7 +28,7 @@ export const useAttendees = () => {
 
 	return useQuery({
 		queryKey: ["attendees", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<AttendeeWithRelations[]> => {
 			const { data, error } = await neon
 				.from("attendees")
 				.select(ATTENDEE_SELECT)
@@ -36,7 +36,7 @@ export const useAttendees = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return (data ?? []) as AttendeeWithRelations[];
 		},
 	});
 };

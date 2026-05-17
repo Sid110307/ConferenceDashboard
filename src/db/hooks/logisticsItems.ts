@@ -30,7 +30,7 @@ export const useLogisticsItems = () => {
 
 	return useQuery({
 		queryKey: ["logistics_items", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<LogisticsItemWithRelations[]> => {
 			const { data, error } = await neon
 				.from("logistics_items")
 				.select(LOGISTICS_ITEM_SELECT)
@@ -38,7 +38,7 @@ export const useLogisticsItems = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return (data ?? []) as LogisticsItemWithRelations[];
 		},
 	});
 };

@@ -41,11 +41,8 @@ export const SettingsPage = () => {
 	const checkedInCount = attendees.filter(
 		a => !!a.checked_in_at || a.checkin_status === "checked_in",
 	).length;
-	const roomsAssigned = rooms.reduce(
-		(sum: number, room: any) => sum + (room.occupied_count || 0),
-		0,
-	);
-	const roomsTotal = rooms.reduce((sum: number, room: any) => sum + (room.capacity || 0), 0);
+	const roomsAssigned = rooms.reduce((sum: number, room) => sum + (room.occupied_count || 0), 0);
+	const roomsTotal = rooms.reduce((sum: number, room) => sum + (room.capacity || 0), 0);
 	const openIssues = issues.filter(issue => issue.issue_status === "open").length;
 	const vipConfirmed = attendees.filter(
 		a => (a.category || "").toString().toLowerCase() === "vip",

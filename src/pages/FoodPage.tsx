@@ -1,6 +1,12 @@
 import { useState } from "react";
 
-import { useDeleteFoodPlan, useFoodPlans, useUpsertFoodPlan } from "@/db/hooks/foodPlans";
+import {
+	useDeleteFoodPlan,
+	useFoodPlans,
+	useUpsertFoodPlan,
+	type FoodPlanWithRelations,
+} from "@/db/hooks/foodPlans";
+import type { Database } from "@/db/types";
 import * as Recharts from "recharts";
 
 import { Card, CardHead } from "@/components/Card";
@@ -10,39 +16,63 @@ import { SectionTitle } from "@/components/SectionTitle";
 
 import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META } from "@/core/data";
+import { formatLabel } from "@/core/display";
+
+type DayWiseMealRow = {
+	id?: string;
+	day: string;
+	breakfast: number;
+	lunch: number;
+	tea: number;
+	dinner: number;
+};
+
+type DietRow = {
+	name: string;
+	value: number;
+	color: string;
+};
 
 export const FoodPage = () => {
 	const { data: plans = [], isLoading } = useFoodPlans();
-	const { conferenceId } = useConference();
 	const isEditor = useConference()?.isEditor || false;
 	const upsert = useUpsertFoodPlan();
 	const remove = useDeleteFoodPlan();
-	const [editing, setEditing] = useState<Record<string, any> | null>(null);
+	const [editing, setEditing] = useState<FoodPlanWithRelations | null>(null);
 
-	let daywise: any[] = [];
-	let diets: any[] = [];
+	let daywise: DayWiseMealRow[] = [];
+	let diets: DietRow[] = [];
 
 	if (plans && plans.length) {
-		const mapped = plans.map((p: any) => ({
-			...p,
-			day: p.day || p.label || String(p.id || ""),
-			breakfast: p.breakfast || 0,
-			lunch: p.lunch || 0,
-			tea: p.tea || 0,
-			dinner: p.dinner || 0,
+		const mapped = plans.map(plan => ({
+			day: formatLabel(String(plan.day_label || plan.meal_date || plan.id || "")),
+			breakfast: plan.breakfast_count || 0,
+			lunch: plan.lunch_count || 0,
+			tea: plan.tea_count || 0,
+			dinner: plan.dinner_count || 0,
 		}));
 		if (mapped.some(m => m.day)) daywise = mapped;
 
-		const dietMap: Record<string, number> = {};
-		plans.forEach((p: any) => {
-			const d = p.diet_preference || p.diet || null;
-			if (d) dietMap[d] = (dietMap[d] || 0) + 1;
-		});
-		const mappedDiets = Object.entries(dietMap).map(([name, value], i) => ({
-			name,
-			value,
-			color: ["#34d399", "#f87171", "#fbbf24", "#a78bfa", "#60a5fa"][i % 5],
-		}));
+		const dietCounts = [
+			{ name: "Veg", count: plans.reduce((s: number, p) => s + (p.veg_count || 0), 0) },
+			{
+				name: "Non-Veg",
+				count: plans.reduce((s: number, p) => s + (p.nonveg_count || 0), 0),
+			},
+			{ name: "Vegan", count: plans.reduce((s: number, p) => s + (p.vegan_count || 0), 0) },
+			{ name: "Jain", count: plans.reduce((s: number, p) => s + (p.jain_count || 0), 0) },
+			{
+				name: "Special",
+				count: plans.reduce((s: number, p) => s + (p.special_count || 0), 0),
+			},
+		];
+		const mappedDiets = dietCounts
+			.filter(d => d.count > 0)
+			.map(({ name, count }, i) => ({
+				name,
+				value: count,
+				color: ["#34d399", "#f87171", "#fbbf24", "#a78bfa", "#60a5fa"][i % 5],
+			}));
 		if (mappedDiets.length) diets = mappedDiets;
 	}
 
@@ -61,7 +91,7 @@ export const FoodPage = () => {
 				<div className="mb-4 flex justify-end">
 					<button
 						className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
-						onClick={() => setEditing({})}
+						onClick={() => setEditing({} as FoodPlanWithRelations)}
 					>
 						+ Add plan
 					</button>
@@ -199,7 +229,7 @@ export const FoodPage = () => {
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-gray-100">
-							{daywise.map((day: any, index) => (
+							{daywise.map((day, index) => (
 								<tr
 									key={index}
 									className={`hover:bg-gray-50 ${String(day.day).toLowerCase().includes("vip") ? "text-amber-700" : ""}`}
@@ -221,14 +251,17 @@ export const FoodPage = () => {
 										<td className="px-4 py-3 text-xs">
 											<button
 												className="mr-2 rounded-md px-2 py-1 text-xs border border-gray-100"
-												onClick={() => setEditing(day)}
+												onClick={() => setEditing(plans[index])}
 											>
 												Edit
 											</button>
 											{day.id && (
 												<button
 													className="rounded-md px-2 py-1 text-xs border border-red-200 text-red-600"
-													onClick={() => remove.mutate(day.id)}
+													onClick={async () => {
+														if (confirm("Delete this plan?"))
+															await remove.mutateAsync(day.id!);
+													}}
 												>
 													Delete
 												</button>
@@ -247,11 +280,18 @@ export const FoodPage = () => {
 					title={editing?.id ? "Edit plan" : "Add plan"}
 					initial={editing}
 					fields={[
-						{ name: "day", label: "Day" },
-						{ name: "breakfast", label: "Breakfast", type: "number" },
-						{ name: "lunch", label: "Lunch", type: "number" },
-						{ name: "tea", label: "Tea", type: "number" },
-						{ name: "dinner", label: "Dinner", type: "number" },
+						{ name: "day_label", label: "Day Label" },
+						{ name: "meal_date", label: "Meal Date" },
+						{ name: "breakfast_count", label: "Breakfast Count", type: "number" },
+						{ name: "lunch_count", label: "Lunch Count", type: "number" },
+						{ name: "tea_count", label: "Tea Count", type: "number" },
+						{ name: "dinner_count", label: "Dinner Count", type: "number" },
+						{ name: "veg_count", label: "Veg Count", type: "number" },
+						{ name: "nonveg_count", label: "Non-Veg Count", type: "number" },
+						{ name: "vegan_count", label: "Vegan Count", type: "number" },
+						{ name: "jain_count", label: "Jain Count", type: "number" },
+						{ name: "special_count", label: "Special Count", type: "number" },
+						{ name: "notes", label: "Notes", type: "textarea" },
 					]}
 					onCancel={() => setEditing(null)}
 					onSave={async row => {
@@ -261,7 +301,7 @@ export const FoodPage = () => {
 					onDelete={
 						editing?.id
 							? async () => {
-									await remove.mutateAsync(editing.id);
+									await remove.mutateAsync(editing.id!);
 									setEditing(null);
 								}
 							: undefined

@@ -22,7 +22,10 @@ import { StatCard } from "@/components/StatCard";
 
 import { useConference } from "@/core/ConferenceContext";
 import { categoryVariant, PAGES_META, statusVariant } from "@/core/data";
+import { formatLabel } from "@/core/display";
 import { Routes as AppRoutes } from "@/core/navigation";
+
+type AttendeeUpdate = Database["public"]["Tables"]["attendees"]["Update"];
 
 const categoryIconPool: LucideIcon[] = [
 	Users,
@@ -45,9 +48,7 @@ export const AttendeesPage = () => {
 	const isEditor = useConference()?.isEditor || false;
 	const upsert = useUpsertAttendee();
 	const remove = useDeleteAttendee();
-	const [editing, setEditing] = useState<Database["public"]["Tables"]["attendees"]["Row"] | null>(
-		null,
-	);
+	const [editing, setEditing] = useState<AttendeeUpdate | null>(null);
 
 	const categories = Array.from(new Set(attendees.map(a => a.category || "").filter(Boolean)));
 	const statuses = Array.from(
@@ -93,10 +94,7 @@ export const AttendeesPage = () => {
 			<div className="mb-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
 				{(categories.length
 					? categories.map(name => ({
-							name:
-								name.toUpperCase() === "VIP"
-									? "VIP"
-									: name.charAt(0).toUpperCase() + name.slice(1),
+							name: formatLabel(name),
 							value: attendees.filter(a => a.category === name).length,
 						}))
 					: []
@@ -139,7 +137,7 @@ export const AttendeesPage = () => {
 						onChange={event => setCatFilter(event.target.value)}
 					>
 						{["All", ...categories].map(category => (
-							<option key={category}>{category}</option>
+							<option key={category}>{formatLabel(category)}</option>
 						))}
 					</select>
 					<select
@@ -217,7 +215,7 @@ export const AttendeesPage = () => {
 												String(attendee.category || ""),
 											)}
 										>
-											{String(attendee.category || "")}
+											{formatLabel(String(attendee.category || ""))}
 										</Badge>
 									</td>
 									<td className="px-4 py-3">
@@ -230,10 +228,12 @@ export const AttendeesPage = () => {
 												),
 											)}
 										>
-											{String(
-												attendee.checkin_status ||
-													attendee.registration_status ||
-													"",
+											{formatLabel(
+												String(
+													attendee.checkin_status ||
+														attendee.registration_status ||
+														"",
+												),
 											)}
 										</Badge>
 									</td>
@@ -294,8 +294,10 @@ export const AttendeesPage = () => {
 					onDelete={
 						editing?.id
 							? async () => {
-									await remove.mutateAsync(editing.id);
-									setEditing(null);
+									if (editing.id && confirm("Delete this attendee?")) {
+										await remove.mutateAsync(editing.id);
+										setEditing(null);
+									}
 								}
 							: undefined
 					}

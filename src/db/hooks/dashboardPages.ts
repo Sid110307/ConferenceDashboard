@@ -30,7 +30,7 @@ export const useDashboardPages = () => {
 
 	return useQuery({
 		queryKey: ["dashboard_pages", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<DashboardPageWithRelations[]> => {
 			const { data, error } = await neon
 				.from("dashboard_pages")
 				.select(DASHBOARD_PAGE_SELECT)
@@ -38,7 +38,7 @@ export const useDashboardPages = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return (data ?? []) as DashboardPageWithRelations[];
 		},
 	});
 };

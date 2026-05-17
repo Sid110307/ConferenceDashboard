@@ -28,7 +28,7 @@ export const useFoodPlans = () => {
 
 	return useQuery({
 		queryKey: ["food_plans", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<FoodPlanWithRelations[]> => {
 			const { data, error } = await neon
 				.from("food_plans")
 				.select(FOOD_PLAN_SELECT)
@@ -36,7 +36,7 @@ export const useFoodPlans = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return (data ?? []) as FoodPlanWithRelations[];
 		},
 	});
 };

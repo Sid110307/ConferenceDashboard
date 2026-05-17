@@ -1,3 +1,4 @@
+import { formatLabel } from "@/core/display";
 import { NAVIGATION_GROUPS } from "@/core/navigationGroups";
 import type { PageMeta } from "@/core/types";
 
@@ -24,9 +25,9 @@ const STATUS_VARIANTS = {
 	"Checked In": "green",
 	"Not Checked In": "gray",
 	"Completed": "green",
-	"ongoing": "blue",
-	"upcoming": "gray",
-	"done": "green",
+	"Ongoing": "blue",
+	"Upcoming": "gray",
+	"Done": "green",
 	"Open": "red",
 	"In Progress": "yellow",
 	"Resolved": "green",
@@ -40,10 +41,12 @@ const STATUS_VARIANTS = {
 } as const;
 
 export const categoryVariant = (category: string): string =>
-	CATEGORY_VARIANTS[category as keyof typeof CATEGORY_VARIANTS] || "gray";
+	CATEGORY_VARIANTS[formatLabel(category) as keyof typeof CATEGORY_VARIANTS] || "gray";
 
 export const statusVariant = (status: string): string =>
-	STATUS_VARIANTS[status as keyof typeof STATUS_VARIANTS] || "gray";
+	STATUS_VARIANTS[formatLabel(status) as keyof typeof STATUS_VARIANTS] ||
+	STATUS_VARIANTS[status as keyof typeof STATUS_VARIANTS] ||
+	"gray";
 
 export const VARIANTS: Record<string, string> = {
 	blue: "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-100",

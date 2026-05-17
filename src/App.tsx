@@ -1,8 +1,9 @@
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { Link, Outlet, Route, Routes, useLocation, useNavigate, useParams } from "react-router";
 
 import { useConferenceDetails } from "@/db/hooks/conferences";
 import { neon } from "@/db/neon";
+import type { Database } from "@/db/types";
 import { ChevronDown, LogOut, Menu, Star } from "lucide-react";
 
 import { PAGES } from "@/pages";
@@ -14,6 +15,9 @@ import { useUserRoles } from "@/core/access";
 import { ConferenceProvider } from "@/core/ConferenceContext";
 import { Routes as AppRoutes } from "@/core/navigation";
 import { NAVIGATION_GROUPS } from "@/core/navigationGroups";
+import type { NavGroup, NavItem } from "@/core/types";
+
+type ConferenceRow = Database["public"]["Tables"]["conferences"]["Row"];
 
 const ConferenceDashboardShell = () => {
 	const navigate = useNavigate();
@@ -46,13 +50,13 @@ const ConferenceDashboardShell = () => {
 		}
 	};
 
-	const visibleNavGroups = NAVIGATION_GROUPS.map(group => ({
+	const visibleNavGroups: NavGroup[] = NAVIGATION_GROUPS.map(group => ({
 		...group,
 		items: group.items.filter(item => item.roles?.some(role => userRoles.includes(role))),
 	})).filter(group => group.items.length > 0);
 	const allItems = visibleNavGroups.flatMap(group => group.items);
 
-	const getCurrentPageId = () => {
+	const currentPageId = useMemo(() => {
 		const path = location.pathname;
 		const parts = path.split("/").filter(Boolean);
 
@@ -62,18 +66,17 @@ const ConferenceDashboardShell = () => {
 			return item.id.replace(/-/g, "").toLowerCase() === pagePath;
 		});
 		return foundItem?.id || "dashboard";
-	};
+	}, [location.pathname, allItems]);
 
-	const activePage = getCurrentPageId();
+	const activePage = currentPageId;
 	const current = allItems.find(item => item.id === activePage);
 
 	useEffect(() => {
-		const currentPageId = getCurrentPageId();
 		const activeGroup = visibleNavGroups.find(g => g.items.some(i => i.id === currentPageId));
 		if (activeGroup?.label !== null && activeGroup?.label) {
 			setExpanded(prev => ({ ...prev, [activeGroup.label as string]: true }));
 		}
-	}, [location.pathname]);
+	}, [currentPageId, visibleNavGroups]);
 
 	return (
 		<div className="flex h-full overflow-hidden bg-gray-50 text-zinc-900">
@@ -84,7 +87,7 @@ const ConferenceDashboardShell = () => {
 					expanded={expanded}
 					toggle={toggle}
 					setSidebarOpen={setSidebarOpen}
-					conference={conference}
+					conference={conference ?? null}
 					conferenceId={conferenceId}
 				/>
 			</div>
@@ -96,7 +99,7 @@ const ConferenceDashboardShell = () => {
 						expanded={expanded}
 						toggle={toggle}
 						setSidebarOpen={setSidebarOpen}
-						conference={conference}
+						conference={conference ?? null}
 						conferenceId={conferenceId}
 					/>
 					<div
@@ -148,7 +151,7 @@ const ConferenceDashboardShell = () => {
 					</button>
 				</div>
 				<main className="flex-1 overflow-y-auto p-4 lg:p-6">
-					<div className="mx-auto w-full max-w-[1600px]">
+					<div className="mx-auto w-full max-w-400">
 						<Suspense fallback={<div>Loading...</div>}>
 							<Outlet />
 						</Suspense>
@@ -167,12 +170,12 @@ const ConferenceLayout = () => (
 );
 
 type SidebarProps = {
-	visibleNavGroups: any[];
+	visibleNavGroups: NavGroup[];
 	activePage: string;
 	expanded: Record<string, boolean>;
 	toggle: (label: string) => void;
 	setSidebarOpen: (open: boolean) => void;
-	conference: any;
+	conference: ConferenceRow | null;
 	conferenceId?: string;
 };
 
@@ -208,7 +211,7 @@ const Sidebar = ({
 				return (
 					<div key={groupIndex}>
 						{group.label === null ? (
-							group.items.map((item: any) => (
+							group.items.map((item: NavItem) => (
 								<Link
 									key={item.id}
 									to={
@@ -250,7 +253,7 @@ const Sidebar = ({
 										role="region"
 										aria-label={`${group.label} items`}
 									>
-										{group.items.map((item: any) => (
+										{group.items.map((item: NavItem) => (
 											<Link
 												key={item.id}
 												to={

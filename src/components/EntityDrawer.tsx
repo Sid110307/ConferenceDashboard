@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 
 import { X } from "lucide-react";
 
+import { formatLabel } from "@/core/display";
+
 type Field = {
 	name: string;
 	label?: string;
@@ -9,7 +11,7 @@ type Field = {
 	options?: string[];
 };
 
-export const EntityDrawer = ({
+export const EntityDrawer = <TForm extends Record<string, unknown>>({
 	open,
 	title,
 	initial = {},
@@ -20,13 +22,13 @@ export const EntityDrawer = ({
 }: {
 	open: boolean;
 	title?: string;
-	initial?: Record<string, any> | null;
+	initial?: Partial<TForm> | null;
 	fields?: Field[];
-	onSave: (row: Record<string, any>) => Promise<void> | void;
+	onSave: (row: Partial<TForm>) => Promise<void> | void;
 	onCancel: () => void;
 	onDelete?: () => Promise<void> | void;
 }) => {
-	const [form, setForm] = useState<Record<string, any>>(initial || {});
+	const [form, setForm] = useState<Partial<TForm>>(initial || {});
 
 	useEffect(() => {
 		if (open) {
@@ -35,6 +37,10 @@ export const EntityDrawer = ({
 	}, [open, initial]);
 
 	if (!open) return null;
+
+	const handleFieldChange = (fieldName: string, value: unknown) => {
+		setForm({ ...form, [fieldName]: value } as Partial<TForm>);
+	};
 
 	return (
 		<div className="fixed inset-0 z-40 flex">
@@ -62,7 +68,9 @@ export const EntityDrawer = ({
 
 				<div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
 					{fields.map(field => {
-						const val = form[field.name] ?? "";
+						const rawValue = form[field.name as keyof TForm];
+						const textValue = rawValue == null ? "" : String(rawValue);
+
 						if (field.type === "textarea") {
 							return (
 								<div key={field.name}>
@@ -71,9 +79,9 @@ export const EntityDrawer = ({
 									</label>
 									<textarea
 										className="min-h-24 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-colors placeholder:text-zinc-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-										value={val}
+										value={textValue}
 										onChange={e =>
-											setForm({ ...form, [field.name]: e.target.value })
+											handleFieldChange(field.name, e.target.value)
 										}
 									/>
 								</div>
@@ -88,15 +96,15 @@ export const EntityDrawer = ({
 									</label>
 									<select
 										className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-colors focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-										value={val}
+										value={textValue}
 										onChange={e =>
-											setForm({ ...form, [field.name]: e.target.value })
+											handleFieldChange(field.name, e.target.value)
 										}
 									>
 										<option value="">--</option>
 										{(field.options || []).map(opt => (
 											<option key={opt} value={opt}>
-												{opt}
+												{formatLabel(opt)}
 											</option>
 										))}
 									</select>
@@ -112,18 +120,22 @@ export const EntityDrawer = ({
 								<input
 									className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-colors placeholder:text-zinc-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
 									type={field.type === "number" ? "number" : "text"}
-									value={val}
-									onChange={e =>
-										setForm({
-											...form,
-											[field.name]:
-												field.type === "number"
-													? e.target.value === ""
-														? ""
-														: Number(e.target.value)
-													: e.target.value,
-										})
+									value={
+										field.type === "number"
+											? rawValue == null || rawValue === ""
+												? ""
+												: Number(rawValue)
+											: textValue
 									}
+									onChange={e => {
+										const val =
+											field.type === "number"
+												? e.target.value === ""
+													? ""
+													: Number(e.target.value)
+												: e.target.value;
+										handleFieldChange(field.name, val);
+									}}
 								/>
 							</div>
 						);

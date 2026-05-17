@@ -30,7 +30,7 @@ export const useVolunteers = () => {
 
 	return useQuery({
 		queryKey: ["volunteers", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<VolunteerWithRelations[]> => {
 			const { data, error } = await neon
 				.from("volunteers")
 				.select(VOLUNTEER_SELECT)
@@ -38,7 +38,7 @@ export const useVolunteers = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return (data ?? []) as VolunteerWithRelations[];
 		},
 	});
 };

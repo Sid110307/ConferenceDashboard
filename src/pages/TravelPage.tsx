@@ -5,8 +5,9 @@ import {
 	useDeleteTravelArrival,
 	useTravelArrivals,
 	useUpsertTravelArrival,
+	type TravelArrivalWithRelations,
 } from "@/db/hooks/travelArrivals";
-import { useVipGuests } from "@/db/hooks/vipGuests";
+import type { Database } from "@/db/types";
 import { AlertCircle, Car, Clock, Plane } from "lucide-react";
 import * as Recharts from "recharts";
 
@@ -20,42 +21,44 @@ import { StatCard } from "@/components/StatCard";
 
 import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META, statusVariant } from "@/core/data";
+import { formatLabel } from "@/core/display";
 import { Routes as AppRoutes } from "@/core/navigation";
+
+type TravelArrivalUpdate = Database["public"]["Tables"]["travel_arrivals"]["Update"];
+
+const getArrivalName = (arrival: TravelArrivalWithRelations) =>
+	arrival.attendee_ref?.name || arrival.attendee || "Unknown";
 
 export const TravelPage = () => {
 	const { data: arrivals = [], isLoading } = useTravelArrivals();
-	const { data: vipGuests = [] } = useVipGuests();
 	const { conferenceId } = useConference();
 	const isEditor = useConference()?.isEditor || false;
 	const upsert = useUpsertTravelArrival();
 	const remove = useDeleteTravelArrival();
-	const [editing, setEditing] = useState<Record<string, any> | null>(null);
+	const [editing, setEditing] = useState<TravelArrivalUpdate | null>(null);
 
 	const now = new Date();
 	const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-	const urgentArrivals = arrivals.filter((a: any) => {
-		if (!a.arrival_time) return false;
-		const arrivalTime = new Date(`2026-05-17T${a.arrival_time}`);
+	const urgentArrivals = arrivals.filter(arrival => {
+		if (!arrival.arrival_time) return false;
+		const arrivalTime = new Date(`2026-05-17T${arrival.arrival_time}`);
 		return arrivalTime > now && arrivalTime <= twoHoursLater;
 	});
-
-	const vipIds = new Set(vipGuests.map((v: any) => v.attendee_id || v.id));
-	const vipArrivals = arrivals.filter((a: any) => vipIds.has(a.attendee_id));
-
-	const pendingArrivals = arrivals.filter(
-		(a: any) => !a.arrival_time || !a.pickup_assigned || a.status === "pending",
+	const vipArrivals = arrivals.filter(
+		arrival => formatLabel(arrival.attendee_ref?.category || "") === "VIP",
 	);
-
-	const modeCounts = arrivals.reduce<Record<string, number>>((acc, a: any) => {
-		const m = a.mode || a.travel_mode || "Unknown";
-		acc[m] = (acc[m] || 0) + 1;
+	const pendingArrivals = arrivals.filter(
+		arrival => !arrival.arrival_time || !arrival.pickup_required || !arrival.pickup_status,
+	);
+	const modeCounts = arrivals.reduce<Record<string, number>>((acc, arrival) => {
+		const mode = formatLabel(arrival.travel_mode || "Unknown");
+		acc[mode] = (acc[mode] || 0) + 1;
 		return acc;
 	}, {});
-
 	const travelModes = Object.entries(modeCounts).map(([name, count]) => ({ name, count }));
 
 	return (
-		<div className="flex gap-4 flex-col">
+		<div className="flex flex-col gap-4">
 			<SectionTitle
 				title={PAGES_META.find(p => p.id === "travel")?.label || "Travel"}
 				subtitle={
@@ -75,9 +78,7 @@ export const TravelPage = () => {
 								{urgentArrivals.length > 1 ? "s" : ""} in next 2 hours
 							</p>
 							<p className="text-xs text-amber-700">
-								{urgentArrivals
-									.map((a: any) => a.name || a.attended_name || "Unknown")
-									.join(", ")}
+								{urgentArrivals.map(getArrivalName).join(", ")}
 							</p>
 						</div>
 						<Badge variant="yellow">URGENT</Badge>
@@ -85,7 +86,7 @@ export const TravelPage = () => {
 				</Card>
 			)}
 
-			<div className="mb-5 grid grid-cols-1 sm:grid-cols-2 gap-3 lg:grid-cols-4">
+			<div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
 				<StatCard
 					icon={Clock}
 					label="Urgent Arrivals"
@@ -116,6 +117,7 @@ export const TravelPage = () => {
 					/>
 				))}
 			</div>
+
 			{vipArrivals.length > 0 && (
 				<Card className="mb-4">
 					<CardHead
@@ -123,37 +125,40 @@ export const TravelPage = () => {
 						extra={<Badge variant="gold">{vipArrivals.length}</Badge>}
 					/>
 					<div className="divide-y divide-gray-100">
-						{vipArrivals.map((arrival: any, index: number) => (
+						{vipArrivals.map((arrival, index) => (
 							<div
 								key={index}
 								className="flex items-center justify-between px-4 py-3 hover:bg-gray-50"
 							>
 								<div>
 									<p className="font-medium text-zinc-900">
-										{arrival.name || arrival.attended_name || "Unknown"}
+										{getArrivalName(arrival)}
 									</p>
 									<p className="text-xs text-zinc-500">
-										{arrival.arrival_from || arrival.from || "-"}
+										{arrival.arrival_from || "-"}
 									</p>
 								</div>
 								<div className="flex items-center gap-2">
-									<Badge variant={statusVariant(arrival.status)}>
-										{arrival.status || "pending"}
+									<Badge variant={statusVariant(arrival.pickup_status || "")}>
+										{formatLabel(arrival.pickup_status || "Pending")}
 									</Badge>
-									{arrival.pickup && <Badge variant="green">Pickup ✓</Badge>}
+									{arrival.pickup_required && (
+										<Badge variant="green">Pickup Required</Badge>
+									)}
 								</div>
 							</div>
 						))}
 					</div>
 				</Card>
 			)}
+
 			<div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
 				<Card className="lg:col-span-2">
 					<CardHead title="All Arrivals" />
 					{isEditor && (
 						<button
 							className="mx-4 mt-4 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
-							onClick={() => setEditing({})}
+							onClick={() => setEditing({} as TravelArrivalUpdate)}
 						>
 							+ Add arrival
 						</button>
@@ -167,7 +172,8 @@ export const TravelPage = () => {
 									isEditor
 										? {
 												label: "Add First Arrival",
-												onClick: () => setEditing({}),
+												onClick: () =>
+													setEditing({} as TravelArrivalUpdate),
 											}
 										: undefined
 								}
@@ -175,7 +181,7 @@ export const TravelPage = () => {
 						</div>
 					) : (
 						<>
-							<div className="hidden md:block overflow-x-auto">
+							<div className="hidden overflow-x-auto md:block">
 								<table className="w-full text-sm">
 									<thead>
 										<tr className="border-b border-gray-100">
@@ -186,7 +192,7 @@ export const TravelPage = () => {
 												"Time",
 												"Pickup",
 												"Vehicle",
-												"Status",
+												"Pickup Status",
 											].map(header => (
 												<th
 													key={header}
@@ -203,7 +209,7 @@ export const TravelPage = () => {
 										</tr>
 									</thead>
 									<tbody className="divide-y divide-gray-100">
-										{arrivals.map((arrival: any, index: number) => (
+										{arrivals.map((arrival, index) => (
 											<tr key={index} className="hover:bg-gray-50">
 												<td className="whitespace-nowrap px-4 py-3 text-zinc-900">
 													<Link
@@ -213,50 +219,53 @@ export const TravelPage = () => {
 														)}
 														className="hover:text-blue-600 hover:underline"
 													>
-														{arrival.name}
+														{getArrivalName(arrival)}
 													</Link>
 												</td>
 												<td className="px-4 py-3 text-xs text-zinc-600">
-													{arrival.from}
+													{arrival.arrival_from || "-"}
 												</td>
 												<td className="px-4 py-3 text-xs text-zinc-600">
-													{arrival.mode || arrival.travel_mode}
+													{formatLabel(arrival.travel_mode || "")}
 												</td>
 												<td className="px-4 py-3 font-mono text-xs text-zinc-500">
-													{arrival.arrival_time}
+													{arrival.arrival_time || "-"}
 												</td>
 												<td className="px-4 py-3">
 													<Badge
 														variant={
-															arrival.pickup ||
-															arrival.pickup === true
+															arrival.pickup_required
 																? "green"
 																: "gray"
 														}
 													>
-														{arrival.pickup === true
-															? "Yes"
-															: arrival.pickup || "No"}
+														{arrival.pickup_required ? "Yes" : "No"}
 													</Badge>
 												</td>
 												<td className="px-4 py-3 text-xs text-zinc-600">
-													{arrival.vehicle}
+													{arrival.vehicle || "-"}
 												</td>
 												<td className="px-4 py-3">
-													<Badge variant={statusVariant(arrival.status)}>
-														{arrival.status}
+													<Badge
+														variant={statusVariant(
+															arrival.pickup_status || "",
+														)}
+													>
+														{formatLabel(
+															arrival.pickup_status || "Pending",
+														)}
 													</Badge>
 												</td>
 												{isEditor && (
 													<td className="px-4 py-3 text-xs">
 														<button
-															className="mr-2 rounded-md px-2 py-1 text-xs border border-gray-100"
+															className="mr-2 rounded-md border border-gray-100 px-2 py-1 text-xs"
 															onClick={() => setEditing(arrival)}
 														>
 															Edit
 														</button>
 														<button
-															className="rounded-md px-2 py-1 text-xs border border-red-200 text-red-600"
+															className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600"
 															onClick={() =>
 																remove.mutate(arrival.id)
 															}
@@ -270,30 +279,32 @@ export const TravelPage = () => {
 									</tbody>
 								</table>
 							</div>
-							<div className="md:hidden space-y-2 p-4">
-								{arrivals.map((arrival: any, index: number) => (
+							<div className="space-y-2 p-4 md:hidden">
+								{arrivals.map((arrival, index) => (
 									<button
 										key={index}
 										onClick={() => setEditing(arrival)}
 										className="w-full rounded-md border border-gray-100 bg-gray-50 p-3 text-left transition-colors hover:bg-gray-100"
 									>
-										<div className="flex items-start justify-between mb-2">
+										<div className="mb-2 flex items-start justify-between">
 											<div>
 												<p className="font-medium text-zinc-900">
-													{arrival.name}
+													{getArrivalName(arrival)}
 												</p>
 												<p className="text-xs text-zinc-500">
-													{arrival.from}
+													{arrival.arrival_from || "-"}
 												</p>
 											</div>
-											<Badge variant={statusVariant(arrival.status)}>
-												{arrival.status}
+											<Badge
+												variant={statusVariant(arrival.pickup_status || "")}
+											>
+												{formatLabel(arrival.pickup_status || "Pending")}
 											</Badge>
 										</div>
 										<div className="flex gap-3 text-xs text-zinc-600">
-											<span>🕐 {arrival.arrival_time}</span>
-											<span>🚗 {arrival.mode || arrival.travel_mode}</span>
-											{arrival.pickup && <span>✓ Pickup</span>}
+											<span>🕐 {arrival.arrival_time || "-"}</span>
+											<span>🚗 {formatLabel(arrival.travel_mode || "")}</span>
+											{arrival.pickup_required && <span>✓ Pickup</span>}
 										</div>
 									</button>
 								))}
@@ -336,24 +347,34 @@ export const TravelPage = () => {
 					</div>
 				</Card>
 			</div>
+
 			{editing !== null && (
 				<EntityDrawer
-					open={editing !== null}
+					open
 					title={editing?.id ? "Edit arrival" : "Add arrival"}
 					initial={editing}
 					fields={[
-						{ name: "name", label: "Name" },
-						{ name: "from", label: "From" },
-						{ name: "travel_mode", label: "Mode" },
-						{ name: "time", label: "Time" },
+						{ name: "attendee", label: "Attendee" },
+						{ name: "arrival_from", label: "From" },
+						{ name: "arrival_location", label: "Arrival Location" },
+						{ name: "arrival_time", label: "Arrival Time" },
+						{ name: "travel_mode", label: "Travel Mode" },
 						{
-							name: "pickup",
-							label: "Pickup",
+							name: "pickup_required",
+							label: "Pickup Required",
 							type: "select",
 							options: ["true", "false"],
 						},
+						{
+							name: "pickup_status",
+							label: "Pickup Status",
+							type: "select",
+							options: ["scheduled", "en_route", "delayed", "completed"],
+						},
+						{ name: "driver_name", label: "Driver Name" },
+						{ name: "driver_phone", label: "Driver Phone" },
 						{ name: "vehicle", label: "Vehicle" },
-						{ name: "status", label: "Status" },
+						{ name: "notes", label: "Notes", type: "textarea" },
 					]}
 					onCancel={() => setEditing(null)}
 					onSave={async row => {
@@ -363,8 +384,10 @@ export const TravelPage = () => {
 					onDelete={
 						editing?.id
 							? async () => {
-									await remove.mutateAsync(editing.id);
-									setEditing(null);
+									if (editing.id && confirm("Delete this arrival?")) {
+										await remove.mutateAsync(editing.id);
+										setEditing(null);
+									}
 								}
 							: undefined
 					}
@@ -373,3 +396,5 @@ export const TravelPage = () => {
 		</div>
 	);
 };
+
+export default TravelPage;

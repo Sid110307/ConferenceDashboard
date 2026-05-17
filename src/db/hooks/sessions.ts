@@ -37,7 +37,7 @@ export const useSessions = () => {
 
 	return useQuery({
 		queryKey: ["sessions", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<SessionWithRelations[]> => {
 			const { data, error } = await neon
 				.from("sessions")
 				.select(SESSION_SELECT)
@@ -45,7 +45,7 @@ export const useSessions = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return (data ?? []) as SessionWithRelations[];
 		},
 	});
 };

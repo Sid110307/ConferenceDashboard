@@ -10,6 +10,7 @@ import { SectionTitle } from "@/components/SectionTitle";
 
 import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META } from "@/core/data";
+import { formatLabel } from "@/core/display";
 
 export const VenuePage = () => {
 	const { data: venues = [], isLoading } = useVenues();
@@ -46,8 +47,12 @@ export const VenuePage = () => {
 									</p>
 								</div>
 								<div className="flex items-center gap-2">
-									<Badge variant={venue.status === "Active" ? "green" : "red"}>
-										{venue.status}
+									<Badge
+										variant={
+											formatLabel(venue.status) === "Active" ? "green" : "red"
+										}
+									>
+										{formatLabel(venue.status)}
 									</Badge>
 									{isEditor && (
 										<div className="flex gap-1">

@@ -30,7 +30,7 @@ export const useAccommodationRooms = () => {
 
 	return useQuery({
 		queryKey: ["accommodation_rooms", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<AccommodationRoomWithRelations[]> => {
 			const { data, error } = await neon
 				.from("accommodation_rooms")
 				.select(ACCOMMODATION_ROOM_SELECT)
@@ -38,7 +38,7 @@ export const useAccommodationRooms = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return (data ?? []) as AccommodationRoomWithRelations[];
 		},
 	});
 };

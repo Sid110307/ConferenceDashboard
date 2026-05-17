@@ -33,7 +33,7 @@ export const useHelpdeskIssues = () => {
 
 	return useQuery({
 		queryKey: ["helpdesk_issues", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<HelpdeskIssueWithRelations[]> => {
 			const { data, error } = await neon
 				.from("helpdesk_issues")
 				.select(HELPDESK_ISSUE_SELECT)
@@ -41,7 +41,7 @@ export const useHelpdeskIssues = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return (data ?? []) as HelpdeskIssueWithRelations[];
 		},
 	});
 };

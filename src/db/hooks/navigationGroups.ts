@@ -30,7 +30,7 @@ export const useNavigationGroups = () => {
 
 	return useQuery({
 		queryKey: ["navigation_groups", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<NavigationGroupWithRelations[]> => {
 			const { data, error } = await neon
 				.from("navigation_groups")
 				.select(NAVIGATION_GROUP_SELECT)
@@ -38,7 +38,7 @@ export const useNavigationGroups = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return (data ?? []) as NavigationGroupWithRelations[];
 		},
 	});
 };

@@ -28,7 +28,7 @@ export const useVipGuests = () => {
 
 	return useQuery({
 		queryKey: ["vip_guests", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<VipGuestWithRelations[]> => {
 			const { data, error } = await neon
 				.from("vip_guests")
 				.select(VIP_GUEST_SELECT)
@@ -36,7 +36,7 @@ export const useVipGuests = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return (data ?? []) as VipGuestWithRelations[];
 		},
 	});
 };

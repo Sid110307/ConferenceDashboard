@@ -6,6 +6,7 @@ import {
 	useHelpdeskIssues,
 	useUpsertHelpdeskIssue,
 } from "@/db/hooks/helpdeskIssues";
+import type { Database } from "@/db/types";
 import { AlertCircle, CheckCircle, Clock } from "lucide-react";
 
 import { Badge } from "@/components/Badge";
@@ -16,7 +17,10 @@ import { StatCard } from "@/components/StatCard";
 
 import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META, statusVariant } from "@/core/data";
+import { formatLabel } from "@/core/display";
 import { Routes as AppRoutes } from "@/core/navigation";
+
+type HelpdeskIssueUpdate = Database["public"]["Tables"]["helpdesk_issues"]["Update"];
 
 export const HelpdeskPage = () => {
 	const { data: issues = [], isLoading } = useHelpdeskIssues();
@@ -24,7 +28,7 @@ export const HelpdeskPage = () => {
 	const isEditor = useConference()?.isEditor || false;
 	const upsert = useUpsertHelpdeskIssue();
 	const remove = useDeleteHelpdeskIssue();
-	const [editing, setEditing] = useState<Record<string, any> | null>(null);
+	const [editing, setEditing] = useState<HelpdeskIssueUpdate | null>(null);
 
 	return (
 		<div className="flex gap-4 flex-col">
@@ -99,12 +103,8 @@ export const HelpdeskPage = () => {
 						</thead>
 						<tbody className="divide-y divide-gray-100">
 							{issues.map((issue, index) => {
-								const statusRaw = (issue.issue_status || "") as string;
-								const statusLabel = statusRaw
-									? statusRaw
-											.replace(/_/g, " ")
-											.replace(/\b\w/g, s => s.toUpperCase())
-									: "";
+								const statusLabel = formatLabel(issue.issue_status || "");
+								const priorityLabel = formatLabel(String(issue.priority || ""));
 								return (
 									<tr key={index} className="hover:bg-gray-50">
 										<td className="px-4 py-3 font-mono text-xs text-blue-600">
@@ -124,22 +124,19 @@ export const HelpdeskPage = () => {
 											</Link>
 										</td>
 										<td className="px-4 py-3 text-xs text-zinc-600">
-											{issue.issue_type}
+											{formatLabel(issue.issue_type)}
 										</td>
 										<td className="px-4 py-3">
 											<Badge
 												variant={
-													(issue.priority as string) === "high" ||
-													(issue.priority as string) === "High"
+													priorityLabel === "High"
 														? "red"
-														: (issue.priority as string) === "medium" ||
-															  (issue.priority as string) ===
-																	"Medium"
+														: priorityLabel === "Medium"
 															? "yellow"
 															: "gray"
 												}
 											>
-												{issue.priority}
+												{priorityLabel}
 											</Badge>
 										</td>
 										<td className="px-4 py-3 text-xs text-zinc-600">
@@ -207,8 +204,10 @@ export const HelpdeskPage = () => {
 					onDelete={
 						editing?.id
 							? async () => {
-									await remove.mutateAsync(editing.id);
-									setEditing(null);
+									if (editing.id && confirm("Delete this issue?")) {
+										await remove.mutateAsync(editing.id);
+										setEditing(null);
+									}
 								}
 							: undefined
 					}

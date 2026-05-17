@@ -20,6 +20,7 @@ import { StatCard } from "@/components/StatCard";
 
 import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META } from "@/core/data";
+import { formatLabel } from "@/core/display";
 import { Routes as AppRoutes } from "@/core/navigation";
 
 type SessionCard = {
@@ -120,7 +121,7 @@ export const DashboardPage = () => {
 	});
 	const colors = ["#60a5fa", "#a78bfa", "#34d399", "#fbbf24", "#f87171"];
 	const categoryBreakdown = Object.entries(categoryCounts).map(([name, value], i) => ({
-		name: name.toUpperCase() === "VIP" ? "VIP" : name.charAt(0).toUpperCase() + name.slice(1),
+		name: formatLabel(name),
 		value,
 		color: colors[i % colors.length],
 	}));
@@ -317,7 +318,7 @@ export const DashboardPage = () => {
 													: "gray"
 										}
 									>
-										{session.status}
+										{formatLabel(session.status)}
 									</Badge>
 								</div>
 							))}

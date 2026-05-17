@@ -2,13 +2,17 @@ import { useNavigate, useParams } from "react-router";
 
 import { useConferenceDetails } from "@/db/hooks/conferences";
 import { useSessions } from "@/db/hooks/sessions";
+import type { Database } from "@/db/types";
 
 import { Badge } from "@/components/Badge";
 import { Card } from "@/components/Card";
 import { SectionTitle } from "@/components/SectionTitle";
 
 import { PAGES_META } from "@/core/data";
+import { formatLabel } from "@/core/display";
 import { Routes as AppRoutes } from "@/core/navigation";
+
+type SessionRow = Database["public"]["Tables"]["sessions"]["Row"];
 
 export const SchedulePage = () => {
 	const { day: dayParam } = useParams<{ day?: string }>();
@@ -31,23 +35,39 @@ export const SchedulePage = () => {
 			Poster: "purple",
 			Parallel: "gray",
 			Break: "gray",
-		})[type] || "gray";
+		})[formatLabel(type)] || "gray";
 
-	const daysMap: Record<number, any[]> = {};
-	sessions.forEach((s: any) => {
+	const daysMap: Record<number, SessionRow[]> = {};
+	sessions.forEach((session: SessionRow) => {
 		let day = 1;
+
 		try {
-			if (s.extra_data && typeof s.extra_data === "object" && s.extra_data.day)
-				day = Number(s.extra_data.day) || 1;
-			else if (s.extra_data && typeof s.extra_data === "string") {
-				const parsed = JSON.parse(s.extra_data as string);
-				if (parsed?.day) day = Number(parsed.day) || 1;
+			const extraData = session.extra_data;
+
+			if (
+				extraData &&
+				typeof extraData === "object" &&
+				!Array.isArray(extraData) &&
+				"day" in extraData
+			)
+				day = Number(extraData.day) || 1;
+			else if (typeof extraData === "string") {
+				const parsed = JSON.parse(extraData);
+
+				if (
+					parsed &&
+					typeof parsed === "object" &&
+					!Array.isArray(parsed) &&
+					"day" in parsed
+				)
+					day = Number(parsed.day) || 1;
 			}
 		} catch {
-			console.warn("Failed to parse extra data for session", s);
+			console.warn("Failed to parse extra data for session", session);
 		}
+
 		if (!daysMap[day]) daysMap[day] = [];
-		daysMap[day].push(s);
+		daysMap[day].push(session);
 	});
 
 	const days = Object.keys(daysMap)
@@ -76,13 +96,17 @@ export const SchedulePage = () => {
 			</div>
 			<Card>
 				<div className="divide-y divide-gray-100">
-					{days[activeDay]?.sessions.map((session: any, index: number) => (
+					{days[activeDay]?.sessions.map((session, index: number) => (
 						<div
 							key={index}
 							className={`flex flex-col gap-3 px-4 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center ${session.status === "done" ? "opacity-50" : session.status === "ongoing" ? "border-l-2 border-blue-500" : ""}`}
 						>
 							<span className="w-28 shrink-0 font-mono text-xs text-zinc-600">
-								{session.start_time || session.time}
+								{session.start_time || session.end_time
+									? `${session.start_time?.slice(0, 5) || "??:??"} - ${
+											session.end_time?.slice(0, 5) || "??:??"
+										}`
+									: "Time TBD"}
 							</span>
 							<div className="min-w-0 flex-1">
 								<p className="font-medium text-zinc-900">{session.title}</p>
@@ -92,8 +116,8 @@ export const SchedulePage = () => {
 								</p>
 							</div>
 							<div className="flex shrink-0 flex-wrap items-start gap-2">
-								<Badge variant={typeVariant(session.session_type || session.type)}>
-									{session.session_type || session.type}
+								<Badge variant={typeVariant(session.session_type || "Other")}>
+									{formatLabel(session.session_type || "Other")}
 								</Badge>
 								{session.status === "ongoing" && <Badge variant="blue">Live</Badge>}
 							</div>

@@ -33,7 +33,7 @@ export const useTravelArrivals = () => {
 
 	return useQuery({
 		queryKey: ["travel_arrivals", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<TravelArrivalWithRelations[]> => {
 			const { data, error } = await neon
 				.from("travel_arrivals")
 				.select(TRAVEL_ARRIVAL_SELECT)
@@ -41,7 +41,7 @@ export const useTravelArrivals = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return (data ?? []) as TravelArrivalWithRelations[];
 		},
 	});
 };

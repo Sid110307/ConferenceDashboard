@@ -5,6 +5,7 @@ import {
 	useLogisticsItems,
 	useUpsertLogisticsItem,
 } from "@/db/hooks/logisticsItems";
+import type { Database } from "@/db/types";
 
 import { Badge } from "@/components/Badge";
 import { Card } from "@/components/Card";
@@ -15,13 +16,15 @@ import { SectionTitle } from "@/components/SectionTitle";
 import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META } from "@/core/data";
 
+type LogisticsItemUpdate = Database["public"]["Tables"]["logistics_items"]["Update"];
+
 export const LogisticsPage = () => {
 	const { conferenceId } = useConference();
 	const isEditor = useConference()?.isEditor || false;
 	const { data: rows = [] } = useLogisticsItems();
 	const upsert = useUpsertLogisticsItem();
 	const remove = useDeleteLogisticsItem();
-	const [editing, setEditing] = useState<Record<string, any> | null>(null);
+	const [editing, setEditing] = useState<LogisticsItemUpdate | null>(null);
 	const tableRows = rows;
 
 	return (
@@ -65,22 +68,25 @@ export const LogisticsPage = () => {
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-gray-100">
-							{tableRows.map((item: any, index) => {
-								const remaining = item.total - item.issued;
-								const pct = item.total
-									? Math.round((item.issued / item.total) * 100)
+							{tableRows.map((item, index) => {
+								const totalQuantity = item.total_quantity || 0;
+								const issuedQuantity = item.issued_quantity || 0;
+
+								const remaining = totalQuantity - issuedQuantity;
+								const pct = totalQuantity
+									? Math.round((issuedQuantity / totalQuantity) * 100)
 									: 0;
 
 								return (
 									<tr key={index} className="hover:bg-gray-50">
 										<td className="px-4 py-3 font-medium text-zinc-900">
-											{item.item}
+											{item.item_name}
 										</td>
 										<td className="px-4 py-3 text-zinc-600">
-											{item.total.toLocaleString()}
+											{totalQuantity.toLocaleString()}
 										</td>
 										<td className="px-4 py-3 text-zinc-600">
-											{item.issued.toLocaleString()}
+											{issuedQuantity.toLocaleString()}
 										</td>
 										<td className="px-4 py-3">
 											<Badge
@@ -97,8 +103,8 @@ export const LogisticsPage = () => {
 										</td>
 										<td className="w-40 px-4 py-3">
 											<ProgressBar
-												value={item.issued}
-												max={item.total}
+												value={issuedQuantity}
+												max={totalQuantity}
 												color={
 													pct >= 90
 														? "red"
@@ -109,7 +115,8 @@ export const LogisticsPage = () => {
 											/>
 										</td>
 										<td className="px-4 py-3 text-xs text-zinc-600">
-											{item.vendor}
+											{item.vendor_name}
+											{item.vendor_contact && ` (${item.vendor_contact})`}
 										</td>
 										{isEditor && (
 											<td className="px-4 py-3 text-xs">
@@ -142,10 +149,19 @@ export const LogisticsPage = () => {
 					title={editing?.id ? "Edit logistics item" : "Add logistics item"}
 					initial={editing}
 					fields={[
-						{ name: "item", label: "Item" },
-						{ name: "total", label: "Total", type: "number" },
-						{ name: "issued", label: "Issued", type: "number" },
-						{ name: "vendor", label: "Vendor" },
+						{ name: "item_name", label: "Item" },
+						{ name: "total_quantity", label: "Total", type: "number" },
+						{ name: "issued_quantity", label: "Issued", type: "number" },
+						{ name: "vendor_name", label: "Vendor" },
+						{ name: "vendor_contact", label: "Vendor Contact" },
+						{ name: "category", label: "Category" },
+						{
+							name: "status_label",
+							label: "Status",
+							type: "select",
+							options: ["ordered", "received", "shortage"],
+						},
+						{ name: "notes", label: "Notes", type: "textarea" },
 					]}
 					onCancel={() => setEditing(null)}
 					onSave={async row => {
@@ -155,8 +171,10 @@ export const LogisticsPage = () => {
 					onDelete={
 						editing?.id
 							? async () => {
-									await remove.mutateAsync(editing.id);
-									setEditing(null);
+									if (editing.id && confirm("Delete this item?")) {
+										await remove.mutateAsync(editing.id);
+										setEditing(null);
+									}
 								}
 							: undefined
 					}

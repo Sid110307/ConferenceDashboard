@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 
 import { useDeleteVolunteer, useUpsertVolunteer, useVolunteers } from "@/db/hooks/volunteers.ts";
+import type { Database } from "@/db/types";
 import { CheckCircle, Clock, TrendingUp, UserCheck } from "lucide-react";
 
 import { Badge } from "@/components/Badge";
@@ -12,7 +13,10 @@ import { StatCard } from "@/components/StatCard";
 
 import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META } from "@/core/data";
+import { formatLabel } from "@/core/display";
 import { Routes as AppRoutes } from "@/core/navigation";
+
+type VolunteerUpdate = Database["public"]["Tables"]["volunteers"]["Update"];
 
 export const VolunteersPage = () => {
 	const { data: volunteers = [], isLoading } = useVolunteers();
@@ -20,7 +24,7 @@ export const VolunteersPage = () => {
 	const isEditor = useConference()?.isEditor || false;
 	const upsert = useUpsertVolunteer();
 	const remove = useDeleteVolunteer();
-	const [editing, setEditing] = useState<Record<string, any> | null>(null);
+	const [editing, setEditing] = useState<VolunteerUpdate | null>(null);
 	return (
 		<div className="flex gap-4 flex-col">
 			<SectionTitle
@@ -45,7 +49,7 @@ export const VolunteersPage = () => {
 							? "Loading..."
 							: volunteers.filter(
 									volunteer =>
-										String(volunteer.status_label).toLowerCase() === "active",
+										formatLabel(String(volunteer.status_label)) === "Active",
 								).length
 					}
 					color="green"
@@ -136,18 +140,20 @@ export const VolunteersPage = () => {
 											: ""}
 									</td>
 									<td className="px-4 py-3">
-										<Badge variant="blue">{String(volunteer.team || "")}</Badge>
+										<Badge variant="blue">
+											{formatLabel(String(volunteer.team || ""))}
+										</Badge>
 									</td>
 									<td className="px-4 py-3">
 										<Badge
 											variant={
-												String(volunteer.status_label).toLowerCase() ===
-												"active"
+												formatLabel(String(volunteer.status_label)) ===
+												"Active"
 													? "green"
 													: "yellow"
 											}
 										>
-											{String(volunteer.status_label || "")}
+											{formatLabel(String(volunteer.status_label || ""))}
 										</Badge>
 									</td>
 									{isEditor && (
@@ -199,8 +205,10 @@ export const VolunteersPage = () => {
 					onDelete={
 						editing?.id
 							? async () => {
-									await remove.mutateAsync(editing.id);
-									setEditing(null);
+									if (editing.id && confirm("Delete this volunteer?")) {
+										await remove.mutateAsync(editing.id);
+										setEditing(null);
+									}
 								}
 							: undefined
 					}

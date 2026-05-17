@@ -19,6 +19,7 @@ import { StatCard } from "@/components/StatCard";
 
 import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META, statusVariant } from "@/core/data";
+import { formatLabel } from "@/core/display";
 import { Routes as AppRoutes } from "@/core/navigation";
 
 type VipGuestCard = {
@@ -96,7 +97,7 @@ export const VIPPage = () => {
 						{isEditor && (
 							<button
 								className="mx-4 mt-4 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
-								onClick={() => setEditing({})}
+								onClick={() => setEditing({} as VipGuestCard)}
 							>
 								+ Add VIP guest
 							</button>
@@ -150,7 +151,7 @@ export const VIPPage = () => {
 														guest.protocol === "A+" ? "gold" : "blue"
 													}
 												>
-													{guest.protocol}
+													{formatLabel(guest.protocol)}
 												</Badge>
 											</td>
 											<td className="px-4 py-3 font-mono text-xs text-zinc-600">
@@ -161,7 +162,7 @@ export const VIPPage = () => {
 											</td>
 											<td className="px-4 py-3">
 												<Badge variant={guest.security ? "green" : "red"}>
-													{guest.security ? "Cleared" : "Pending"}
+													{formatLabel(guest.status)}
 												</Badge>
 											</td>
 											<td className="px-4 py-3">

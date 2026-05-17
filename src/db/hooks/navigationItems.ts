@@ -33,7 +33,7 @@ export const useNavigationItems = () => {
 
 	return useQuery({
 		queryKey: ["navigation_items", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<NavigationItemWithRelations[]> => {
 			const { data, error } = await neon
 				.from("navigation_items")
 				.select(NAVIGATION_ITEM_SELECT)
@@ -41,7 +41,7 @@ export const useNavigationItems = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return (data ?? []) as NavigationItemWithRelations[];
 		},
 	});
 };
