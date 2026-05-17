@@ -2,25 +2,52 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router";
 
 import { useAttendees, useDeleteAttendee, useUpsertAttendee } from "@/db/hooks/attendees";
-import { Search } from "lucide-react";
+import type { Database } from "@/db/types.ts";
+import {
+	Search,
+	ShieldCheck,
+	UserCheck,
+	UserCog,
+	UserRound,
+	Users,
+	UsersRound,
+	type LucideIcon,
+} from "lucide-react";
 
 import { Badge } from "@/components/Badge";
 import { Card } from "@/components/Card";
 import EntityDrawer from "@/components/EntityDrawer";
 import { SectionTitle } from "@/components/SectionTitle";
+import { StatCard } from "@/components/StatCard";
 
 import { useConference } from "@/core/ConferenceContext";
 import { categoryVariant, PAGES_META, statusVariant } from "@/core/data";
 import { Routes as AppRoutes } from "@/core/navigation";
 
+const categoryIconPool: LucideIcon[] = [
+	Users,
+	UsersRound,
+	UserRound,
+	UserCheck,
+	UserCog,
+	ShieldCheck,
+];
+
+const getCategoryIcon = (categoryName: string) => {
+	const hash = categoryName.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+	return categoryIconPool[hash % categoryIconPool.length];
+};
+
 export const AttendeesPage = () => {
 	const [search, setSearch] = useState("");
 	const { data: attendees = [], isLoading } = useAttendees();
-	const _conf = useConference();
-	const isEditor = _conf?.isEditor || false;
+	const { conferenceId } = useConference();
+	const isEditor = useConference()?.isEditor || false;
 	const upsert = useUpsertAttendee();
 	const remove = useDeleteAttendee();
-	const [editing, setEditing] = useState<Record<string, any> | null>(null);
+	const [editing, setEditing] = useState<Database["public"]["Tables"]["attendees"]["Row"] | null>(
+		null,
+	);
 
 	const categories = Array.from(new Set(attendees.map(a => a.category || "").filter(Boolean)));
 	const statuses = Array.from(
@@ -63,27 +90,37 @@ export const AttendeesPage = () => {
 						: `${attendees.length} registered participants across ${categories.length} categories`
 				}
 			/>
-			<div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+			<div className="mb-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
 				{(categories.length
 					? categories.map(name => ({
-							name,
+							name:
+								name.toUpperCase() === "VIP"
+									? "VIP"
+									: name.charAt(0).toUpperCase() + name.slice(1),
 							value: attendees.filter(a => a.category === name).length,
 						}))
 					: []
-				).map(category => (
-					<Card
-						key={category.name}
-						className={`cursor-pointer p-3 text-center transition-all ${catFilter === category.name ? "border-blue-200 bg-blue-50/70 ring-1 ring-inset ring-blue-100" : "hover:border-gray-200 hover:shadow-sm"}`}
-						onClick={() =>
-							setCatFilter(catFilter === category.name ? "All" : category.name)
-						}
-					>
-						<div className="text-2xl font-semibold tracking-tight text-zinc-900">
-							{category.value}
-						</div>
-						<div className="mt-0.5 text-xs text-zinc-600">{category.name}</div>
-					</Card>
-				))}
+				).map(category => {
+					const CategoryIcon = getCategoryIcon(category.name);
+					return (
+						<StatCard
+							key={category.name}
+							icon={CategoryIcon}
+							label={category.name}
+							value={category.value}
+							sub="participants"
+							color="blue"
+							className={
+								catFilter === category.name
+									? "border-blue-200 bg-blue-50/80 ring-1 ring-inset ring-blue-100 shadow-sm"
+									: ""
+							}
+							onClick={() =>
+								setCatFilter(catFilter === category.name ? "All" : category.name)
+							}
+						/>
+					);
+				})}
 			</div>
 			<Card className="mb-3">
 				<div className="flex flex-col gap-2 p-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -117,7 +154,9 @@ export const AttendeesPage = () => {
 					{isEditor && (
 						<button
 							className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 sm:ml-auto"
-							onClick={() => setEditing({})}
+							onClick={() =>
+								setEditing({} as Database["public"]["Tables"]["attendees"]["Row"])
+							}
 						>
 							+ Add attendee
 						</button>
@@ -130,7 +169,6 @@ export const AttendeesPage = () => {
 						<thead>
 							<tr className="border-b border-gray-100">
 								{[
-									"ID",
 									"Name",
 									"Institution",
 									"State",
@@ -159,17 +197,9 @@ export const AttendeesPage = () => {
 									key={attendee.id}
 									className="transition-colors hover:bg-gray-50"
 								>
-									<td className="px-4 py-3 font-mono text-xs text-blue-600">
-										<Link
-											to={AppRoutes.attendees(attendee.id)}
-											className="hover:underline"
-										>
-											{attendee.id}
-										</Link>
-									</td>
 									<td className="whitespace-nowrap px-4 py-3 font-medium text-zinc-900">
 										<Link
-											to={AppRoutes.attendees(attendee.id)}
+											to={AppRoutes.attendees(conferenceId, attendee.id)}
 											className="hover:text-blue-600 hover:underline"
 										>
 											{attendee.name}
@@ -234,7 +264,7 @@ export const AttendeesPage = () => {
 			</Card>
 			{editing !== null && (
 				<EntityDrawer
-					open={editing !== null}
+					open
 					title={editing?.id ? "Edit attendee" : "Add attendee"}
 					initial={editing}
 					fields={[

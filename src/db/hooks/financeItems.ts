@@ -7,6 +7,23 @@ import { useConference } from "@/core/ConferenceContext";
 type FinanceItem = Database["public"]["Tables"]["finance_items"]["Row"];
 type FinanceItemInsert = Database["public"]["Tables"]["finance_items"]["Insert"];
 type FinanceItemUpdate = Database["public"]["Tables"]["finance_items"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+
+export type FinanceItemWithRelations = FinanceItem & {
+	conference_ref: Conference | null;
+};
+
+export const FINANCE_ITEM_SELECT = `
+  *,
+  conference_ref:conferences(*)
+`;
+
+const stripFinanceItemRelations = (
+	row: Partial<FinanceItemWithRelations>,
+): Partial<FinanceItemUpdate> => {
+	const { conference_ref, ...payload } = row;
+	return payload;
+};
 
 export const useFinanceItems = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +33,7 @@ export const useFinanceItems = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("finance_items")
-				.select("*")
+				.select(FINANCE_ITEM_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +49,26 @@ export const useUpsertFinanceItem = () => {
 
 	return useMutation({
 		mutationFn: async (row: FinanceItemInsert | FinanceItemUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripFinanceItemRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("finance_items")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(FINANCE_ITEM_SELECT)
 							.single()
-					: await neon.from("finance_items").insert(payload).select().single();
+					: await neon
+							.from("finance_items")
+							.insert(payload)
+							.select(FINANCE_ITEM_SELECT)
+							.single();
 
 			if (error) throw error;
 
-			return data as FinanceItem;
+			return data as FinanceItemWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["finance_items", conferenceId] }),
 	});

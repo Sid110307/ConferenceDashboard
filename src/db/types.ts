@@ -530,6 +530,7 @@ export type Database = {
 					name: string | null;
 					public_status: Database["public"]["Enums"]["public_status_enum"] | null;
 					settings: Json | null;
+					short_code: string | null;
 					short_name: string | null;
 					start_date: string | null;
 					status: string | null;
@@ -550,6 +551,7 @@ export type Database = {
 					name?: string | null;
 					public_status?: Database["public"]["Enums"]["public_status_enum"] | null;
 					settings?: Json | null;
+					short_code?: string | null;
 					short_name?: string | null;
 					start_date?: string | null;
 					status?: string | null;
@@ -570,6 +572,7 @@ export type Database = {
 					name?: string | null;
 					public_status?: Database["public"]["Enums"]["public_status_enum"] | null;
 					settings?: Json | null;
+					short_code?: string | null;
 					short_name?: string | null;
 					start_date?: string | null;
 					status?: string | null;
@@ -3729,6 +3732,12 @@ export type Database = {
 			dearmor: { Args: { "": string }; Returns: string };
 			gen_random_uuid: { Args: never; Returns: string };
 			gen_salt: { Args: { "": string }; Returns: string };
+			lookup_conference_by_short_code: {
+				Args: { p_short_code: string };
+				Returns: {
+					id: string;
+				}[];
+			};
 			pg_stat_statements: {
 				Args: { showtext: boolean };
 				Returns: Record<string, unknown>[];

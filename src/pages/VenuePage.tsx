@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { useDeleteVenue, useUpsertVenue, useVenues } from "@/db/hooks/venues";
+import type { Database } from "@/db/types.ts";
 
 import { Badge } from "@/components/Badge";
 import { Card } from "@/components/Card";
@@ -12,11 +13,13 @@ import { PAGES_META } from "@/core/data";
 
 export const VenuePage = () => {
 	const { data: venues = [], isLoading } = useVenues();
-	const _conf = useConference();
-	const isEditor = _conf?.isEditor || false;
+	const { conferenceId } = useConference();
+	const isEditor = useConference()?.isEditor || false;
 	const upsert = useUpsertVenue();
 	const remove = useDeleteVenue();
-	const [editing, setEditing] = useState<Record<string, any> | null>(null);
+	const [editing, setEditing] = useState<Database["public"]["Tables"]["venues"]["Row"] | null>(
+		null,
+	);
 
 	return (
 		<div className="flex gap-4 flex-col">
@@ -33,7 +36,7 @@ export const VenuePage = () => {
 				{isLoading ? (
 					<div className="col-span-full p-4 text-sm text-zinc-500">Loading...</div>
 				) : (
-					venues.map((venue: any, index: number) => (
+					venues.map((venue, index: number) => (
 						<Card key={index} className="p-4">
 							<div className="mb-3 flex items-start justify-between">
 								<div>
@@ -66,9 +69,9 @@ export const VenuePage = () => {
 							</div>
 							<div className="flex flex-wrap gap-2">
 								{[
-									["Projector", venue.projector],
-									["Mic / PA", venue.mic],
-									["AC", venue.ac],
+									["Projector", venue.has_projector],
+									["Mic / PA", venue.has_mic],
+									["AC", venue.has_ac],
 								].map(([label, ok], itemIndex) => (
 									<span
 										key={itemIndex}

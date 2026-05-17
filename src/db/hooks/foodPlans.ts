@@ -7,6 +7,21 @@ import { useConference } from "@/core/ConferenceContext";
 type FoodPlan = Database["public"]["Tables"]["food_plans"]["Row"];
 type FoodPlanInsert = Database["public"]["Tables"]["food_plans"]["Insert"];
 type FoodPlanUpdate = Database["public"]["Tables"]["food_plans"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+
+export type FoodPlanWithRelations = FoodPlan & {
+	conference_ref: Conference | null;
+};
+
+export const FOOD_PLAN_SELECT = `
+  *,
+  conference_ref:conferences(*)
+`;
+
+const stripFoodPlanRelations = (row: Partial<FoodPlanWithRelations>): Partial<FoodPlanUpdate> => {
+	const { conference_ref, ...payload } = row;
+	return payload;
+};
 
 export const useFoodPlans = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +31,7 @@ export const useFoodPlans = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("food_plans")
-				.select("*")
+				.select(FOOD_PLAN_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +47,26 @@ export const useUpsertFoodPlan = () => {
 
 	return useMutation({
 		mutationFn: async (row: FoodPlanInsert | FoodPlanUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripFoodPlanRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("food_plans")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(FOOD_PLAN_SELECT)
 							.single()
-					: await neon.from("food_plans").insert(payload).select().single();
+					: await neon
+							.from("food_plans")
+							.insert(payload)
+							.select(FOOD_PLAN_SELECT)
+							.single();
 
 			if (error) throw error;
 
-			return data as FoodPlan;
+			return data as FoodPlanWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["food_plans", conferenceId] }),
 	});

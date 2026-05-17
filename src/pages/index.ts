@@ -1,15 +1,17 @@
-import React, { type FC } from "react";
+import React from "react";
 
 import { PAGES_META } from "@/core/data";
 import pageRegistry from "@/core/pageRegistry";
 
+type PageComponent = React.ComponentType<Record<string, never>>;
+
 const PAGE_IMPORTS = pageRegistry.getRegisteredPages();
 
-export const PAGES: Record<string, React.LazyExoticComponent<FC<any>>> = PAGES_META.reduce(
+export const PAGES = PAGES_META.reduce<Record<string, React.LazyExoticComponent<PageComponent>>>(
 	(acc, meta) => {
-		if (PAGE_IMPORTS[meta.id])
-			acc[meta.id] = PAGE_IMPORTS[meta.id] as React.LazyExoticComponent<FC<any>>;
+		const page = PAGE_IMPORTS[meta.id];
+		if (page) acc[meta.id] = page;
 		return acc;
 	},
-	{} as Record<string, React.LazyExoticComponent<FC<any>>>,
+	{},
 );

@@ -7,6 +7,23 @@ import { useConference } from "@/core/ConferenceContext";
 type Volunteer = Database["public"]["Tables"]["volunteers"]["Row"];
 type VolunteerInsert = Database["public"]["Tables"]["volunteers"]["Insert"];
 type VolunteerUpdate = Database["public"]["Tables"]["volunteers"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+
+export type VolunteerWithRelations = Volunteer & {
+	conference_ref: Conference | null;
+};
+
+export const VOLUNTEER_SELECT = `
+  *,
+  conference_ref:conferences(*)
+`;
+
+const stripVolunteerRelations = (
+	row: Partial<VolunteerWithRelations>,
+): Partial<VolunteerUpdate> => {
+	const { conference_ref, ...payload } = row;
+	return payload;
+};
 
 export const useVolunteers = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +33,7 @@ export const useVolunteers = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("volunteers")
-				.select("*")
+				.select(VOLUNTEER_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +49,26 @@ export const useUpsertVolunteer = () => {
 
 	return useMutation({
 		mutationFn: async (row: VolunteerInsert | VolunteerUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripVolunteerRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("volunteers")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(VOLUNTEER_SELECT)
 							.single()
-					: await neon.from("volunteers").insert(payload).select().single();
+					: await neon
+							.from("volunteers")
+							.insert(payload)
+							.select(VOLUNTEER_SELECT)
+							.single();
 
 			if (error) throw error;
 
-			return data as Volunteer;
+			return data as VolunteerWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["volunteers", conferenceId] }),
 	});

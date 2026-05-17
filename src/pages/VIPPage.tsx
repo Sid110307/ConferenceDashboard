@@ -1,8 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router";
 
-import { useVipChecklist } from "@/db/hooks/vipChecklist";
-import { useDeleteVipGuest, useUpsertVipGuest, useVipGuests } from "@/db/hooks/vipGuests";
+import { useVipChecklist, type VipChecklistWithRelations } from "@/db/hooks/vipChecklist";
+import {
+	useDeleteVipGuest,
+	useUpsertVipGuest,
+	useVipGuests,
+	type VipGuestWithRelations,
+} from "@/db/hooks/vipGuests";
 import { Car, Check, CheckCircle, Crown, Shield } from "lucide-react";
 
 import { Badge } from "@/components/Badge";
@@ -16,16 +21,49 @@ import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META, statusVariant } from "@/core/data";
 import { Routes as AppRoutes } from "@/core/navigation";
 
+type VipGuestCard = {
+	id: string;
+	name: string;
+	designation: string;
+	protocol: string;
+	arrival: string;
+	vehicle: string;
+	security: boolean;
+	speech: boolean;
+	status: string;
+};
+
+type VipChecklistItem = {
+	id: string;
+	item: string;
+	done: boolean;
+};
+
 export const VIPPage = () => {
-	const _conf = useConference();
-	const isEditor = _conf?.isEditor || false;
+	const { conferenceId } = useConference();
+	const isEditor = useConference()?.isEditor || false;
 	const { data: vipGuests = [] } = useVipGuests();
 	const upsert = useUpsertVipGuest();
 	const remove = useDeleteVipGuest();
-	const [editing, setEditing] = useState<Record<string, any> | null>(null);
-	const guests = vipGuests as any[];
+	const [editing, setEditing] = useState<VipGuestCard | null>(null);
+	const guests: VipGuestCard[] = vipGuests.map((guest: VipGuestWithRelations) => ({
+		id: guest.id,
+		name: guest.name || "-",
+		designation: guest.designation || "",
+		protocol: guest.protocol_level || "",
+		arrival: guest.arrival_time || "",
+		vehicle: guest.vehicle || "",
+		security: !!guest.security_required,
+		speech: !!guest.speech_required,
+		status: guest.status_label || "pending",
+	}));
 	const { data: checklist = [] } = useVipChecklist();
-	const done = checklist.filter((item: any) => item.done).length;
+	const checklistItems: VipChecklistItem[] = checklist.map((item: VipChecklistWithRelations) => ({
+		id: item.id,
+		item: item.item || "",
+		done: !!item.is_done,
+	}));
+	const done = checklistItems.filter(item => item.done).length;
 
 	return (
 		<div className="flex gap-4 flex-col">
@@ -36,23 +74,18 @@ export const VIPPage = () => {
 				}
 			/>
 			<div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-				<StatCard icon={Crown} label="VIP Guests" value={vipGuests.length} color="gold" />
+				<StatCard icon={Crown} label="VIP Guests" value={guests.length} color="gold" />
 				<StatCard
 					icon={CheckCircle}
 					label="Checklist Done"
 					value={`${done}/${checklist.length}`}
 					color="green"
 				/>
-				<StatCard
-					icon={Car}
-					label="Vehicles Assigned"
-					value={vipGuests.length}
-					color="blue"
-				/>
+				<StatCard icon={Car} label="Vehicles Assigned" value={guests.length} color="blue" />
 				<StatCard
 					icon={Shield}
 					label="Security Required"
-					value={vipGuests.filter(guest => guest.security_required).length}
+					value={guests.filter(guest => guest.security).length}
 					color="red"
 				/>
 			</div>
@@ -96,15 +129,11 @@ export const VIPPage = () => {
 									</tr>
 								</thead>
 								<tbody className="divide-y divide-gray-100">
-									{guests.map((guest: any, index) => (
+									{guests.map((guest, index) => (
 										<tr key={index} className="hover:bg-gray-50">
 											<td className="px-4 py-3">
 												<Link
-													to={AppRoutes.vip(
-														guest.name
-															.replace(/\s+/g, "-")
-															.toLowerCase(),
-													)}
+													to={AppRoutes.vip(conferenceId, guest.id)}
 													className="hover:text-blue-600"
 												>
 													<p className="whitespace-nowrap font-medium text-zinc-900">
@@ -177,7 +206,7 @@ export const VIPPage = () => {
 							<ProgressBar value={done} max={checklist.length} color="green" />
 						</div>
 						<div className="space-y-2.5">
-							{checklist.map((item: any, index: number) => (
+							{checklistItems.map((item, index) => (
 								<div key={index} className="flex items-center gap-2.5">
 									<div
 										className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${item.done ? "bg-green-600" : "border border-gray-100 bg-white"}`}
@@ -197,7 +226,7 @@ export const VIPPage = () => {
 			</div>
 			{editing !== null && (
 				<EntityDrawer
-					open={editing !== null}
+					open
 					title={editing?.id ? "Edit VIP guest" : "Add VIP guest"}
 					initial={editing}
 					fields={[

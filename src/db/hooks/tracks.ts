@@ -7,6 +7,21 @@ import { useConference } from "@/core/ConferenceContext";
 type Track = Database["public"]["Tables"]["tracks"]["Row"];
 type TrackInsert = Database["public"]["Tables"]["tracks"]["Insert"];
 type TrackUpdate = Database["public"]["Tables"]["tracks"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+
+export type TrackWithRelations = Track & {
+	conference_ref: Conference | null;
+};
+
+export const TRACK_SELECT = `
+  *,
+  conference_ref:conferences(*)
+`;
+
+const stripTrackRelations = (row: Partial<TrackWithRelations>): Partial<TrackUpdate> => {
+	const { conference_ref, ...payload } = row;
+	return payload;
+};
 
 export const useTracks = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +31,7 @@ export const useTracks = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("tracks")
-				.select("*")
+				.select(TRACK_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +47,22 @@ export const useUpsertTrack = () => {
 
 	return useMutation({
 		mutationFn: async (row: TrackInsert | TrackUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripTrackRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("tracks")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(TRACK_SELECT)
 							.single()
-					: await neon.from("tracks").insert(payload).select().single();
+					: await neon.from("tracks").insert(payload).select(TRACK_SELECT).single();
 
 			if (error) throw error;
 
-			return data as Track;
+			return data as TrackWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["tracks", conferenceId] }),
 	});

@@ -7,6 +7,26 @@ import { useConference } from "@/core/ConferenceContext";
 type DashboardWidget = Database["public"]["Tables"]["dashboard_widgets"]["Row"];
 type DashboardWidgetInsert = Database["public"]["Tables"]["dashboard_widgets"]["Insert"];
 type DashboardWidgetUpdate = Database["public"]["Tables"]["dashboard_widgets"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+type DashboardPage = Database["public"]["Tables"]["dashboard_pages"]["Row"];
+
+export type DashboardWidgetWithRelations = DashboardWidget & {
+	conference_ref: Conference | null;
+	page_ref: DashboardPage | null;
+};
+
+export const DASHBOARD_WIDGET_SELECT = `
+  *,
+  conference_ref:conferences(*),
+  page_ref:dashboard_pages(*)
+`;
+
+const stripDashboardWidgetRelations = (
+	row: Partial<DashboardWidgetWithRelations>,
+): Partial<DashboardWidgetUpdate> => {
+	const { conference_ref, page_ref, ...payload } = row;
+	return payload;
+};
 
 export const useDashboardWidgets = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +36,7 @@ export const useDashboardWidgets = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("dashboard_widgets")
-				.select("*")
+				.select(DASHBOARD_WIDGET_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +52,26 @@ export const useUpsertDashboardWidget = () => {
 
 	return useMutation({
 		mutationFn: async (row: DashboardWidgetInsert | DashboardWidgetUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripDashboardWidgetRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("dashboard_widgets")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(DASHBOARD_WIDGET_SELECT)
 							.single()
-					: await neon.from("dashboard_widgets").insert(payload).select().single();
+					: await neon
+							.from("dashboard_widgets")
+							.insert(payload)
+							.select(DASHBOARD_WIDGET_SELECT)
+							.single();
 
 			if (error) throw error;
 
-			return data as DashboardWidget;
+			return data as DashboardWidgetWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["dashboard_widgets", conferenceId] }),
 	});

@@ -7,6 +7,23 @@ import { useConference } from "@/core/ConferenceContext";
 type AppSetting = Database["public"]["Tables"]["app_settings"]["Row"];
 type AppSettingInsert = Database["public"]["Tables"]["app_settings"]["Insert"];
 type AppSettingUpdate = Database["public"]["Tables"]["app_settings"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+
+export type AppSettingWithRelations = AppSetting & {
+	conference_ref: Conference | null;
+};
+
+export const APP_SETTING_SELECT = `
+  *,
+  conference_ref:conferences(*)
+`;
+
+const stripAppSettingRelations = (
+	row: Partial<AppSettingWithRelations>,
+): Partial<AppSettingUpdate> => {
+	const { conference_ref, ...payload } = row;
+	return payload;
+};
 
 export const useAppSettings = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +33,7 @@ export const useAppSettings = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("app_settings")
-				.select("*")
+				.select(APP_SETTING_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +49,26 @@ export const useUpsertAppSetting = () => {
 
 	return useMutation({
 		mutationFn: async (row: AppSettingInsert | AppSettingUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripAppSettingRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("app_settings")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(APP_SETTING_SELECT)
 							.single()
-					: await neon.from("app_settings").insert(payload).select().single();
+					: await neon
+							.from("app_settings")
+							.insert(payload)
+							.select(APP_SETTING_SELECT)
+							.single();
 
 			if (error) throw error;
 
-			return data as AppSetting;
+			return data as AppSettingWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["app_settings", conferenceId] }),
 	});

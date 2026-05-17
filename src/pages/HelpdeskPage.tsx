@@ -20,8 +20,8 @@ import { Routes as AppRoutes } from "@/core/navigation";
 
 export const HelpdeskPage = () => {
 	const { data: issues = [], isLoading } = useHelpdeskIssues();
-	const _conf = useConference();
-	const isEditor = _conf?.isEditor || false;
+	const { conferenceId } = useConference();
+	const isEditor = useConference()?.isEditor || false;
 	const upsert = useUpsertHelpdeskIssue();
 	const remove = useDeleteHelpdeskIssue();
 	const [editing, setEditing] = useState<Record<string, any> | null>(null);

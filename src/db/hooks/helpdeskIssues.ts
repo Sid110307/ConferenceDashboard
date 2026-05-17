@@ -7,6 +7,26 @@ import { useConference } from "@/core/ConferenceContext";
 type HelpdeskIssue = Database["public"]["Tables"]["helpdesk_issues"]["Row"];
 type HelpdeskIssueInsert = Database["public"]["Tables"]["helpdesk_issues"]["Insert"];
 type HelpdeskIssueUpdate = Database["public"]["Tables"]["helpdesk_issues"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+type Attendee = Database["public"]["Tables"]["attendees"]["Row"];
+
+export type HelpdeskIssueWithRelations = HelpdeskIssue & {
+	conference_ref: Conference | null;
+	attendee_ref: Attendee | null;
+};
+
+export const HELPDESK_ISSUE_SELECT = `
+  *,
+  conference_ref:conferences(*),
+  attendee_ref:attendees(*)
+`;
+
+const stripHelpdeskIssueRelations = (
+	row: Partial<HelpdeskIssueWithRelations>,
+): Partial<HelpdeskIssueUpdate> => {
+	const { conference_ref, attendee_ref, ...payload } = row;
+	return payload;
+};
 
 export const useHelpdeskIssues = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +36,7 @@ export const useHelpdeskIssues = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("helpdesk_issues")
-				.select("*")
+				.select(HELPDESK_ISSUE_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +52,26 @@ export const useUpsertHelpdeskIssue = () => {
 
 	return useMutation({
 		mutationFn: async (row: HelpdeskIssueInsert | HelpdeskIssueUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripHelpdeskIssueRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("helpdesk_issues")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(HELPDESK_ISSUE_SELECT)
 							.single()
-					: await neon.from("helpdesk_issues").insert(payload).select().single();
+					: await neon
+							.from("helpdesk_issues")
+							.insert(payload)
+							.select(HELPDESK_ISSUE_SELECT)
+							.single();
 
 			if (error) throw error;
 
-			return data as HelpdeskIssue;
+			return data as HelpdeskIssueWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["helpdesk_issues", conferenceId] }),
 	});

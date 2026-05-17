@@ -7,6 +7,23 @@ import { useConference } from "@/core/ConferenceContext";
 type ThemeSetting = Database["public"]["Tables"]["theme_settings"]["Row"];
 type ThemeSettingInsert = Database["public"]["Tables"]["theme_settings"]["Insert"];
 type ThemeSettingUpdate = Database["public"]["Tables"]["theme_settings"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+
+export type ThemeSettingWithRelations = ThemeSetting & {
+	conference_ref: Conference | null;
+};
+
+export const THEME_SETTING_SELECT = `
+  *,
+  conference_ref:conferences(*)
+`;
+
+const stripThemeSettingRelations = (
+	row: Partial<ThemeSettingWithRelations>,
+): Partial<ThemeSettingUpdate> => {
+	const { conference_ref, ...payload } = row;
+	return payload;
+};
 
 export const useThemeSettings = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +33,7 @@ export const useThemeSettings = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("theme_settings")
-				.select("*")
+				.select(THEME_SETTING_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +49,26 @@ export const useUpsertThemeSetting = () => {
 
 	return useMutation({
 		mutationFn: async (row: ThemeSettingInsert | ThemeSettingUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripThemeSettingRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("theme_settings")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(THEME_SETTING_SELECT)
 							.single()
-					: await neon.from("theme_settings").insert(payload).select().single();
+					: await neon
+							.from("theme_settings")
+							.insert(payload)
+							.select(THEME_SETTING_SELECT)
+							.single();
 
 			if (error) throw error;
 
-			return data as ThemeSetting;
+			return data as ThemeSettingWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["theme_settings", conferenceId] }),
 	});

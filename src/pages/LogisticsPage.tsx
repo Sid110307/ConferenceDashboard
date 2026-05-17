@@ -16,8 +16,8 @@ import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META } from "@/core/data";
 
 export const LogisticsPage = () => {
-	const _conf = useConference();
-	const isEditor = _conf?.isEditor || false;
+	const { conferenceId } = useConference();
+	const isEditor = useConference()?.isEditor || false;
 	const { data: rows = [] } = useLogisticsItems();
 	const upsert = useUpsertLogisticsItem();
 	const remove = useDeleteLogisticsItem();

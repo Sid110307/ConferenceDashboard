@@ -7,6 +7,26 @@ import { useConference } from "@/core/ConferenceContext";
 type TravelArrival = Database["public"]["Tables"]["travel_arrivals"]["Row"];
 type TravelArrivalInsert = Database["public"]["Tables"]["travel_arrivals"]["Insert"];
 type TravelArrivalUpdate = Database["public"]["Tables"]["travel_arrivals"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+type Attendee = Database["public"]["Tables"]["attendees"]["Row"];
+
+export type TravelArrivalWithRelations = TravelArrival & {
+	conference_ref: Conference | null;
+	attendee_ref: Attendee | null;
+};
+
+export const TRAVEL_ARRIVAL_SELECT = `
+  *,
+  conference_ref:conferences(*),
+  attendee_ref:attendees(*)
+`;
+
+const stripTravelArrivalRelations = (
+	row: Partial<TravelArrivalWithRelations>,
+): Partial<TravelArrivalUpdate> => {
+	const { conference_ref, attendee_ref, ...payload } = row;
+	return payload;
+};
 
 export const useTravelArrivals = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +36,7 @@ export const useTravelArrivals = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("travel_arrivals")
-				.select("*")
+				.select(TRAVEL_ARRIVAL_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +52,26 @@ export const useUpsertTravelArrival = () => {
 
 	return useMutation({
 		mutationFn: async (row: TravelArrivalInsert | TravelArrivalUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripTravelArrivalRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("travel_arrivals")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(TRAVEL_ARRIVAL_SELECT)
 							.single()
-					: await neon.from("travel_arrivals").insert(payload).select().single();
+					: await neon
+							.from("travel_arrivals")
+							.insert(payload)
+							.select(TRAVEL_ARRIVAL_SELECT)
+							.single();
 
 			if (error) throw error;
 
-			return data as TravelArrival;
+			return data as TravelArrivalWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["travel_arrivals", conferenceId] }),
 	});

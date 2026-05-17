@@ -7,6 +7,23 @@ import { useConference } from "@/core/ConferenceContext";
 type NavigationGroup = Database["public"]["Tables"]["navigation_groups"]["Row"];
 type NavigationGroupInsert = Database["public"]["Tables"]["navigation_groups"]["Insert"];
 type NavigationGroupUpdate = Database["public"]["Tables"]["navigation_groups"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+
+export type NavigationGroupWithRelations = NavigationGroup & {
+	conference_ref: Conference | null;
+};
+
+export const NAVIGATION_GROUP_SELECT = `
+  *,
+  conference_ref:conferences(*)
+`;
+
+const stripNavigationGroupRelations = (
+	row: Partial<NavigationGroupWithRelations>,
+): Partial<NavigationGroupUpdate> => {
+	const { conference_ref, ...payload } = row;
+	return payload;
+};
 
 export const useNavigationGroups = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +33,7 @@ export const useNavigationGroups = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("navigation_groups")
-				.select("*")
+				.select(NAVIGATION_GROUP_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +49,26 @@ export const useUpsertNavigationGroup = () => {
 
 	return useMutation({
 		mutationFn: async (row: NavigationGroupInsert | NavigationGroupUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripNavigationGroupRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("navigation_groups")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(NAVIGATION_GROUP_SELECT)
 							.single()
-					: await neon.from("navigation_groups").insert(payload).select().single();
+					: await neon
+							.from("navigation_groups")
+							.insert(payload)
+							.select(NAVIGATION_GROUP_SELECT)
+							.single();
 
 			if (error) throw error;
 
-			return data as NavigationGroup;
+			return data as NavigationGroupWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["navigation_groups", conferenceId] }),
 	});

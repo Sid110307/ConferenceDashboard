@@ -1,7 +1,5 @@
 import { Link } from "react-router";
 
-
-
 import { useAccommodationRooms } from "@/db/hooks/accommodationRooms";
 import { useAttendees } from "@/db/hooks/attendees";
 import { useConferenceDetails } from "@/db/hooks/conferences";
@@ -10,10 +8,9 @@ import { useHelpdeskIssues } from "@/db/hooks/helpdeskIssues";
 import { useSessions } from "@/db/hooks/sessions";
 import { useTravelArrivals } from "@/db/hooks/travelArrivals";
 import { useVipGuests } from "@/db/hooks/vipGuests";
+import type { Database } from "@/db/types";
 import { AlertCircle, Bed, CheckCircle, Clock, Crown, Plane, Users, Utensils } from "lucide-react";
 import * as Recharts from "recharts";
-
-
 
 import { Badge } from "@/components/Badge";
 import { Card, CardHead } from "@/components/Card";
@@ -21,16 +18,24 @@ import { CustomTooltip } from "@/components/CustomTooltip";
 import { SectionTitle } from "@/components/SectionTitle";
 import { StatCard } from "@/components/StatCard";
 
-
-
+import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META } from "@/core/data";
 import { Routes as AppRoutes } from "@/core/navigation";
 
+type SessionCard = {
+	time: string;
+	title: string;
+	speaker: string;
+	venue: string;
+	status: string;
+};
 
-
-
+type PickupStatus = NonNullable<
+	Database["public"]["Tables"]["travel_arrivals"]["Row"]["pickup_status"]
+>;
 
 export const DashboardPage = () => {
+	const { conferenceId } = useConference();
 	const { data: conference } = useConferenceDetails();
 	const { data: attendees = [] } = useAttendees();
 	const { data: rooms = [] } = useAccommodationRooms();
@@ -40,33 +45,32 @@ export const DashboardPage = () => {
 	const { data: sessions = [] } = useSessions();
 	const { data: travelArrivals = [] } = useTravelArrivals();
 
-	const totalDaysInferred = Math.max(
-		conference?.current_day || 1,
-		...sessions.map((s: any) => Number(s.day_number || 1)),
-		...foodPlans.map((p: any) => Number(p.day_number || 1)),
-	);
 	const meta = {
 		name: conference?.name || "",
 		dates: conference ? `${conference.start_date || ""} — ${conference.end_date || ""}` : "",
 		currentDay: conference?.current_day || 1,
-		totalDays: (conference as any)?.total_days || totalDaysInferred,
-	} as any;
+		totalDays:
+			conference?.start_date && conference?.end_date
+				? Math.ceil(
+						(new Date(conference.end_date).getTime() -
+							new Date(conference.start_date).getTime()) /
+							(1000 * 60 * 60 * 24),
+					) + 1
+				: 1,
+	};
 
-	const sessionsByDay = sessions.reduce(
-		(acc, session) => {
-			const day = (session as any).day_number || meta.currentDay;
-			if (!acc[day]) acc[day] = [];
-			acc[day].push({
-				time: session.start_time || "",
-				title: session.title || "",
-				speaker: (session as any).speaker || "-",
-				venue: (session as any).venue || "",
-				status: (session as any).status || "upcoming",
-			});
-			return acc;
-		},
-		{} as Record<number, any[]>,
-	);
+	const sessionsByDay = sessions.reduce<Record<number, SessionCard[]>>((acc, session) => {
+		const day = meta.currentDay;
+		if (!acc[day]) acc[day] = [];
+		acc[day].push({
+			time: session.start_time || "",
+			title: session.title || "",
+			speaker: session.speaker || "-",
+			venue: session.venue || "",
+			status: session.status || "upcoming",
+		});
+		return acc;
+	}, {});
 
 	const currentDate =
 		conference?.start_date && conference?.current_day
@@ -78,32 +82,36 @@ export const DashboardPage = () => {
 					.split("T")[0]
 			: null;
 	const mealCountToday = foodPlans
-		.filter((p: any) =>
-			p.day_number
-				? Number(p.day_number) === Number(meta.currentDay)
-				: currentDate && p.meal_date === currentDate,
-		)
+		.filter(p => (currentDate ? p.meal_date === currentDate : false))
 		.reduce(
-			(s: number, p: any) =>
-				s + ((p.breakfast || 0) + (p.lunch || 0) + (p.tea || 0) + (p.dinner || 0)),
+			(s: number, p) =>
+				s +
+				((p.breakfast_count || 0) +
+					(p.lunch_count || 0) +
+					(p.tea_count || 0) +
+					(p.dinner_count || 0)),
 			0,
 		);
 
-	const pendingTravel = travelArrivals.filter(
-		(ta: any) => !ta.arrival_time || !ta.pickup_assigned || ta.status === "pending",
-	).length;
+	const pendingPickupStatuses = new Set<PickupStatus>(["scheduled", "en_route", "delayed"]);
+	const pendingTravel = travelArrivals.filter(ta => {
+		if (!ta.arrival_time) return true;
+		if (!ta.pickup_required) return false;
+
+		return ta.pickup_status ? pendingPickupStatuses.has(ta.pickup_status) : false;
+	}).length;
 
 	const overview = {
 		total: attendees.length,
 		checkedIn: attendees.filter(a => !!a.checked_in_at || a.checkin_status === "checked_in")
 			.length,
-		roomsAssigned: rooms.reduce((s: number, r: any) => s + (r.occupied_count || 0), 0),
-		roomsTotal: rooms.reduce((s: number, r: any) => s + (r.capacity || 0), 0),
+		roomsAssigned: rooms.reduce((s: number, r) => s + (r.occupied_count || 0), 0),
+		roomsTotal: rooms.reduce((s: number, r) => s + (r.capacity || 0), 0),
 		vip: vipGuests.length,
 		mealCountToday,
 		pendingTravel,
 		openIssues: issues.filter(i => i.issue_status === "open").length,
-	} as any;
+	};
 
 	const categoryCounts: Record<string, number> = {};
 	attendees.forEach(a => {
@@ -112,7 +120,7 @@ export const DashboardPage = () => {
 	});
 	const colors = ["#60a5fa", "#a78bfa", "#34d399", "#fbbf24", "#f87171"];
 	const categoryBreakdown = Object.entries(categoryCounts).map(([name, value], i) => ({
-		name,
+		name: name.toUpperCase() === "VIP" ? "VIP" : name.charAt(0).toUpperCase() + name.slice(1),
 		value,
 		color: colors[i % colors.length],
 	}));
@@ -132,7 +140,7 @@ export const DashboardPage = () => {
 				subtitle={`${meta.name}  ·  ${meta.dates}  ·  Day ${meta.currentDay} of ${meta.totalDays}`}
 			/>
 			<div className="mb-5 grid grid-cols-1 sm:grid-cols-2 gap-3 lg:grid-cols-4">
-				<Link to={AppRoutes.attendees()}>
+				<Link to={AppRoutes.attendees(conferenceId)}>
 					<StatCard
 						icon={Users}
 						label="Total Registered"
@@ -140,7 +148,7 @@ export const DashboardPage = () => {
 						color="blue"
 					/>
 				</Link>
-				<Link to={AppRoutes.checkin()}>
+				<Link to={AppRoutes.checkin(conferenceId)}>
 					<StatCard
 						icon={CheckCircle}
 						label="Checked In"
@@ -149,7 +157,7 @@ export const DashboardPage = () => {
 						color="green"
 					/>
 				</Link>
-				<Link to={AppRoutes.accommodation()}>
+				<Link to={AppRoutes.accommodation(conferenceId)}>
 					<StatCard
 						icon={Bed}
 						label="Rooms Assigned"
@@ -158,10 +166,10 @@ export const DashboardPage = () => {
 						color="purple"
 					/>
 				</Link>
-				<Link to={AppRoutes.vip()}>
+				<Link to={AppRoutes.vip(conferenceId)}>
 					<StatCard icon={Crown} label="VIP Guests" value={overview.vip} color="gold" />
 				</Link>
-				<Link to={AppRoutes.food()}>
+				<Link to={AppRoutes.food(conferenceId)}>
 					<StatCard
 						icon={Utensils}
 						label="Meals Today"
@@ -169,7 +177,7 @@ export const DashboardPage = () => {
 						color="orange"
 					/>
 				</Link>
-				<Link to={AppRoutes.travel()}>
+				<Link to={AppRoutes.travel(conferenceId)}>
 					<StatCard
 						icon={Plane}
 						label="Pending Travel"
@@ -178,7 +186,7 @@ export const DashboardPage = () => {
 						color="yellow"
 					/>
 				</Link>
-				<Link to={AppRoutes.helpdesk()}>
+				<Link to={AppRoutes.helpdesk(conferenceId)}>
 					<StatCard
 						icon={AlertCircle}
 						label="Open Issues"
@@ -186,7 +194,7 @@ export const DashboardPage = () => {
 						color="red"
 					/>
 				</Link>
-				<Link to={AppRoutes.schedule()}>
+				<Link to={AppRoutes.schedule(conferenceId)}>
 					<StatCard
 						icon={Clock}
 						label="Current Day"
@@ -274,17 +282,22 @@ export const DashboardPage = () => {
 				</Card>
 			</div>
 			{sessionsByDay[meta.currentDay]?.length ? (
-				<Link to={AppRoutes.schedule(meta.currentDay.toString())}>
+				<Link to={AppRoutes.schedule(conferenceId, meta.currentDay.toString())}>
 					<Card>
 						<CardHead title={`Today's Schedule - Day ${meta.currentDay}`} />
 						<div className="divide-y divide-gray-100">
-							{sessionsByDay[meta.currentDay].map((session: any, index: number) => (
+							{sessionsByDay[meta.currentDay].map((session, index: number) => (
 								<div
 									key={index}
 									className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-gray-50"
 								>
 									<span className="w-28 shrink-0 font-mono text-xs text-zinc-600">
-										{session.time}
+										{session.time
+											? new Date(session.time).toLocaleTimeString([], {
+													hour: "2-digit",
+													minute: "2-digit",
+												})
+											: "TBD"}
 									</span>
 									<div className="min-w-0 flex-1">
 										<p className="truncate text-sm font-medium text-zinc-900">

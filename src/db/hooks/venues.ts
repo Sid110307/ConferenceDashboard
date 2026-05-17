@@ -7,6 +7,21 @@ import { useConference } from "@/core/ConferenceContext";
 type Venue = Database["public"]["Tables"]["venues"]["Row"];
 type VenueInsert = Database["public"]["Tables"]["venues"]["Insert"];
 type VenueUpdate = Database["public"]["Tables"]["venues"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+
+export type VenueWithRelations = Venue & {
+	conference_ref: Conference | null;
+};
+
+export const VENUE_SELECT = `
+  *,
+  conference_ref:conferences(*)
+`;
+
+const stripVenueRelations = (row: Partial<VenueWithRelations>): Partial<VenueUpdate> => {
+	const { conference_ref, ...payload } = row;
+	return payload;
+};
 
 export const useVenues = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +31,7 @@ export const useVenues = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("venues")
-				.select("*")
+				.select(VENUE_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +47,22 @@ export const useUpsertVenue = () => {
 
 	return useMutation({
 		mutationFn: async (row: VenueInsert | VenueUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripVenueRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("venues")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(VENUE_SELECT)
 							.single()
-					: await neon.from("venues").insert(payload).select().single();
+					: await neon.from("venues").insert(payload).select(VENUE_SELECT).single();
 
 			if (error) throw error;
 
-			return data as Venue;
+			return data as VenueWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["venues", conferenceId] }),
 	});

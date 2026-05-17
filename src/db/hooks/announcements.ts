@@ -7,6 +7,23 @@ import { useConference } from "@/core/ConferenceContext";
 type Announcement = Database["public"]["Tables"]["announcements"]["Row"];
 type AnnouncementInsert = Database["public"]["Tables"]["announcements"]["Insert"];
 type AnnouncementUpdate = Database["public"]["Tables"]["announcements"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+
+export type AnnouncementWithRelations = Announcement & {
+	conference_ref: Conference | null;
+};
+
+export const ANNOUNCEMENT_SELECT = `
+  *,
+  conference_ref:conferences(*)
+`;
+
+const stripAnnouncementRelations = (
+	row: Partial<AnnouncementWithRelations>,
+): Partial<AnnouncementUpdate> => {
+	const { conference_ref, ...payload } = row;
+	return payload;
+};
 
 export const useAnnouncements = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +33,7 @@ export const useAnnouncements = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("announcements")
-				.select("*")
+				.select(ANNOUNCEMENT_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +49,26 @@ export const useUpsertAnnouncement = () => {
 
 	return useMutation({
 		mutationFn: async (row: AnnouncementInsert | AnnouncementUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripAnnouncementRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("announcements")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(ANNOUNCEMENT_SELECT)
 							.single()
-					: await neon.from("announcements").insert(payload).select().single();
+					: await neon
+							.from("announcements")
+							.insert(payload)
+							.select(ANNOUNCEMENT_SELECT)
+							.single();
 
 			if (error) throw error;
 
-			return data as Announcement;
+			return data as AnnouncementWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["announcements", conferenceId] }),
 	});

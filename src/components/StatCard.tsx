@@ -12,6 +12,7 @@ type StatCardProps = {
 	color?: string;
 	onClick?: () => void;
 	isLink?: boolean;
+	className?: string;
 };
 
 export const StatCard = ({
@@ -22,6 +23,7 @@ export const StatCard = ({
 	color = "blue",
 	onClick,
 	isLink = false,
+	className,
 }: StatCardProps) => {
 	const isInteractive = typeof onClick === "function" && !isLink;
 	const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -38,7 +40,7 @@ export const StatCard = ({
 			tabIndex={isInteractive ? 0 : undefined}
 			onKeyDown={handleKeyDown}
 			onClick={onClick}
-			className={`flex items-start gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-all sm:p-5 ${isInteractive || isLink ? "cursor-pointer hover:border-gray-200 hover:shadow-md" : ""}`}
+			className={`flex items-start gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-all sm:p-5 ${isInteractive || isLink ? "cursor-pointer hover:border-gray-200 hover:shadow-md" : ""} ${className || ""}`}
 		>
 			<div
 				className={`shrink-0 rounded-lg border border-transparent p-2.5 ${ICON_COLORS[color]}`}

@@ -7,6 +7,23 @@ import { useConference } from "@/core/ConferenceContext";
 type VipChecklist = Database["public"]["Tables"]["vip_checklist"]["Row"];
 type VipChecklistInsert = Database["public"]["Tables"]["vip_checklist"]["Insert"];
 type VipChecklistUpdate = Database["public"]["Tables"]["vip_checklist"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+
+export type VipChecklistWithRelations = VipChecklist & {
+	conference_ref: Conference | null;
+};
+
+export const VIP_CHECKLIST_SELECT = `
+  *,
+  conference_ref:conferences(*)
+`;
+
+const stripVipChecklistRelations = (
+	row: Partial<VipChecklistWithRelations>,
+): Partial<VipChecklistUpdate> => {
+	const { conference_ref, ...payload } = row;
+	return payload;
+};
 
 export const useVipChecklist = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +33,7 @@ export const useVipChecklist = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("vip_checklist")
-				.select("*")
+				.select(VIP_CHECKLIST_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +49,26 @@ export const useUpsertVipChecklist = () => {
 
 	return useMutation({
 		mutationFn: async (row: VipChecklistInsert | VipChecklistUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripVipChecklistRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("vip_checklist")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(VIP_CHECKLIST_SELECT)
 							.single()
-					: await neon.from("vip_checklist").insert(payload).select().single();
+					: await neon
+							.from("vip_checklist")
+							.insert(payload)
+							.select(VIP_CHECKLIST_SELECT)
+							.single();
 
 			if (error) throw error;
 
-			return data as VipChecklist;
+			return data as VipChecklistWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["vip_checklist", conferenceId] }),
 	});

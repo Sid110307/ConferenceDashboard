@@ -25,8 +25,8 @@ import { Routes as AppRoutes } from "@/core/navigation";
 export const TravelPage = () => {
 	const { data: arrivals = [], isLoading } = useTravelArrivals();
 	const { data: vipGuests = [] } = useVipGuests();
-	const _conf = useConference();
-	const isEditor = _conf?.isEditor || false;
+	const { conferenceId } = useConference();
+	const isEditor = useConference()?.isEditor || false;
 	const upsert = useUpsertTravelArrival();
 	const remove = useDeleteTravelArrival();
 	const [editing, setEditing] = useState<Record<string, any> | null>(null);
@@ -207,7 +207,10 @@ export const TravelPage = () => {
 											<tr key={index} className="hover:bg-gray-50">
 												<td className="whitespace-nowrap px-4 py-3 text-zinc-900">
 													<Link
-														to={AppRoutes.travel(String(index))}
+														to={AppRoutes.travel(
+															conferenceId,
+															arrival.id,
+														)}
 														className="hover:text-blue-600 hover:underline"
 													>
 														{arrival.name}

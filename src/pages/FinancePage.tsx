@@ -1,10 +1,7 @@
 import { useState } from "react";
 
-import {
-	useDeleteFinanceItem,
-	useFinanceItems,
-	useUpsertFinanceItem,
-} from "@/db/hooks/financeItems";
+import type { FinanceItemWithRelations } from "@/db/hooks/financeItems";
+import { useDeleteFinanceItem, useFinanceItems, useUpsertFinanceItem, } from "@/db/hooks/financeItems";
 import { AlertCircle, CheckCircle, Receipt, Star, TrendingUp } from "lucide-react";
 import * as Recharts from "recharts";
 
@@ -15,33 +12,59 @@ import { EmptyState } from "@/components/EmptyState";
 import EntityDrawer from "@/components/EntityDrawer";
 import { SectionTitle } from "@/components/SectionTitle";
 import { StatCard } from "@/components/StatCard";
+import { useConference } from "@/core/ConferenceContext.tsx";
 
-import { useConference } from "@/core/ConferenceContext";
+type FinanceBreakdownRow = {
+	id: string;
+	name: string;
+	type: "income" | "expense";
+	budget: number;
+	actual: number;
+	sponsorship_pledged: number;
+	sponsorship_received: number;
+};
+
+type FinanceBreakdownRowWithVariance = FinanceBreakdownRow & {
+	variance: number;
+	variancePercent: number;
+	isOverBudget: boolean;
+};
+
+type FinanceEditorRow = Partial<FinanceBreakdownRow> & { id?: string };
 
 export const FinancePage = () => {
-	const _conf = useConference();
-	const isEditor = _conf?.isEditor || false;
+	const { isEditor } = useConference();
 	const { data: financeRows = [] } = useFinanceItems();
 	const upsert = useUpsertFinanceItem();
 	const remove = useDeleteFinanceItem();
-	const [editing, setEditing] = useState<Record<string, any> | null>(null);
-	const breakdownRows = financeRows.length ? (financeRows as any[]) : [];
-
-	const budget = breakdownRows.reduce((s: number, r: any) => s + (r.budget || 0), 0);
-	const spent = breakdownRows.reduce((s: number, r: any) => s + (r.actual || 0), 0);
-	const sponsored = breakdownRows.reduce(
-		(s: number, r: any) => s + (r.sponsorship_pledged || 0),
-		0,
+	const [editing, setEditing] = useState<FinanceEditorRow | null>(null);
+	const breakdownRows: FinanceBreakdownRow[] = financeRows.map(
+		(row: FinanceItemWithRelations) => ({
+			id: row.id,
+			name: row.item_name || "Untitled",
+			type:
+				row.category === "registration" || row.category === "sponsorship"
+					? "income"
+					: "expense",
+			budget: row.budget_amount || 0,
+			actual: row.actual_amount || 0,
+			sponsorship_pledged: row.category === "sponsorship" ? row.budget_amount || 0 : 0,
+			sponsorship_received: row.category === "sponsorship" ? row.actual_amount || 0 : 0,
+		}),
 	);
+
+	const budget = breakdownRows.reduce((s, r) => s + (r.budget || 0), 0);
+	const spent = breakdownRows.reduce((s, r) => s + (r.actual || 0), 0);
+	const sponsored = breakdownRows.reduce((s, r) => s + (r.sponsorship_pledged || 0), 0);
 	const sponsorshipReceived = breakdownRows.reduce(
-		(s: number, r: any) => s + (r.sponsorship_received || 0),
+		(s, r) => s + (r.sponsorship_received || 0),
 		0,
 	);
 	const income = breakdownRows
-		.filter((r: any) => r.type === "income")
-		.reduce((s: number, r: any) => s + (r.actual || 0), 0);
+		.filter(r => r.type === "income")
+		.reduce((s, r) => s + (r.actual || 0), 0);
 
-	const categoriesWithVariance = breakdownRows.map((r: any) => ({
+	const categoriesWithVariance: FinanceBreakdownRowWithVariance[] = breakdownRows.map(r => ({
 		...r,
 		variance: r.budget - r.actual,
 		variancePercent: r.budget > 0 ? Math.round(((r.budget - r.actual) / r.budget) * 100) : 0,
@@ -174,7 +197,7 @@ export const FinancePage = () => {
 					<CardHead title="Budget Variance" />
 					<div className="space-y-2 p-4">
 						{topVariances.length > 0 ? (
-							topVariances.map((cat: any) => (
+							topVariances.map((cat: FinanceBreakdownRowWithVariance) => (
 								<div key={cat.id} className="rounded-md bg-gray-50 p-3">
 									<div className="flex items-center justify-between mb-2">
 										<p className="font-medium text-xs text-zinc-900">
@@ -245,7 +268,7 @@ export const FinancePage = () => {
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-gray-100">
-							{breakdownRows.map((row: any, index) => {
+							{breakdownRows.map((row, index) => {
 								const variance = row.budget - row.actual;
 
 								return (
@@ -310,7 +333,7 @@ export const FinancePage = () => {
 			</Card>
 			{editing !== null && (
 				<EntityDrawer
-					open={editing !== null}
+					open
 					title={editing?.id ? "Edit finance item" : "Add finance item"}
 					initial={editing}
 					fields={[
@@ -332,7 +355,7 @@ export const FinancePage = () => {
 					onDelete={
 						editing?.id
 							? async () => {
-									await remove.mutateAsync(editing.id);
+									await remove.mutateAsync(editing.id as string);
 									setEditing(null);
 								}
 							: undefined

@@ -7,6 +7,21 @@ import { useConference } from "@/core/ConferenceContext";
 type Speaker = Database["public"]["Tables"]["speakers"]["Row"];
 type SpeakerInsert = Database["public"]["Tables"]["speakers"]["Insert"];
 type SpeakerUpdate = Database["public"]["Tables"]["speakers"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+
+export type SpeakerWithRelations = Speaker & {
+	conference_ref: Conference | null;
+};
+
+export const SPEAKER_SELECT = `
+  *,
+  conference_ref:conferences(*)
+`;
+
+const stripSpeakerRelations = (row: Partial<SpeakerWithRelations>): Partial<SpeakerUpdate> => {
+	const { conference_ref, ...payload } = row;
+	return payload;
+};
 
 export const useSpeakers = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +31,7 @@ export const useSpeakers = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("speakers")
-				.select("*")
+				.select(SPEAKER_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +47,22 @@ export const useUpsertSpeaker = () => {
 
 	return useMutation({
 		mutationFn: async (row: SpeakerInsert | SpeakerUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripSpeakerRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("speakers")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(SPEAKER_SELECT)
 							.single()
-					: await neon.from("speakers").insert(payload).select().single();
+					: await neon.from("speakers").insert(payload).select(SPEAKER_SELECT).single();
 
 			if (error) throw error;
 
-			return data as Speaker;
+			return data as SpeakerWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["speakers", conferenceId] }),
 	});

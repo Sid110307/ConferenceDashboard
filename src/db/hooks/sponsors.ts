@@ -7,6 +7,21 @@ import { useConference } from "@/core/ConferenceContext";
 type Sponsor = Database["public"]["Tables"]["sponsors"]["Row"];
 type SponsorInsert = Database["public"]["Tables"]["sponsors"]["Insert"];
 type SponsorUpdate = Database["public"]["Tables"]["sponsors"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+
+export type SponsorWithRelations = Sponsor & {
+	conference_ref: Conference | null;
+};
+
+export const SPONSOR_SELECT = `
+  *,
+  conference_ref:conferences(*)
+`;
+
+const stripSponsorRelations = (row: Partial<SponsorWithRelations>): Partial<SponsorUpdate> => {
+	const { conference_ref, ...payload } = row;
+	return payload;
+};
 
 export const useSponsors = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +31,7 @@ export const useSponsors = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("sponsors")
-				.select("*")
+				.select(SPONSOR_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +47,22 @@ export const useUpsertSponsor = () => {
 
 	return useMutation({
 		mutationFn: async (row: SponsorInsert | SponsorUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripSponsorRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("sponsors")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(SPONSOR_SELECT)
 							.single()
-					: await neon.from("sponsors").insert(payload).select().single();
+					: await neon.from("sponsors").insert(payload).select(SPONSOR_SELECT).single();
 
 			if (error) throw error;
 
-			return data as Sponsor;
+			return data as SponsorWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["sponsors", conferenceId] }),
 	});

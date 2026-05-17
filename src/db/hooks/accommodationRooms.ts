@@ -7,6 +7,23 @@ import { useConference } from "@/core/ConferenceContext";
 type AccommodationRoom = Database["public"]["Tables"]["accommodation_rooms"]["Row"];
 type AccommodationRoomInsert = Database["public"]["Tables"]["accommodation_rooms"]["Insert"];
 type AccommodationRoomUpdate = Database["public"]["Tables"]["accommodation_rooms"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+
+export type AccommodationRoomWithRelations = AccommodationRoom & {
+	conference_ref: Conference | null;
+};
+
+export const ACCOMMODATION_ROOM_SELECT = `
+  *,
+  conference_ref:conferences(*)
+`;
+
+const stripAccommodationRoomRelations = (
+	row: Partial<AccommodationRoomWithRelations>,
+): Partial<AccommodationRoomUpdate> => {
+	const { conference_ref, ...payload } = row;
+	return payload;
+};
 
 export const useAccommodationRooms = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +33,7 @@ export const useAccommodationRooms = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("accommodation_rooms")
-				.select("*")
+				.select(ACCOMMODATION_ROOM_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +49,26 @@ export const useUpsertAccommodationRoom = () => {
 
 	return useMutation({
 		mutationFn: async (row: AccommodationRoomInsert | AccommodationRoomUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripAccommodationRoomRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("accommodation_rooms")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(ACCOMMODATION_ROOM_SELECT)
 							.single()
-					: await neon.from("accommodation_rooms").insert(payload).select().single();
+					: await neon
+							.from("accommodation_rooms")
+							.insert(payload)
+							.select(ACCOMMODATION_ROOM_SELECT)
+							.single();
 
 			if (error) throw error;
 
-			return data as AccommodationRoom;
+			return data as AccommodationRoomWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["accommodation_rooms", conferenceId] }),
 	});

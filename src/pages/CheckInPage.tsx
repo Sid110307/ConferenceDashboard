@@ -1,11 +1,8 @@
 import { useState } from "react";
 
-
-
 import { useAttendees, useUpsertAttendee } from "@/db/hooks/attendees";
+import type { Database } from "@/db/types";
 import { CheckCircle, Clock, Package, QrCode, Search } from "lucide-react";
-
-
 
 import { Badge } from "@/components/Badge";
 import { Card, CardHead } from "@/components/Card";
@@ -14,23 +11,32 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { SectionTitle } from "@/components/SectionTitle";
 import { StatCard } from "@/components/StatCard";
 
-
-
-
+type SelectedAttendee = {
+	id: string;
+	first_name?: string | null;
+	last_name?: string | null;
+	email?: string | null;
+	phone?: string | null;
+	checked_in_at?: string | null;
+	checkin_status?: Database["public"]["Tables"]["attendees"]["Row"]["checkin_status"];
+	badge_printed?: boolean;
+	attendee_id?: string | null;
+	category?: Database["public"]["Tables"]["attendees"]["Row"]["category"];
+};
 
 export const CheckInPage = () => {
 	const { data: attendees = [] } = useAttendees();
 	const upsert = useUpsertAttendee();
 
 	const [searchQuery, setSearchQuery] = useState("");
-	const [selectedAttendee, setSelectedAttendee] = useState<any>(null);
+	const [selectedAttendee, setSelectedAttendee] = useState<SelectedAttendee | null>(null);
 
 	const total = attendees.length;
 	const checkedIn = attendees.filter(
-		a => !!a.checked_in_at || a.checkin_status === "checked_in",
+		(a: SelectedAttendee) => !!a.checked_in_at || a.checkin_status === "checked_in",
 	).length;
 
-	const filteredAttendees = attendees.filter((a: any) => {
+	const filteredAttendees: SelectedAttendee[] = attendees.filter((a: SelectedAttendee) => {
 		const q = searchQuery.toLowerCase();
 		return (
 			a.first_name?.toLowerCase().includes(q) ||
@@ -41,17 +47,17 @@ export const CheckInPage = () => {
 		);
 	});
 
-	const recentCheckIns = attendees
-		.filter((a: any) => !!a.checked_in_at)
-		.sort((a: any, b: any) => {
-			const dateA = new Date(a.checked_in_at).getTime();
-			const dateB = new Date(b.checked_in_at).getTime();
+	const recentCheckIns: SelectedAttendee[] = attendees
+		.filter((a: SelectedAttendee) => !!a.checked_in_at)
+		.sort((a: SelectedAttendee, b: SelectedAttendee) => {
+			const dateA = new Date(a.checked_in_at ?? "").getTime();
+			const dateB = new Date(b.checked_in_at ?? "").getTime();
 			return dateB - dateA;
 		})
 		.slice(0, 10);
 
 	const categoryCounts: Record<string, number> = {};
-	attendees.forEach(a => {
+	attendees.forEach((a: SelectedAttendee) => {
 		const c = (a.category || "Other").toString();
 		categoryCounts[c] = (categoryCounts[c] || 0) + 1;
 	});
@@ -65,7 +71,7 @@ export const CheckInPage = () => {
 	const handleCheckIn = async () => {
 		if (!selectedAttendee) return;
 
-		const updated = {
+		const updated: SelectedAttendee = {
 			...selectedAttendee,
 			checkin_status: "checked_in",
 			checked_in_at: new Date().toISOString(),
@@ -78,7 +84,7 @@ export const CheckInPage = () => {
 	const handlePrintBadge = async () => {
 		if (!selectedAttendee) return;
 
-		const updated = {
+		const updated: SelectedAttendee = {
 			...selectedAttendee,
 			badge_printed: true,
 		};
@@ -125,7 +131,7 @@ export const CheckInPage = () => {
 
 					{searchQuery && filteredAttendees.length > 0 && (
 						<div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
-							{filteredAttendees.slice(0, 5).map((attendee: any) => {
+							{filteredAttendees.slice(0, 5).map((attendee: SelectedAttendee) => {
 								const isCheckedIn =
 									!!attendee.checked_in_at ||
 									attendee.checkin_status === "checked_in";
@@ -181,9 +187,9 @@ export const CheckInPage = () => {
 							<div>
 								<p className="text-xs text-zinc-600">Check-in Status</p>
 								<Badge
-									variant={!!selectedAttendee.checked_in_at ? "green" : "yellow"}
+									variant={selectedAttendee.checked_in_at ? "green" : "yellow"}
 								>
-									{!!selectedAttendee.checked_in_at ? "Checked In" : "Not Yet"}
+									{selectedAttendee.checked_in_at ? "Checked In" : "Not Yet"}
 								</Badge>
 							</div>
 							<div>
@@ -274,7 +280,7 @@ export const CheckInPage = () => {
 					<CardHead title="Recent Check-ins" />
 					<div className="divide-y divide-gray-100">
 						{recentCheckIns.length ? (
-							recentCheckIns.map((attendee: any) => (
+							recentCheckIns.map((attendee: SelectedAttendee) => (
 								<div
 									key={attendee.id}
 									className="flex items-center justify-between px-4 py-3"
@@ -284,7 +290,9 @@ export const CheckInPage = () => {
 											{attendee.first_name} {attendee.last_name}
 										</p>
 										<p className="text-xs text-zinc-500">
-											{new Date(attendee.checked_in_at).toLocaleTimeString()}
+											{new Date(
+												attendee.checked_in_at ?? "",
+											).toLocaleTimeString()}
 										</p>
 									</div>
 									<Badge variant="green">✓</Badge>

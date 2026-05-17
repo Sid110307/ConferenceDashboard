@@ -7,6 +7,26 @@ import { useConference } from "@/core/ConferenceContext";
 type Certificate = Database["public"]["Tables"]["certificates"]["Row"];
 type CertificateInsert = Database["public"]["Tables"]["certificates"]["Insert"];
 type CertificateUpdate = Database["public"]["Tables"]["certificates"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+type Attendee = Database["public"]["Tables"]["attendees"]["Row"];
+
+export type CertificateWithRelations = Certificate & {
+	conference_ref: Conference | null;
+	attendee_ref: Attendee | null;
+};
+
+export const CERTIFICATE_SELECT = `
+  *,
+  conference_ref:conferences(*),
+  attendee_ref:attendees(*)
+`;
+
+const stripCertificateRelations = (
+	row: Partial<CertificateWithRelations>,
+): Partial<CertificateUpdate> => {
+	const { conference_ref, attendee_ref, ...payload } = row;
+	return payload;
+};
 
 export const useCertificates = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +36,7 @@ export const useCertificates = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("certificates")
-				.select("*")
+				.select(CERTIFICATE_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +52,26 @@ export const useUpsertCertificate = () => {
 
 	return useMutation({
 		mutationFn: async (row: CertificateInsert | CertificateUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripCertificateRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("certificates")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(CERTIFICATE_SELECT)
 							.single()
-					: await neon.from("certificates").insert(payload).select().single();
+					: await neon
+							.from("certificates")
+							.insert(payload)
+							.select(CERTIFICATE_SELECT)
+							.single();
 
 			if (error) throw error;
 
-			return data as Certificate;
+			return data as CertificateWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["certificates", conferenceId] }),
 	});

@@ -13,8 +13,8 @@ import { PAGES_META } from "@/core/data";
 
 export const FoodPage = () => {
 	const { data: plans = [], isLoading } = useFoodPlans();
-	const _conf = useConference();
-	const isEditor = _conf?.isEditor || false;
+	const { conferenceId } = useConference();
+	const isEditor = useConference()?.isEditor || false;
 	const upsert = useUpsertFoodPlan();
 	const remove = useDeleteFoodPlan();
 	const [editing, setEditing] = useState<Record<string, any> | null>(null);

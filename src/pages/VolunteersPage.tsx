@@ -16,8 +16,8 @@ import { Routes as AppRoutes } from "@/core/navigation";
 
 export const VolunteersPage = () => {
 	const { data: volunteers = [], isLoading } = useVolunteers();
-	const _conf = useConference();
-	const isEditor = _conf?.isEditor || false;
+	const { conferenceId } = useConference();
+	const isEditor = useConference()?.isEditor || false;
 	const upsert = useUpsertVolunteer();
 	const remove = useDeleteVolunteer();
 	const [editing, setEditing] = useState<Record<string, any> | null>(null);
@@ -114,6 +114,7 @@ export const VolunteersPage = () => {
 									<td className="px-4 py-3 font-medium text-zinc-900">
 										<Link
 											to={AppRoutes.volunteers(
+												conferenceId,
 												(volunteer.name || "")
 													.replace(/\s+/g, "-")
 													.toLowerCase(),

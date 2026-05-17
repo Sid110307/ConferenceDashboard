@@ -296,7 +296,7 @@ export default function App() {
 				<Routes>
 					<Route path="/auth/*" element={<AuthPage />} />
 					<Route path="/" element={<ConferenceUUIDPicker />} />
-					<Route path="/c/:conferenceId/*" element={<ConferenceLayout />}>
+					<Route path="/c/:conferenceId" element={<ConferenceLayout />}>
 						<Route index element={<PAGES.dashboard />} />
 						<Route path="attendees" element={<PAGES.attendees />} />
 						<Route path="attendees/:id" element={<PAGES.attendees />} />

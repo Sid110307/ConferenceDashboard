@@ -7,6 +7,21 @@ import { useConference } from "@/core/ConferenceContext";
 type VipGuest = Database["public"]["Tables"]["vip_guests"]["Row"];
 type VipGuestInsert = Database["public"]["Tables"]["vip_guests"]["Insert"];
 type VipGuestUpdate = Database["public"]["Tables"]["vip_guests"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+
+export type VipGuestWithRelations = VipGuest & {
+	conference_ref: Conference | null;
+};
+
+export const VIP_GUEST_SELECT = `
+  *,
+  conference_ref:conferences(*)
+`;
+
+const stripVipGuestRelations = (row: Partial<VipGuestWithRelations>): Partial<VipGuestUpdate> => {
+	const { conference_ref, ...payload } = row;
+	return payload;
+};
 
 export const useVipGuests = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +31,7 @@ export const useVipGuests = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("vip_guests")
-				.select("*")
+				.select(VIP_GUEST_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +47,26 @@ export const useUpsertVipGuest = () => {
 
 	return useMutation({
 		mutationFn: async (row: VipGuestInsert | VipGuestUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripVipGuestRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("vip_guests")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(VIP_GUEST_SELECT)
 							.single()
-					: await neon.from("vip_guests").insert(payload).select().single();
+					: await neon
+							.from("vip_guests")
+							.insert(payload)
+							.select(VIP_GUEST_SELECT)
+							.single();
 
 			if (error) throw error;
 
-			return data as VipGuest;
+			return data as VipGuestWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["vip_guests", conferenceId] }),
 	});

@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Outfit:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @theme {
@@ -23,7 +24,7 @@
     --color-info: #06b6d4;
     --color-pending: #8b5cf6;
 
-    --font-sans: Outfit, "Segoe UI", Arial, sans-serif;
+    --font-sans: Outfit;
     --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
 }
 

@@ -7,6 +7,23 @@ import { useConference } from "@/core/ConferenceContext";
 type LogisticsItem = Database["public"]["Tables"]["logistics_items"]["Row"];
 type LogisticsItemInsert = Database["public"]["Tables"]["logistics_items"]["Insert"];
 type LogisticsItemUpdate = Database["public"]["Tables"]["logistics_items"]["Update"];
+type Conference = Database["public"]["Tables"]["conferences"]["Row"];
+
+export type LogisticsItemWithRelations = LogisticsItem & {
+	conference_ref: Conference | null;
+};
+
+export const LOGISTICS_ITEM_SELECT = `
+  *,
+  conference_ref:conferences(*)
+`;
+
+const stripLogisticsItemRelations = (
+	row: Partial<LogisticsItemWithRelations>,
+): Partial<LogisticsItemUpdate> => {
+	const { conference_ref, ...payload } = row;
+	return payload;
+};
 
 export const useLogisticsItems = () => {
 	const { conferenceId } = useConference();
@@ -16,7 +33,7 @@ export const useLogisticsItems = () => {
 		queryFn: async () => {
 			const { data, error } = await neon
 				.from("logistics_items")
-				.select("*")
+				.select(LOGISTICS_ITEM_SELECT)
 				.eq("conference", conferenceId);
 
 			if (error) throw error;
@@ -32,21 +49,26 @@ export const useUpsertLogisticsItem = () => {
 
 	return useMutation({
 		mutationFn: async (row: LogisticsItemInsert | LogisticsItemUpdate) => {
-			const payload = { ...row, conference: conferenceId };
+			const strippedPayload = stripLogisticsItemRelations(row);
+			const payload = { ...strippedPayload, conference: conferenceId };
 
 			const { data, error } =
-				"id" in payload && payload.id
+				"id" in row && row.id
 					? await neon
 							.from("logistics_items")
 							.update(payload)
-							.eq("id", payload.id)
-							.select()
+							.eq("id", row.id)
+							.select(LOGISTICS_ITEM_SELECT)
 							.single()
-					: await neon.from("logistics_items").insert(payload).select().single();
+					: await neon
+							.from("logistics_items")
+							.insert(payload)
+							.select(LOGISTICS_ITEM_SELECT)
+							.single();
 
 			if (error) throw error;
 
-			return data as LogisticsItem;
+			return data as LogisticsItemWithRelations;
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["logistics_items", conferenceId] }),
 	});

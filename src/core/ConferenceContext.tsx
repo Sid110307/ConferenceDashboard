@@ -2,6 +2,7 @@ import React, { createContext, useContext } from "react";
 import { useParams } from "react-router";
 
 import { neon } from "@/db/neon";
+import type { Database } from "@/db/types";
 import { useQuery } from "@tanstack/react-query";
 
 interface Ctx {
@@ -10,23 +11,30 @@ interface Ctx {
 	role: string | null;
 }
 
+type ConferenceEditorRow = Database["public"]["Tables"]["conference_editors"]["Row"];
+
 export const ConferenceCtx = createContext<Ctx | null>(null);
 export const ConferenceProvider = ({ children }: { children: React.ReactNode }) => {
 	const { conferenceId } = useParams<{ conferenceId: string }>();
 	const { data: session } = neon.auth.useSession();
 	const userId = session?.user?.id;
 
-	const { data: editorRow } = useQuery<any>({
+	const { data: editorRow } = useQuery({
 		queryKey: ["editor", conferenceId, userId],
 		enabled: !!conferenceId && !!userId,
-		queryFn: () =>
-			neon
+		queryFn: async () => {
+			const { data, error } = await neon
 				.from("conference_editors")
 				.select("role,is_active")
 				.eq("conference", conferenceId!)
 				.eq("directus_user", userId!)
 				.eq("is_active", true)
-				.maybeSingle(),
+				.maybeSingle();
+
+			if (error) throw error;
+
+			return data;
+		},
 	});
 
 	if (!conferenceId)
@@ -39,8 +47,8 @@ export const ConferenceProvider = ({ children }: { children: React.ReactNode }) 
 		<ConferenceCtx.Provider
 			value={{
 				conferenceId: conferenceId!,
-				isEditor: !!editorRow?.data,
-				role: editorRow?.data?.role ?? null,
+				isEditor: !!editorRow,
+				role: editorRow?.role ?? null,
 			}}
 		>
 			{children}

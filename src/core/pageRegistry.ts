@@ -1,6 +1,8 @@
 import React from "react";
 
-const PAGE_IMPORTS: Record<string, React.LazyExoticComponent<any>> = {
+export type PageComponent = React.ComponentType<Record<string, never>>;
+
+const PAGE_IMPORTS: Record<string, React.LazyExoticComponent<PageComponent>> = {
 	dashboard: React.lazy(() =>
 		import("@/pages/DashboardPage").then(m => ({ default: m.DashboardPage })),
 	),
@@ -43,11 +45,9 @@ const PAGE_IMPORTS: Record<string, React.LazyExoticComponent<any>> = {
 	),
 };
 
-type PageLoader = React.LazyExoticComponent<any> | (() => Promise<{ default: any }>);
+const registry: Record<string, React.LazyExoticComponent<PageComponent>> = { ...PAGE_IMPORTS };
 
-const registry: Record<string, PageLoader> = { ...PAGE_IMPORTS };
-
-export const registerPage = (id: string, loader: PageLoader) => {
+export const registerPage = (id: string, loader: React.LazyExoticComponent<PageComponent>) => {
 	registry[id] = loader;
 };
 
@@ -55,7 +55,9 @@ export const unregisterPage = (id: string) => {
 	delete registry[id];
 };
 
-export const getRegisteredPages = () => ({ ...registry });
+export const getRegisteredPages = (): Record<string, React.LazyExoticComponent<PageComponent>> => ({
+	...registry,
+});
 
 export default {
 	registerPage,

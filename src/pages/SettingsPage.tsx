@@ -4,10 +4,22 @@ import { useAccommodationRooms } from "@/db/hooks/accommodationRooms";
 import { useAttendees } from "@/db/hooks/attendees";
 import { useConferenceDetails } from "@/db/hooks/conferences";
 import { useHelpdeskIssues } from "@/db/hooks/helpdeskIssues";
-import { AlertCircle, Database, Palette, Settings, Shield, Users } from "lucide-react";
+import {
+	AlertCircle,
+	Bed,
+	CalendarDays,
+	Crown,
+	Database,
+	Palette,
+	Settings,
+	Shield,
+	UserCheck,
+	Users,
+} from "lucide-react";
 
 import { Card } from "@/components/Card";
 import { SectionTitle } from "@/components/SectionTitle";
+import { StatCard } from "@/components/StatCard";
 
 import { PAGES_META } from "@/core/data";
 
@@ -128,27 +140,56 @@ export const SettingsPage = () => {
 				</div>
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 					{[
-						["Current Day", `Day ${meta.currentDay}`, "text-blue-600"],
-						["Total Capacity", `${totalCapacity} attendees`, "text-zinc-900"],
-						[
-							"Check-in Rate",
-							totalCapacity
+						{
+							icon: CalendarDays,
+							label: "Current Day",
+							value: `Day ${meta.currentDay}`,
+							color: "blue",
+						},
+						{
+							icon: Users,
+							label: "Total Capacity",
+							value: totalCapacity,
+							color: "gray",
+							sub: "attendees",
+						},
+						{
+							icon: UserCheck,
+							label: "Check-in Rate",
+							value: totalCapacity
 								? `${Math.round((checkedInCount / totalCapacity) * 100)}%`
 								: "N/A",
-							"text-emerald-600",
-						],
-						[
-							"Room Occupancy",
-							`${Math.round((roomsTotal ? roomsAssigned / roomsTotal : 0) * 100)}%`,
-							"text-blue-600",
-						],
-						["Open Issues", `${openIssues} issues`, "text-rose-600"],
-						["VIP Confirmed", `${vipConfirmed} VIPs`, "text-amber-600"],
-					].map(([label, value, colorClass]) => (
-						<Card key={String(label)} className="p-4">
-							<p className="text-xs font-medium text-zinc-600">{label}</p>
-							<p className={`mt-2 text-2xl font-semibold ${colorClass}`}>{value}</p>
-						</Card>
+							color: "green",
+						},
+						{
+							icon: Bed,
+							label: "Room Occupancy",
+							value: `${Math.round((roomsTotal ? roomsAssigned / roomsTotal : 0) * 100)}%`,
+							color: "blue",
+						},
+						{
+							icon: AlertCircle,
+							label: "Open Issues",
+							value: openIssues,
+							color: "red",
+							sub: "issues",
+						},
+						{
+							icon: Crown,
+							label: "VIP Confirmed",
+							value: vipConfirmed,
+							color: "gold",
+							sub: "VIPs",
+						},
+					].map(({ icon, label, value, color, sub }) => (
+						<StatCard
+							key={label}
+							icon={icon}
+							label={label}
+							value={value}
+							color={color}
+							sub={sub}
+						/>
 					))}
 				</div>
 			</div>
