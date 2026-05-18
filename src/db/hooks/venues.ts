@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -9,26 +10,31 @@ type VenueInsert = Database["public"]["Tables"]["venues"]["Insert"];
 type VenueUpdate = Database["public"]["Tables"]["venues"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 
-export type VenueWithRelations = Venue & {
-	conference_ref: Conference | null;
+type VenueRawWithRelations = Venue & {
+	conference_rel: Conference | null;
+};
+
+export type VenueMapped = Omit<Venue, "conference"> & {
+	conference: Conference | null;
 };
 
 export const VENUE_SELECT = `
   *,
-  conference_ref:conferences(*)
+  conference_rel:conferences(*)
 `;
 
-const stripVenueRelations = (row: Partial<VenueWithRelations>): Partial<VenueUpdate> => {
-	const { conference_ref, ...payload } = row;
-	return payload;
-};
+const mapVenue = createRelationMapper<VenueRawWithRelations, VenueMapped>({
+	conference_rel: "conference",
+});
+
+const stripVenueRelations = createRelationStripper<VenueUpdate>(["conference_rel"]);
 
 export const useVenues = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["venues", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<VenueMapped[]> => {
 			const { data, error } = await neon
 				.from("venues")
 				.select(VENUE_SELECT)
@@ -36,7 +42,7 @@ export const useVenues = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return ((data ?? []) as VenueRawWithRelations[]).map(mapVenue);
 		},
 	});
 };
@@ -62,7 +68,7 @@ export const useUpsertVenue = () => {
 
 			if (error) throw error;
 
-			return data as VenueWithRelations;
+			return mapVenue(data as VenueRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["venues", conferenceId] }),
 	});

@@ -1,7 +1,11 @@
 import { useState } from "react";
 
-import type { FinanceItemWithRelations } from "@/db/hooks/financeItems";
-import { useDeleteFinanceItem, useFinanceItems, useUpsertFinanceItem, } from "@/db/hooks/financeItems";
+import {
+	useDeleteFinanceItem,
+	useFinanceItems,
+	useUpsertFinanceItem,
+	type FinanceItemMapped,
+} from "@/db/hooks/financeItems";
 import { AlertCircle, CheckCircle, Receipt, Star, TrendingUp } from "lucide-react";
 import * as Recharts from "recharts";
 
@@ -12,7 +16,14 @@ import { EmptyState } from "@/components/EmptyState";
 import EntityDrawer from "@/components/EntityDrawer";
 import { SectionTitle } from "@/components/SectionTitle";
 import { StatCard } from "@/components/StatCard";
+import {
+	primaryButtonClassName,
+	tableActionButtonClassName,
+	tableDangerButtonClassName,
+} from "@/components/uiStyles";
+
 import { useConference } from "@/core/ConferenceContext.tsx";
+import { formatLabel } from "@/core/display";
 
 type FinanceBreakdownRow = {
 	id: string;
@@ -38,20 +49,18 @@ export const FinancePage = () => {
 	const upsert = useUpsertFinanceItem();
 	const remove = useDeleteFinanceItem();
 	const [editing, setEditing] = useState<FinanceEditorRow | null>(null);
-	const breakdownRows: FinanceBreakdownRow[] = financeRows.map(
-		(row: FinanceItemWithRelations) => ({
-			id: row.id,
-			name: row.item_name || "Untitled",
-			type:
-				row.category === "registration" || row.category === "sponsorship"
-					? "income"
-					: "expense",
-			budget: row.budget_amount || 0,
-			actual: row.actual_amount || 0,
-			sponsorship_pledged: row.category === "sponsorship" ? row.budget_amount || 0 : 0,
-			sponsorship_received: row.category === "sponsorship" ? row.actual_amount || 0 : 0,
-		}),
-	);
+	const breakdownRows: FinanceBreakdownRow[] = financeRows.map((row: FinanceItemMapped) => ({
+		id: row.id,
+		name: row.item_name || "Untitled",
+		type:
+			row.category === "registration" || row.category === "sponsorship"
+				? "income"
+				: "expense",
+		budget: row.budget_amount || 0,
+		actual: row.actual_amount || 0,
+		sponsorship_pledged: row.category === "sponsorship" ? row.budget_amount || 0 : 0,
+		sponsorship_received: row.category === "sponsorship" ? row.actual_amount || 0 : 0,
+	}));
 
 	const budget = breakdownRows.reduce((s, r) => s + (r.budget || 0), 0);
 	const spent = breakdownRows.reduce((s, r) => s + (r.actual || 0), 0);
@@ -212,7 +221,7 @@ export const FinancePage = () => {
 														: "gray"
 											}
 										>
-											{cat.isOverBudget ? "+ICR " : ""}
+											{cat.isOverBudget ? "+INR " : ""}
 											{Math.abs(cat.variance).toLocaleString()} (
 											{cat.variancePercent}%)
 										</Badge>
@@ -239,7 +248,7 @@ export const FinancePage = () => {
 				<CardHead title="Category Breakdown" />
 				{isEditor && (
 					<button
-						className="mx-4 mt-4 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+						className={`mx-4 mt-4 ${primaryButtonClassName}`}
 						onClick={() => setEditing({})}
 					>
 						+ Add entry
@@ -280,7 +289,7 @@ export const FinancePage = () => {
 											<Badge
 												variant={row.type === "income" ? "green" : "blue"}
 											>
-												{row.type}
+												{formatLabel(row.type)}
 											</Badge>
 										</td>
 										<td className="px-4 py-3 text-zinc-600">
@@ -309,14 +318,14 @@ export const FinancePage = () => {
 										{isEditor && (
 											<td className="px-4 py-3 text-xs">
 												<button
-													className="mr-2 rounded-md border border-gray-100 px-2 py-1"
+													className={`${tableActionButtonClassName} mr-2`}
 													onClick={() => setEditing(row)}
 												>
 													Edit
 												</button>
 												{row.id && (
 													<button
-														className="rounded-md border border-red-200 px-2 py-1 text-red-600"
+														className={tableDangerButtonClassName}
 														onClick={() => remove.mutate(row.id)}
 													>
 														Delete

@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -9,26 +10,31 @@ type SponsorInsert = Database["public"]["Tables"]["sponsors"]["Insert"];
 type SponsorUpdate = Database["public"]["Tables"]["sponsors"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 
-export type SponsorWithRelations = Sponsor & {
-	conference_ref: Conference | null;
+type SponsorRawWithRelations = Sponsor & {
+	conference_rel: Conference | null;
+};
+
+export type SponsorMapped = Omit<Sponsor, "conference"> & {
+	conference: Conference | null;
 };
 
 export const SPONSOR_SELECT = `
   *,
-  conference_ref:conferences(*)
+  conference_rel:conferences(*)
 `;
 
-const stripSponsorRelations = (row: Partial<SponsorWithRelations>): Partial<SponsorUpdate> => {
-	const { conference_ref, ...payload } = row;
-	return payload;
-};
+const mapSponsor = createRelationMapper<SponsorRawWithRelations, SponsorMapped>({
+	conference_rel: "conference",
+});
+
+const stripSponsorRelations = createRelationStripper<SponsorUpdate>(["conference_rel"]);
 
 export const useSponsors = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["sponsors", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<SponsorMapped[]> => {
 			const { data, error } = await neon
 				.from("sponsors")
 				.select(SPONSOR_SELECT)
@@ -36,7 +42,7 @@ export const useSponsors = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return ((data ?? []) as SponsorRawWithRelations[]).map(mapSponsor);
 		},
 	});
 };
@@ -62,7 +68,7 @@ export const useUpsertSponsor = () => {
 
 			if (error) throw error;
 
-			return data as SponsorWithRelations;
+			return mapSponsor(data as SponsorRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["sponsors", conferenceId] }),
 	});

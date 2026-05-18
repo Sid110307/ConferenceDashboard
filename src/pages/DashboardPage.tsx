@@ -66,9 +66,9 @@ export const DashboardPage = () => {
 		acc[day].push({
 			time: session.start_time || "",
 			title: session.title || "",
-			speaker: session.speaker || "-",
-			venue: session.venue || "",
-			status: session.status || "upcoming",
+			speaker: session.speaker?.name || "-",
+			venue: session.venue?.name || "",
+			status: session.status_label || "upcoming",
 		});
 		return acc;
 	}, {});
@@ -311,14 +311,14 @@ export const DashboardPage = () => {
 									</div>
 									<Badge
 										variant={
-											session.status === "ongoing"
+											session.status_label === "ongoing"
 												? "blue"
-												: session.status === "done"
+												: session.status_label === "done"
 													? "green"
 													: "gray"
 										}
 									>
-										{formatLabel(session.status)}
+										{formatLabel(session.status_label)}
 									</Badge>
 								</div>
 							))}

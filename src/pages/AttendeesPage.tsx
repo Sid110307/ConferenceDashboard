@@ -1,10 +1,14 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 
-import { useAttendees, useDeleteAttendee, useUpsertAttendee } from "@/db/hooks/attendees";
+import {
+	useAttendees,
+	useDeleteAttendee,
+	useUpsertAttendee,
+	type AttendeeMapped,
+} from "@/db/hooks/attendees";
 import type { Database } from "@/db/types.ts";
 import {
-	Search,
 	ShieldCheck,
 	UserCheck,
 	UserCog,
@@ -17,8 +21,14 @@ import {
 import { Badge } from "@/components/Badge";
 import { Card } from "@/components/Card";
 import EntityDrawer from "@/components/EntityDrawer";
+import { SearchField } from "@/components/SearchField";
 import { SectionTitle } from "@/components/SectionTitle";
 import { StatCard } from "@/components/StatCard";
+import {
+	primaryButtonClassName,
+	tableActionButtonClassName,
+	tableDangerButtonClassName,
+} from "@/components/uiStyles";
 
 import { useConference } from "@/core/ConferenceContext";
 import { categoryVariant, PAGES_META, statusVariant } from "@/core/data";
@@ -48,7 +58,7 @@ export const AttendeesPage = () => {
 	const isEditor = useConference()?.isEditor || false;
 	const upsert = useUpsertAttendee();
 	const remove = useDeleteAttendee();
-	const [editing, setEditing] = useState<AttendeeUpdate | null>(null);
+	const [editing, setEditing] = useState<AttendeeMapped | null>(null);
 
 	const categories = Array.from(new Set(attendees.map(a => a.category || "").filter(Boolean)));
 	const statuses = Array.from(
@@ -122,15 +132,11 @@ export const AttendeesPage = () => {
 			</div>
 			<Card className="mb-3">
 				<div className="flex flex-col gap-2 p-3 sm:flex-row sm:flex-wrap sm:items-center">
-					<div className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 shadow-sm">
-						<Search size={14} className="text-zinc-500" />
-						<input
-							className="w-full bg-transparent text-sm text-zinc-900 outline-none placeholder:text-zinc-400"
-							placeholder="Search by name, ID or institution..."
-							value={search}
-							onChange={event => setSearch(event.target.value)}
-						/>
-					</div>
+					<SearchField
+						placeholder="Search by name, ID or institution..."
+						value={search}
+						onChange={event => setSearch(event.target.value)}
+					/>
 					<select
 						className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition-colors focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
 						value={catFilter}
@@ -146,12 +152,12 @@ export const AttendeesPage = () => {
 						onChange={event => setStatusFilter(event.target.value)}
 					>
 						{["All", ...statuses].map(status => (
-							<option key={status}>{status}</option>
+							<option key={status}>{formatLabel(status)}</option>
 						))}
 					</select>
 					{isEditor && (
 						<button
-							className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 sm:ml-auto"
+							className={`sm:ml-auto ${primaryButtonClassName}`}
 							onClick={() =>
 								setEditing({} as Database["public"]["Tables"]["attendees"]["Row"])
 							}
@@ -238,18 +244,20 @@ export const AttendeesPage = () => {
 										</Badge>
 									</td>
 									<td className="px-4 py-3 text-xs text-zinc-500">
-										{attendee.travel_mode}
+										{formatLabel(attendee.travel_mode || "")}
 									</td>
 									{isEditor && (
 										<td className="px-4 py-3 text-xs">
 											<button
-												className="mr-2 rounded-md px-2 py-1 text-xs border border-gray-100"
-												onClick={() => setEditing(attendee)}
+												className={`${tableActionButtonClassName} mr-2`}
+												onClick={() => {
+													setEditing(attendee);
+												}}
 											>
 												Edit
 											</button>
 											<button
-												className="rounded-md px-2 py-1 text-xs border border-red-200 text-red-600"
+												className={tableDangerButtonClassName}
 												onClick={() => remove.mutate(attendee.id)}
 											>
 												Delete
@@ -288,7 +296,7 @@ export const AttendeesPage = () => {
 					]}
 					onCancel={() => setEditing(null)}
 					onSave={async row => {
-						await upsert.mutateAsync(row);
+						await upsert.mutateAsync(row as AttendeeUpdate);
 						setEditing(null);
 					}}
 					onDelete={

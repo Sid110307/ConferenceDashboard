@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -12,32 +13,48 @@ type Speaker = Database["public"]["Tables"]["speakers"]["Row"];
 type Track = Database["public"]["Tables"]["tracks"]["Row"];
 type Venue = Database["public"]["Tables"]["venues"]["Row"];
 
-export type SessionWithRelations = Session & {
-	conference_ref: Conference | null;
-	speaker_ref: Speaker | null;
-	track_ref: Track | null;
-	venue_ref: Venue | null;
+type SessionRawWithRelations = Session & {
+	conference_rel: Conference | null;
+	speaker_rel: Speaker | null;
+	track_rel: Track | null;
+	venue_rel: Venue | null;
+};
+
+export type SessionMapped = Omit<Session, "conference" | "speaker" | "track" | "venue"> & {
+	conference: Conference | null;
+	speaker: Speaker | null;
+	track: Track | null;
+	venue: Venue | null;
 };
 
 export const SESSION_SELECT = `
   *,
-  conference_ref:conferences(*),
-  speaker_ref:speakers(*),
-  track_ref:tracks(*),
-  venue_ref:venues(*)
+  conference_rel:conferences(*),
+  speaker_rel:speakers(*),
+  track_rel:tracks(*),
+  venue_rel:venues(*)
 `;
 
-const stripSessionRelations = (row: Partial<SessionWithRelations>): Partial<SessionUpdate> => {
-	const { conference_ref, speaker_ref, track_ref, venue_ref, ...payload } = row;
-	return payload;
-};
+const mapSession = createRelationMapper<SessionRawWithRelations, SessionMapped>({
+	conference_rel: "conference",
+	speaker_rel: "speaker",
+	track_rel: "track",
+	venue_rel: "venue",
+});
+
+const stripSessionRelations = createRelationStripper<SessionUpdate>([
+	"conference_rel",
+	"speaker_rel",
+	"track_rel",
+	"venue_rel",
+]);
 
 export const useSessions = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["sessions", conferenceId],
-		queryFn: async (): Promise<SessionWithRelations[]> => {
+		queryFn: async (): Promise<SessionMapped[]> => {
 			const { data, error } = await neon
 				.from("sessions")
 				.select(SESSION_SELECT)
@@ -45,8 +62,7 @@ export const useSessions = () => {
 
 			if (error) throw error;
 
-			console.log(data);
-			return (data ?? []) as SessionWithRelations[];
+			return ((data ?? []) as SessionRawWithRelations[]).map(mapSession);
 		},
 	});
 };
@@ -72,7 +88,7 @@ export const useUpsertSession = () => {
 
 			if (error) throw error;
 
-			return data as SessionWithRelations;
+			return mapSession(data as SessionRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["sessions", conferenceId] }),
 	});

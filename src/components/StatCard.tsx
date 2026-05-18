@@ -15,6 +15,20 @@ type StatCardProps = {
 	className?: string;
 };
 
+const baseTokens = (className: string) =>
+	className.split(/\s+/).filter(token => token && !token.includes(":"));
+
+const hasBorderColorOverride = (className: string) =>
+	baseTokens(className).some(
+		token =>
+			token.startsWith("border-") &&
+			!/^border(?:-[trblxy])?$/.test(token) &&
+			!/^border-(?:0|2|4|8|solid|dashed|dotted|double|none)$/.test(token),
+	);
+
+const hasBackgroundOverride = (className: string) =>
+	baseTokens(className).some(token => token.startsWith("bg-"));
+
 export const StatCard = ({
 	icon: Icon,
 	label,
@@ -26,6 +40,9 @@ export const StatCard = ({
 	className,
 }: StatCardProps) => {
 	const isInteractive = typeof onClick === "function" && !isLink;
+	const extraClassName = className || "";
+	const borderColorClass = hasBorderColorOverride(extraClassName) ? "" : "border-gray-100";
+	const backgroundClass = hasBackgroundOverride(extraClassName) ? "" : "bg-white";
 	const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
 		if (!isInteractive) return;
 		if (e.key === "Enter" || e.key === " ") {
@@ -40,7 +57,7 @@ export const StatCard = ({
 			tabIndex={isInteractive ? 0 : undefined}
 			onKeyDown={handleKeyDown}
 			onClick={onClick}
-			className={`flex items-start gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-all sm:p-5 ${isInteractive || isLink ? "cursor-pointer hover:border-gray-200 hover:shadow-md" : ""} ${className || ""}`}
+			className={`flex items-start gap-3 rounded-xl border ${borderColorClass} ${backgroundClass} p-4 shadow-sm transition-all sm:p-5 ${isInteractive || isLink ? "cursor-pointer hover:border-gray-200 hover:shadow-md" : ""} ${extraClassName}`}
 		>
 			<div
 				className={`shrink-0 rounded-lg border border-transparent p-2.5 ${ICON_COLORS[color]}`}
@@ -56,7 +73,7 @@ export const StatCard = ({
 						value
 					)}
 				</div>
-				<div className="mt-1 min-h-4 text-xs text-zinc-500">{sub}</div>
+				<div className="mt-2 min-h-4 text-xs text-zinc-500">{sub}</div>
 			</div>
 		</div>
 	);

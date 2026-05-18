@@ -50,7 +50,7 @@ export const AccommodationPage = () => {
 								<Badge
 									variant={free === 0 ? "red" : free <= 3 ? "yellow" : "green"}
 								>
-									<CountUpNumber value={free} /> free
+									{free} free
 								</Badge>
 							</div>
 							<ProgressBar
@@ -108,35 +108,45 @@ export const AccommodationPage = () => {
 				<Card>
 					<CardHead title="Room Issues" />
 					<div className="divide-y divide-gray-100">
-						{issues.map((issue, index: number) => (
-							<div key={index} className="flex items-start justify-between px-4 py-4">
-								<div>
-									<p className="text-sm font-medium text-zinc-900">
-										{issue.room}
-									</p>
-									<p className="mt-0.5 text-xs text-zinc-600">
-										{issue.description || ""}
-									</p>
+						{issues.map((issue, index: number) => {
+							const roomLabel: string =
+								typeof issue.room === "string"
+									? issue.room
+									: String(issue.room?.room_code || issue.room?.id || "-");
+
+							return (
+								<div
+									key={index}
+									className="flex items-start justify-between px-4 py-4"
+								>
+									<div>
+										<p className="text-sm font-medium text-zinc-900">
+											{roomLabel}
+										</p>
+										<p className="mt-0.5 text-xs text-zinc-600">
+											{issue.description || ""}
+										</p>
+									</div>
+									<div className="ml-3 flex gap-2">
+										<Badge
+											variant={
+												formatLabel(String(issue.priority || "")) === "High"
+													? "red"
+													: formatLabel(String(issue.priority || "")) ===
+														  "Medium"
+														? "yellow"
+														: "gray"
+											}
+										>
+											{formatLabel(String(issue.priority || ""))}
+										</Badge>
+										<Badge variant={statusVariant(issue.issue_status || "")}>
+											{formatLabel(issue.issue_status || "")}
+										</Badge>
+									</div>
 								</div>
-								<div className="ml-3 flex gap-2">
-									<Badge
-										variant={
-											formatLabel(String(issue.priority || "")) === "High"
-												? "red"
-												: formatLabel(String(issue.priority || "")) ===
-													  "Medium"
-													? "yellow"
-													: "gray"
-										}
-									>
-										{formatLabel(String(issue.priority || ""))}
-									</Badge>
-									<Badge variant={statusVariant(issue.issue_status || "")}>
-										{formatLabel(issue.issue_status || "")}
-									</Badge>
-								</div>
-							</div>
-						))}
+							);
+						})}
 					</div>
 				</Card>
 			</div>

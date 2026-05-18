@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router";
 
-import { useVipChecklist, type VipChecklistWithRelations } from "@/db/hooks/vipChecklist";
+import { useVipChecklist, type VipChecklistMapped } from "@/db/hooks/vipChecklist";
 import {
 	useDeleteVipGuest,
 	useUpsertVipGuest,
 	useVipGuests,
-	type VipGuestWithRelations,
+	type VipGuestMapped,
 } from "@/db/hooks/vipGuests";
-import { Car, Check, CheckCircle, Crown, Shield } from "lucide-react";
+import { Car, Check, CheckCircle, Circle, Crown, Shield } from "lucide-react";
 
 import { Badge } from "@/components/Badge";
 import { Card, CardHead } from "@/components/Card";
@@ -16,6 +16,11 @@ import EntityDrawer from "@/components/EntityDrawer";
 import { ProgressBar } from "@/components/ProgressBar";
 import { SectionTitle } from "@/components/SectionTitle";
 import { StatCard } from "@/components/StatCard";
+import {
+	primaryButtonClassName,
+	tableActionButtonClassName,
+	tableDangerButtonClassName,
+} from "@/components/uiStyles";
 
 import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META, statusVariant } from "@/core/data";
@@ -47,7 +52,7 @@ export const VIPPage = () => {
 	const upsert = useUpsertVipGuest();
 	const remove = useDeleteVipGuest();
 	const [editing, setEditing] = useState<VipGuestCard | null>(null);
-	const guests: VipGuestCard[] = vipGuests.map((guest: VipGuestWithRelations) => ({
+	const guests: VipGuestCard[] = vipGuests.map((guest: VipGuestMapped) => ({
 		id: guest.id,
 		name: guest.name || "-",
 		designation: guest.designation || "",
@@ -59,7 +64,7 @@ export const VIPPage = () => {
 		status: guest.status_label || "pending",
 	}));
 	const { data: checklist = [] } = useVipChecklist();
-	const checklistItems: VipChecklistItem[] = checklist.map((item: VipChecklistWithRelations) => ({
+	const checklistItems: VipChecklistItem[] = checklist.map((item: VipChecklistMapped) => ({
 		id: item.id,
 		item: item.item || "",
 		done: !!item.is_done,
@@ -96,7 +101,7 @@ export const VIPPage = () => {
 						<CardHead title="VIP Guest List" />
 						{isEditor && (
 							<button
-								className="mx-4 mt-4 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+								className={`mx-4 mt-4 ${primaryButtonClassName}`}
 								onClick={() => setEditing({} as VipGuestCard)}
 							>
 								+ Add VIP guest
@@ -155,7 +160,12 @@ export const VIPPage = () => {
 												</Badge>
 											</td>
 											<td className="px-4 py-3 font-mono text-xs text-zinc-600">
-												{guest.arrival}
+												{new Date(guest.arrival).toLocaleString("en-IN", {
+													day: "2-digit",
+													month: "short",
+													hour: "2-digit",
+													minute: "2-digit",
+												})}
 											</td>
 											<td className="px-4 py-3 text-xs text-zinc-600">
 												{guest.vehicle}
@@ -172,20 +182,20 @@ export const VIPPage = () => {
 											</td>
 											<td className="px-4 py-3">
 												<Badge variant={statusVariant(guest.status)}>
-													{guest.status}
+													{formatLabel(guest.status)}
 												</Badge>
 											</td>
 											{isEditor && (
 												<td className="px-4 py-3 text-xs">
 													<button
-														className="mr-2 rounded-md border border-gray-100 px-2 py-1"
+														className={`${tableActionButtonClassName} mr-2`}
 														onClick={() => setEditing(guest)}
 													>
 														Edit
 													</button>
 													{guest.id && (
 														<button
-															className="rounded-md border border-red-200 px-2 py-1 text-red-600"
+															className={tableDangerButtonClassName}
 															onClick={() => remove.mutate(guest.id)}
 														>
 															Delete
@@ -203,16 +213,20 @@ export const VIPPage = () => {
 				<Card>
 					<CardHead title={`VIP Checklist ${done}/${checklist.length}`} />
 					<div className="p-4">
-						<div className="mb-4">
+						<div className="mb-4!">
 							<ProgressBar value={done} max={checklist.length} color="green" />
 						</div>
-						<div className="space-y-2.5">
+						<div className="space-y-2.5!">
 							{checklistItems.map((item, index) => (
 								<div key={index} className="flex items-center gap-2.5">
 									<div
-										className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${item.done ? "bg-green-600" : "border border-gray-100 bg-white"}`}
+										className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${item.done ? "bg-green-600" : "bg-gray-300"}`}
 									>
-										{item.done && <Check size={9} className="text-white" />}
+										{item.done ? (
+											<Check size={9} className="text-white" />
+										) : (
+											<Circle size={9} className="text-gray-300" />
+										)}
 									</div>
 									<span
 										className={`text-sm ${item.done ? "text-zinc-600 line-through" : "text-zinc-500"}`}

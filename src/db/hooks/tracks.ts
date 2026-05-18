@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -9,26 +10,31 @@ type TrackInsert = Database["public"]["Tables"]["tracks"]["Insert"];
 type TrackUpdate = Database["public"]["Tables"]["tracks"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 
-export type TrackWithRelations = Track & {
-	conference_ref: Conference | null;
+type TrackRawWithRelations = Track & {
+	conference_rel: Conference | null;
+};
+
+export type TrackMapped = Omit<Track, "conference"> & {
+	conference: Conference | null;
 };
 
 export const TRACK_SELECT = `
   *,
-  conference_ref:conferences(*)
+  conference_rel:conferences(*)
 `;
 
-const stripTrackRelations = (row: Partial<TrackWithRelations>): Partial<TrackUpdate> => {
-	const { conference_ref, ...payload } = row;
-	return payload;
-};
+const mapTrack = createRelationMapper<TrackRawWithRelations, TrackMapped>({
+	conference_rel: "conference",
+});
+
+const stripTrackRelations = createRelationStripper<TrackUpdate>(["conference_rel"]);
 
 export const useTracks = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["tracks", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<TrackMapped[]> => {
 			const { data, error } = await neon
 				.from("tracks")
 				.select(TRACK_SELECT)
@@ -36,7 +42,7 @@ export const useTracks = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return ((data ?? []) as TrackRawWithRelations[]).map(mapTrack);
 		},
 	});
 };
@@ -62,7 +68,7 @@ export const useUpsertTrack = () => {
 
 			if (error) throw error;
 
-			return data as TrackWithRelations;
+			return mapTrack(data as TrackRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["tracks", conferenceId] }),
 	});

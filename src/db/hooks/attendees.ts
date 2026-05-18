@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -9,26 +10,31 @@ type AttendeeInsert = Database["public"]["Tables"]["attendees"]["Insert"];
 type AttendeeUpdate = Database["public"]["Tables"]["attendees"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 
-export type AttendeeWithRelations = Attendee & {
-	conference_ref: Conference | null;
+type AttendeeRawWithRelations = Attendee & {
+	conference_rel: Conference | null;
+};
+
+export type AttendeeMapped = Omit<Attendee, "conference"> & {
+	conference: Conference | null;
 };
 
 export const ATTENDEE_SELECT = `
   *,
-  conference_ref:conferences(*)
+  conference_rel:conferences(*)
 `;
 
-const stripAttendeeRelations = (row: Partial<AttendeeWithRelations>): Partial<AttendeeUpdate> => {
-	const { conference_ref, ...payload } = row;
-	return payload;
-};
+const mapAttendee = createRelationMapper<AttendeeRawWithRelations, AttendeeMapped>({
+	conference_rel: "conference",
+});
+
+const stripAttendeeRelations = createRelationStripper<AttendeeUpdate>(["conference_rel"]);
 
 export const useAttendees = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["attendees", conferenceId],
-		queryFn: async (): Promise<AttendeeWithRelations[]> => {
+		queryFn: async (): Promise<AttendeeMapped[]> => {
 			const { data, error } = await neon
 				.from("attendees")
 				.select(ATTENDEE_SELECT)
@@ -36,7 +42,7 @@ export const useAttendees = () => {
 
 			if (error) throw error;
 
-			return (data ?? []) as AttendeeWithRelations[];
+			return ((data ?? []) as AttendeeRawWithRelations[]).map(mapAttendee);
 		},
 	});
 };
@@ -62,7 +68,7 @@ export const useUpsertAttendee = () => {
 
 			if (error) throw error;
 
-			return data as AttendeeWithRelations;
+			return mapAttendee(data as AttendeeRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["attendees", conferenceId] }),
 	});

@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -9,26 +10,31 @@ type SpeakerInsert = Database["public"]["Tables"]["speakers"]["Insert"];
 type SpeakerUpdate = Database["public"]["Tables"]["speakers"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 
-export type SpeakerWithRelations = Speaker & {
-	conference_ref: Conference | null;
+type SpeakerRawWithRelations = Speaker & {
+	conference_rel: Conference | null;
+};
+
+export type SpeakerMapped = Omit<Speaker, "conference"> & {
+	conference: Conference | null;
 };
 
 export const SPEAKER_SELECT = `
   *,
-  conference_ref:conferences(*)
+  conference_rel:conferences(*)
 `;
 
-const stripSpeakerRelations = (row: Partial<SpeakerWithRelations>): Partial<SpeakerUpdate> => {
-	const { conference_ref, ...payload } = row;
-	return payload;
-};
+const mapSpeaker = createRelationMapper<SpeakerRawWithRelations, SpeakerMapped>({
+	conference_rel: "conference",
+});
+
+const stripSpeakerRelations = createRelationStripper<SpeakerUpdate>(["conference_rel"]);
 
 export const useSpeakers = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["speakers", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<SpeakerMapped[]> => {
 			const { data, error } = await neon
 				.from("speakers")
 				.select(SPEAKER_SELECT)
@@ -36,7 +42,7 @@ export const useSpeakers = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return ((data ?? []) as SpeakerRawWithRelations[]).map(mapSpeaker);
 		},
 	});
 };
@@ -62,7 +68,7 @@ export const useUpsertSpeaker = () => {
 
 			if (error) throw error;
 
-			return data as SpeakerWithRelations;
+			return mapSpeaker(data as SpeakerRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["speakers", conferenceId] }),
 	});

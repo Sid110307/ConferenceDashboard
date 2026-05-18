@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -10,30 +11,38 @@ type CertificateUpdate = Database["public"]["Tables"]["certificates"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 type Attendee = Database["public"]["Tables"]["attendees"]["Row"];
 
-export type CertificateWithRelations = Certificate & {
-	conference_ref: Conference | null;
-	attendee_ref: Attendee | null;
+type CertificateRawWithRelations = Certificate & {
+	conference_rel: Conference | null;
+	attendee_rel: Attendee | null;
+};
+
+export type CertificateMapped = Omit<Certificate, "conference" | "attendee"> & {
+	conference: Conference | null;
+	attendee: Attendee | null;
 };
 
 export const CERTIFICATE_SELECT = `
   *,
-  conference_ref:conferences(*),
-  attendee_ref:attendees(*)
+  conference_rel:conferences(*),
+  attendee_rel:attendees(*)
 `;
 
-const stripCertificateRelations = (
-	row: Partial<CertificateWithRelations>,
-): Partial<CertificateUpdate> => {
-	const { conference_ref, attendee_ref, ...payload } = row;
-	return payload;
-};
+const mapCertificate = createRelationMapper<CertificateRawWithRelations, CertificateMapped>({
+	conference_rel: "conference",
+	attendee_rel: "attendee",
+});
+
+const stripCertificateRelations = createRelationStripper<CertificateUpdate>([
+	"conference_rel",
+	"attendee_rel",
+]);
 
 export const useCertificates = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["certificates", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<CertificateMapped[]> => {
 			const { data, error } = await neon
 				.from("certificates")
 				.select(CERTIFICATE_SELECT)
@@ -41,7 +50,7 @@ export const useCertificates = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return ((data ?? []) as CertificateRawWithRelations[]).map(mapCertificate);
 		},
 	});
 };
@@ -71,7 +80,7 @@ export const useUpsertCertificate = () => {
 
 			if (error) throw error;
 
-			return data as CertificateWithRelations;
+			return mapCertificate(data as CertificateRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["certificates", conferenceId] }),
 	});

@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -9,21 +10,24 @@ type VipChecklistInsert = Database["public"]["Tables"]["vip_checklist"]["Insert"
 type VipChecklistUpdate = Database["public"]["Tables"]["vip_checklist"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 
-export type VipChecklistWithRelations = VipChecklist & {
-	conference_ref: Conference | null;
+type VipChecklistRawWithRelations = VipChecklist & {
+	conference_rel: Conference | null;
+};
+
+export type VipChecklistMapped = Omit<VipChecklist, "conference"> & {
+	conference: Conference | null;
 };
 
 export const VIP_CHECKLIST_SELECT = `
   *,
-  conference_ref:conferences(*)
+  conference_rel:conferences(*)
 `;
 
-const stripVipChecklistRelations = (
-	row: Partial<VipChecklistWithRelations>,
-): Partial<VipChecklistUpdate> => {
-	const { conference_ref, ...payload } = row;
-	return payload;
-};
+const mapVipChecklist = createRelationMapper<VipChecklistRawWithRelations, VipChecklistMapped>({
+	conference_rel: "conference",
+});
+
+const stripVipChecklistRelations = createRelationStripper<VipChecklistUpdate>(["conference_rel"]);
 
 export const useVipChecklist = () => {
 	const { conferenceId } = useConference();
@@ -38,7 +42,7 @@ export const useVipChecklist = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return ((data ?? []) as VipChecklistRawWithRelations[]).map(mapVipChecklist);
 		},
 	});
 };
@@ -68,7 +72,7 @@ export const useUpsertVipChecklist = () => {
 
 			if (error) throw error;
 
-			return data as VipChecklistWithRelations;
+			return mapVipChecklist(data as VipChecklistRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["vip_checklist", conferenceId] }),
 	});

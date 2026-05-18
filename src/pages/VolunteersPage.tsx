@@ -10,6 +10,11 @@ import { Card } from "@/components/Card";
 import EntityDrawer from "@/components/EntityDrawer";
 import { SectionTitle } from "@/components/SectionTitle";
 import { StatCard } from "@/components/StatCard";
+import {
+	primaryButtonClassName,
+	tableActionButtonClassName,
+	tableDangerButtonClassName,
+} from "@/components/uiStyles";
 
 import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META } from "@/core/data";
@@ -84,7 +89,7 @@ export const VolunteersPage = () => {
 			<Card>
 				{isEditor && (
 					<button
-						className="mx-4 mt-4 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+						className={`mx-4 mt-4 ${primaryButtonClassName}`}
 						onClick={() => setEditing({})}
 					>
 						+ Add volunteer
@@ -136,7 +141,22 @@ export const VolunteersPage = () => {
 									</td>
 									<td className="px-4 py-3 font-mono text-xs text-zinc-600">
 										{volunteer.shift_start
-											? `${volunteer.shift_start}${volunteer.shift_end ? ` - ${volunteer.shift_end}` : ""}`
+											? `${new Date(volunteer.shift_start).toLocaleTimeString(
+													[],
+													{
+														hour: "2-digit",
+														minute: "2-digit",
+													},
+												)}${
+													volunteer.shift_end
+														? ` - ${new Date(
+																volunteer.shift_end,
+															).toLocaleTimeString([], {
+																hour: "2-digit",
+																minute: "2-digit",
+															})}`
+														: ""
+												}`
 											: ""}
 									</td>
 									<td className="px-4 py-3">
@@ -159,13 +179,13 @@ export const VolunteersPage = () => {
 									{isEditor && (
 										<td className="px-4 py-3 text-xs">
 											<button
-												className="mr-2 rounded-md px-2 py-1 text-xs border border-gray-100"
+												className={`${tableActionButtonClassName} mr-2`}
 												onClick={() => setEditing(volunteer)}
 											>
 												Edit
 											</button>
 											<button
-												className="rounded-md px-2 py-1 text-xs border border-red-200 text-red-600"
+												className={tableDangerButtonClassName}
 												onClick={() => remove.mutate(volunteer.id)}
 											>
 												Delete

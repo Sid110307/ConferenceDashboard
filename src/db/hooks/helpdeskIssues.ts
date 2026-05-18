@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -10,30 +11,38 @@ type HelpdeskIssueUpdate = Database["public"]["Tables"]["helpdesk_issues"]["Upda
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 type Attendee = Database["public"]["Tables"]["attendees"]["Row"];
 
-export type HelpdeskIssueWithRelations = HelpdeskIssue & {
-	conference_ref: Conference | null;
-	attendee_ref: Attendee | null;
+type HelpdeskIssueRawWithRelations = HelpdeskIssue & {
+	conference_rel: Conference | null;
+	attendee_rel: Attendee | null;
+};
+
+export type HelpdeskIssueMapped = Omit<HelpdeskIssue, "conference" | "attendee"> & {
+	conference: Conference | null;
+	attendee: Attendee | null;
 };
 
 export const HELPDESK_ISSUE_SELECT = `
   *,
-  conference_ref:conferences(*),
-  attendee_ref:attendees(*)
+  conference_rel:conferences(*),
+  attendee_rel:attendees(*)
 `;
 
-const stripHelpdeskIssueRelations = (
-	row: Partial<HelpdeskIssueWithRelations>,
-): Partial<HelpdeskIssueUpdate> => {
-	const { conference_ref, attendee_ref, ...payload } = row;
-	return payload;
-};
+const mapHelpdeskIssue = createRelationMapper<HelpdeskIssueRawWithRelations, HelpdeskIssueMapped>({
+	conference_rel: "conference",
+	attendee_rel: "attendee",
+});
+
+const stripHelpdeskIssueRelations = createRelationStripper<HelpdeskIssueUpdate>([
+	"conference_rel",
+	"attendee_rel",
+]);
 
 export const useHelpdeskIssues = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["helpdesk_issues", conferenceId],
-		queryFn: async (): Promise<HelpdeskIssueWithRelations[]> => {
+		queryFn: async (): Promise<HelpdeskIssueMapped[]> => {
 			const { data, error } = await neon
 				.from("helpdesk_issues")
 				.select(HELPDESK_ISSUE_SELECT)
@@ -41,7 +50,7 @@ export const useHelpdeskIssues = () => {
 
 			if (error) throw error;
 
-			return (data ?? []) as HelpdeskIssueWithRelations[];
+			return ((data ?? []) as HelpdeskIssueRawWithRelations[]).map(mapHelpdeskIssue);
 		},
 	});
 };
@@ -71,7 +80,7 @@ export const useUpsertHelpdeskIssue = () => {
 
 			if (error) throw error;
 
-			return data as HelpdeskIssueWithRelations;
+			return mapHelpdeskIssue(data as HelpdeskIssueRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["helpdesk_issues", conferenceId] }),
 	});

@@ -73,13 +73,16 @@ const ConferenceDashboardShell = () => {
 
 	useEffect(() => {
 		const activeGroup = visibleNavGroups.find(g => g.items.some(i => i.id === currentPageId));
-		if (activeGroup?.label !== null && activeGroup?.label) {
-			setExpanded(prev => ({ ...prev, [activeGroup.label as string]: true }));
+		const label = activeGroup?.label;
+		if (label) {
+			setExpanded(prev => (prev[label] ? prev : { ...prev, [label]: true }));
 		}
-	}, [currentPageId, visibleNavGroups]);
+		// visibleNavGroups intentionally omitted: it's a new array each render and would loop.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [currentPageId]);
 
 	return (
-		<div className="flex h-full overflow-hidden bg-gray-50 text-zinc-900">
+		<div className="flex min-h-dvh overflow-hidden bg-gray-50 text-zinc-900">
 			<div className="hidden shrink-0 md:block">
 				<Sidebar
 					visibleNavGroups={visibleNavGroups}
@@ -188,7 +191,7 @@ const Sidebar = ({
 	conference,
 	conferenceId,
 }: SidebarProps) => (
-	<div className="flex h-screen w-72 flex-col border-r border-gray-100 bg-white/95">
+	<div className="flex h-dvh w-72 flex-col border-r border-gray-100 bg-white/95">
 		<Link to={AppRoutes.dashboard(conferenceId)} className="border-b border-gray-100 p-4">
 			<div className="flex items-center gap-3">
 				<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-600">
@@ -283,7 +286,7 @@ const Sidebar = ({
 				);
 			})}
 		</nav>
-		<div className="border-t border-gray-100! p-4 text-center">
+		<div className="border-t border-gray-100 p-4 text-center">
 			<p className="truncate text-xs font-medium text-zinc-900">
 				{conference?.venue_name || ""}
 			</p>
@@ -328,6 +331,7 @@ export default function App() {
 						<Route path="finance" element={<PAGES.finance />} />
 						<Route path="finance/:id" element={<PAGES.finance />} />
 						<Route path="reports" element={<PAGES.reports />} />
+						<Route path="users" element={<PAGES.users />} />
 						<Route path="settings" element={<PAGES.settings />} />
 					</Route>
 					<Route path="*" element={<ConferenceUUIDPicker />} />

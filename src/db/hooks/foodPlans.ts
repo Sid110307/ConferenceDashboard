@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -9,26 +10,31 @@ type FoodPlanInsert = Database["public"]["Tables"]["food_plans"]["Insert"];
 type FoodPlanUpdate = Database["public"]["Tables"]["food_plans"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 
-export type FoodPlanWithRelations = FoodPlan & {
-	conference_ref: Conference | null;
+type FoodPlanRawWithRelations = FoodPlan & {
+	conference_rel: Conference | null;
+};
+
+export type FoodPlanMapped = Omit<FoodPlan, "conference"> & {
+	conference: Conference | null;
 };
 
 export const FOOD_PLAN_SELECT = `
   *,
-  conference_ref:conferences(*)
+  conference_rel:conferences(*)
 `;
 
-const stripFoodPlanRelations = (row: Partial<FoodPlanWithRelations>): Partial<FoodPlanUpdate> => {
-	const { conference_ref, ...payload } = row;
-	return payload;
-};
+const mapFoodPlan = createRelationMapper<FoodPlanRawWithRelations, FoodPlanMapped>({
+	conference_rel: "conference",
+});
+
+const stripFoodPlanRelations = createRelationStripper<FoodPlanUpdate>(["conference_rel"]);
 
 export const useFoodPlans = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["food_plans", conferenceId],
-		queryFn: async (): Promise<FoodPlanWithRelations[]> => {
+		queryFn: async (): Promise<FoodPlanMapped[]> => {
 			const { data, error } = await neon
 				.from("food_plans")
 				.select(FOOD_PLAN_SELECT)
@@ -36,7 +42,7 @@ export const useFoodPlans = () => {
 
 			if (error) throw error;
 
-			return (data ?? []) as FoodPlanWithRelations[];
+			return (data ?? []) as FoodPlanMapped[];
 		},
 	});
 };
@@ -66,7 +72,7 @@ export const useUpsertFoodPlan = () => {
 
 			if (error) throw error;
 
-			return data as FoodPlanWithRelations;
+			return mapFoodPlan(data as FoodPlanRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["food_plans", conferenceId] }),
 	});

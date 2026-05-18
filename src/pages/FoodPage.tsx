@@ -4,7 +4,7 @@ import {
 	useDeleteFoodPlan,
 	useFoodPlans,
 	useUpsertFoodPlan,
-	type FoodPlanWithRelations,
+	type FoodPlanMapped,
 } from "@/db/hooks/foodPlans";
 import type { Database } from "@/db/types";
 import * as Recharts from "recharts";
@@ -13,6 +13,11 @@ import { Card, CardHead } from "@/components/Card";
 import { CustomTooltip } from "@/components/CustomTooltip";
 import EntityDrawer from "@/components/EntityDrawer";
 import { SectionTitle } from "@/components/SectionTitle";
+import {
+	primaryButtonClassName,
+	tableActionButtonClassName,
+	tableDangerButtonClassName,
+} from "@/components/uiStyles";
 
 import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META } from "@/core/data";
@@ -33,12 +38,14 @@ type DietRow = {
 	color: string;
 };
 
+type FoodPlanUpdate = Database["public"]["Tables"]["food_plans"]["Update"];
+
 export const FoodPage = () => {
 	const { data: plans = [], isLoading } = useFoodPlans();
 	const isEditor = useConference()?.isEditor || false;
 	const upsert = useUpsertFoodPlan();
 	const remove = useDeleteFoodPlan();
-	const [editing, setEditing] = useState<FoodPlanWithRelations | null>(null);
+	const [editing, setEditing] = useState<FoodPlanMapped | null>(null);
 
 	let daywise: DayWiseMealRow[] = [];
 	let diets: DietRow[] = [];
@@ -90,8 +97,8 @@ export const FoodPage = () => {
 			{isEditor && (
 				<div className="mb-4 flex justify-end">
 					<button
-						className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
-						onClick={() => setEditing({} as FoodPlanWithRelations)}
+						className={primaryButtonClassName}
+						onClick={() => setEditing({} as FoodPlanUpdate)}
 					>
 						+ Add plan
 					</button>
@@ -250,14 +257,16 @@ export const FoodPage = () => {
 									{isEditor && (
 										<td className="px-4 py-3 text-xs">
 											<button
-												className="mr-2 rounded-md px-2 py-1 text-xs border border-gray-100"
-												onClick={() => setEditing(plans[index])}
+												className={`${tableActionButtonClassName} mr-2`}
+												onClick={() => {
+													setEditing(plans[index]);
+												}}
 											>
 												Edit
 											</button>
 											{day.id && (
 												<button
-													className="rounded-md px-2 py-1 text-xs border border-red-200 text-red-600"
+													className={tableDangerButtonClassName}
 													onClick={async () => {
 														if (confirm("Delete this plan?"))
 															await remove.mutateAsync(day.id!);
@@ -295,7 +304,7 @@ export const FoodPage = () => {
 					]}
 					onCancel={() => setEditing(null)}
 					onSave={async row => {
-						await upsert.mutateAsync(row);
+						await upsert.mutateAsync(row as FoodPlanUpdate);
 						setEditing(null);
 					}}
 					onDelete={

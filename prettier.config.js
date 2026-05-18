@@ -12,6 +12,7 @@ export default {
 	bracketSameLine: false,
 	semi: true,
 	quoteProps: "consistent",
+	endOfLine: "lf",
 	importOrder: [
 		"^react(.*)$",
 		"<BUILTIN_MODULES>",

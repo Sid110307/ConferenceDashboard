@@ -5,7 +5,7 @@ import {
 	useDeleteTravelArrival,
 	useTravelArrivals,
 	useUpsertTravelArrival,
-	type TravelArrivalWithRelations,
+	type TravelArrivalMapped,
 } from "@/db/hooks/travelArrivals";
 import type { Database } from "@/db/types";
 import { AlertCircle, Car, Clock, Plane } from "lucide-react";
@@ -18,6 +18,11 @@ import { EmptyState } from "@/components/EmptyState";
 import EntityDrawer from "@/components/EntityDrawer";
 import { SectionTitle } from "@/components/SectionTitle";
 import { StatCard } from "@/components/StatCard";
+import {
+	primaryButtonClassName,
+	tableActionButtonClassName,
+	tableDangerButtonClassName,
+} from "@/components/uiStyles";
 
 import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META, statusVariant } from "@/core/data";
@@ -26,8 +31,8 @@ import { Routes as AppRoutes } from "@/core/navigation";
 
 type TravelArrivalUpdate = Database["public"]["Tables"]["travel_arrivals"]["Update"];
 
-const getArrivalName = (arrival: TravelArrivalWithRelations) =>
-	arrival.attendee_ref?.name || arrival.attendee || "Unknown";
+const getArrivalName = (arrival: TravelArrivalMapped) =>
+	arrival.attendee?.name || arrival.attendee?.attendee_code || "Unknown";
 
 export const TravelPage = () => {
 	const { data: arrivals = [], isLoading } = useTravelArrivals();
@@ -35,7 +40,7 @@ export const TravelPage = () => {
 	const isEditor = useConference()?.isEditor || false;
 	const upsert = useUpsertTravelArrival();
 	const remove = useDeleteTravelArrival();
-	const [editing, setEditing] = useState<TravelArrivalUpdate | null>(null);
+	const [editing, setEditing] = useState<TravelArrivalMapped | null>(null);
 
 	const now = new Date();
 	const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
@@ -45,7 +50,7 @@ export const TravelPage = () => {
 		return arrivalTime > now && arrivalTime <= twoHoursLater;
 	});
 	const vipArrivals = arrivals.filter(
-		arrival => formatLabel(arrival.attendee_ref?.category || "") === "VIP",
+		arrival => formatLabel(arrival.attendee?.category || "") === "VIP",
 	);
 	const pendingArrivals = arrivals.filter(
 		arrival => !arrival.arrival_time || !arrival.pickup_required || !arrival.pickup_status,
@@ -107,213 +112,55 @@ export const TravelPage = () => {
 					sub="missing info"
 					color="gray"
 				/>
-				{travelModes.slice(0, 1).map(mode => (
-					<StatCard
-						key={mode.name}
-						icon={mode.name === "Car/Taxi" ? Car : Plane}
-						label={mode.name}
-						value={mode.count}
-						color="blue"
-					/>
-				))}
+				<StatCard
+					icon={Car}
+					label="Total Arrivals"
+					value={arrivals.length}
+					sub={`${Object.keys(modeCounts).length} modes`}
+					color="blue"
+				/>
 			</div>
 
-			{vipArrivals.length > 0 && (
-				<Card className="mb-4">
+			<div className="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+				<Card className="mb-4 lg:mb-0">
 					<CardHead
 						title="VIP Arrivals"
 						extra={<Badge variant="gold">{vipArrivals.length}</Badge>}
 					/>
 					<div className="divide-y divide-gray-100">
-						{vipArrivals.map((arrival, index) => (
-							<div
-								key={index}
-								className="flex items-center justify-between px-4 py-3 hover:bg-gray-50"
-							>
-								<div>
-									<p className="font-medium text-zinc-900">
-										{getArrivalName(arrival)}
-									</p>
-									<p className="text-xs text-zinc-500">
-										{arrival.arrival_from || "-"}
-									</p>
+						{vipArrivals.length > 0 &&
+							vipArrivals.map((arrival, index) => (
+								<div
+									key={index}
+									className="flex items-center justify-between px-4 py-3 hover:bg-gray-50"
+								>
+									<div>
+										<p className="font-medium text-zinc-900">
+											{getArrivalName(arrival)}
+										</p>
+										<p className="text-xs text-zinc-500">
+											{arrival.arrival_from || "-"}
+										</p>
+									</div>
+									<div className="flex items-center gap-2">
+										<Badge variant={statusVariant(arrival.pickup_status || "")}>
+											{formatLabel(arrival.pickup_status || "Pending")}
+										</Badge>
+										{arrival.pickup_required && (
+											<Badge variant="green">Pickup Required</Badge>
+										)}
+									</div>
 								</div>
-								<div className="flex items-center gap-2">
-									<Badge variant={statusVariant(arrival.pickup_status || "")}>
-										{formatLabel(arrival.pickup_status || "Pending")}
-									</Badge>
-									{arrival.pickup_required && (
-										<Badge variant="green">Pickup Required</Badge>
-									)}
-								</div>
+							))}
+						{vipArrivals.length === 0 && (
+							<div className="p-4 text-center text-sm text-zinc-500">
+								No VIP arrivals scheduled
 							</div>
-						))}
+						)}
 					</div>
 				</Card>
-			)}
-
-			<div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-				<Card className="lg:col-span-2">
-					<CardHead title="All Arrivals" />
-					{isEditor && (
-						<button
-							className="mx-4 mt-4 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
-							onClick={() => setEditing({} as TravelArrivalUpdate)}
-						>
-							+ Add arrival
-						</button>
-					)}
-					{arrivals.length === 0 ? (
-						<div className="p-4">
-							<EmptyState
-								title="No arrivals scheduled"
-								description="Add travel arrivals to track incoming participants"
-								action={
-									isEditor
-										? {
-												label: "Add First Arrival",
-												onClick: () =>
-													setEditing({} as TravelArrivalUpdate),
-											}
-										: undefined
-								}
-							/>
-						</div>
-					) : (
-						<>
-							<div className="hidden overflow-x-auto md:block">
-								<table className="w-full text-sm">
-									<thead>
-										<tr className="border-b border-gray-100">
-											{[
-												"Name",
-												"From",
-												"Mode",
-												"Time",
-												"Pickup",
-												"Vehicle",
-												"Pickup Status",
-											].map(header => (
-												<th
-													key={header}
-													className="whitespace-nowrap px-4 py-3 text-left font-medium text-zinc-600"
-												>
-													{header}
-												</th>
-											))}
-											{isEditor && (
-												<th className="whitespace-nowrap px-4 py-3 text-left font-medium text-zinc-600">
-													Actions
-												</th>
-											)}
-										</tr>
-									</thead>
-									<tbody className="divide-y divide-gray-100">
-										{arrivals.map((arrival, index) => (
-											<tr key={index} className="hover:bg-gray-50">
-												<td className="whitespace-nowrap px-4 py-3 text-zinc-900">
-													<Link
-														to={AppRoutes.travel(
-															conferenceId,
-															arrival.id,
-														)}
-														className="hover:text-blue-600 hover:underline"
-													>
-														{getArrivalName(arrival)}
-													</Link>
-												</td>
-												<td className="px-4 py-3 text-xs text-zinc-600">
-													{arrival.arrival_from || "-"}
-												</td>
-												<td className="px-4 py-3 text-xs text-zinc-600">
-													{formatLabel(arrival.travel_mode || "")}
-												</td>
-												<td className="px-4 py-3 font-mono text-xs text-zinc-500">
-													{arrival.arrival_time || "-"}
-												</td>
-												<td className="px-4 py-3">
-													<Badge
-														variant={
-															arrival.pickup_required
-																? "green"
-																: "gray"
-														}
-													>
-														{arrival.pickup_required ? "Yes" : "No"}
-													</Badge>
-												</td>
-												<td className="px-4 py-3 text-xs text-zinc-600">
-													{arrival.vehicle || "-"}
-												</td>
-												<td className="px-4 py-3">
-													<Badge
-														variant={statusVariant(
-															arrival.pickup_status || "",
-														)}
-													>
-														{formatLabel(
-															arrival.pickup_status || "Pending",
-														)}
-													</Badge>
-												</td>
-												{isEditor && (
-													<td className="px-4 py-3 text-xs">
-														<button
-															className="mr-2 rounded-md border border-gray-100 px-2 py-1 text-xs"
-															onClick={() => setEditing(arrival)}
-														>
-															Edit
-														</button>
-														<button
-															className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600"
-															onClick={() =>
-																remove.mutate(arrival.id)
-															}
-														>
-															Delete
-														</button>
-													</td>
-												)}
-											</tr>
-										))}
-									</tbody>
-								</table>
-							</div>
-							<div className="space-y-2 p-4 md:hidden">
-								{arrivals.map((arrival, index) => (
-									<button
-										key={index}
-										onClick={() => setEditing(arrival)}
-										className="w-full rounded-md border border-gray-100 bg-gray-50 p-3 text-left transition-colors hover:bg-gray-100"
-									>
-										<div className="mb-2 flex items-start justify-between">
-											<div>
-												<p className="font-medium text-zinc-900">
-													{getArrivalName(arrival)}
-												</p>
-												<p className="text-xs text-zinc-500">
-													{arrival.arrival_from || "-"}
-												</p>
-											</div>
-											<Badge
-												variant={statusVariant(arrival.pickup_status || "")}
-											>
-												{formatLabel(arrival.pickup_status || "Pending")}
-											</Badge>
-										</div>
-										<div className="flex gap-3 text-xs text-zinc-600">
-											<span>🕐 {arrival.arrival_time || "-"}</span>
-											<span>🚗 {formatLabel(arrival.travel_mode || "")}</span>
-											{arrival.pickup_required && <span>✓ Pickup</span>}
-										</div>
-									</button>
-								))}
-							</div>
-						</>
-					)}
-				</Card>
 				<Card>
-					<CardHead title="Mode Distribution" />
+					<CardHead title="Arrival Modes" />
 					<div className="h-56 p-4">
 						<Recharts.ResponsiveContainer width="100%" height="100%">
 							<Recharts.PieChart>
@@ -347,7 +194,166 @@ export const TravelPage = () => {
 					</div>
 				</Card>
 			</div>
-
+			<Card className="mb-4">
+				<CardHead title="All Arrivals" />
+				{isEditor && (
+					<button
+						className={`mx-4 mt-4 ${primaryButtonClassName}`}
+						onClick={() => setEditing({} as TravelArrivalUpdate)}
+					>
+						+ Add arrival
+					</button>
+				)}
+				{arrivals.length === 0 ? (
+					<div className="p-4">
+						<EmptyState
+							title="No arrivals scheduled"
+							description="Add travel arrivals to track incoming participants"
+							action={
+								isEditor
+									? {
+											label: "Add First Arrival",
+											onClick: () => setEditing({} as TravelArrivalUpdate),
+										}
+									: undefined
+							}
+						/>
+					</div>
+				) : (
+					<>
+						<div className="hidden overflow-x-auto md:block">
+							<table className="w-full text-sm">
+								<thead>
+									<tr className="border-b border-gray-100">
+										{[
+											"Name",
+											"From",
+											"Mode",
+											"Time",
+											"Pickup",
+											"Vehicle",
+											"Pickup Status",
+										].map(header => (
+											<th
+												key={header}
+												className="whitespace-nowrap px-4 py-3 text-left font-medium text-zinc-600"
+											>
+												{header}
+											</th>
+										))}
+										{isEditor && (
+											<th className="whitespace-nowrap px-4 py-3 text-left font-medium text-zinc-600">
+												Actions
+											</th>
+										)}
+									</tr>
+								</thead>
+								<tbody className="divide-y divide-gray-100">
+									{arrivals.map((arrival, index) => (
+										<tr key={index} className="hover:bg-gray-50">
+											<td className="whitespace-nowrap px-4 py-3 text-zinc-900">
+												<Link
+													to={AppRoutes.travel(conferenceId, arrival.id)}
+													className="hover:text-blue-600 hover:underline"
+												>
+													{getArrivalName(arrival)}
+												</Link>
+											</td>
+											<td className="px-4 py-3 text-xs text-zinc-600">
+												{arrival.arrival_from || "-"}
+											</td>
+											<td className="px-4 py-3 text-xs text-zinc-600">
+												{formatLabel(arrival.travel_mode || "")}
+											</td>
+											<td className="px-4 py-3 font-mono text-xs text-zinc-500">
+												{arrival.arrival_time || "-"}
+											</td>
+											<td className="px-4 py-3">
+												<Badge
+													variant={
+														arrival.pickup_required ? "green" : "gray"
+													}
+												>
+													{arrival.pickup_required ? "Yes" : "No"}
+												</Badge>
+											</td>
+											<td className="px-4 py-3 text-xs text-zinc-600">
+												{arrival.vehicle || "-"}
+											</td>
+											<td className="px-4 py-3">
+												<Badge
+													variant={statusVariant(
+														arrival.pickup_status || "",
+													)}
+												>
+													{formatLabel(
+														arrival.pickup_status || "Pending",
+													)}
+												</Badge>
+											</td>
+											{isEditor && (
+												<td className="px-4 py-3 text-xs">
+													<button
+														className={`${tableActionButtonClassName} mr-2`}
+														onClick={() => {
+															const {
+																conference: _conference,
+																attendee: _attendee,
+																...editableArrival
+															} = arrival;
+															setEditing(
+																editableArrival as TravelArrivalUpdate,
+															);
+														}}
+													>
+														Edit
+													</button>
+													<button
+														className={tableDangerButtonClassName}
+														onClick={() => remove.mutate(arrival.id)}
+													>
+														Delete
+													</button>
+												</td>
+											)}
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+						<div className="space-y-2 p-4 md:hidden">
+							{arrivals.map((arrival, index) => (
+								<button
+									key={index}
+									onClick={() => {
+										setEditing(arrival);
+									}}
+									className="w-full rounded-md border border-gray-100 bg-gray-50 p-3 text-left transition-colors hover:bg-gray-100"
+								>
+									<div className="mb-2 flex items-start justify-between">
+										<div>
+											<p className="font-medium text-zinc-900">
+												{getArrivalName(arrival)}
+											</p>
+											<p className="text-xs text-zinc-500">
+												{arrival.arrival_from || "-"}
+											</p>
+										</div>
+										<Badge variant={statusVariant(arrival.pickup_status || "")}>
+											{formatLabel(arrival.pickup_status || "Pending")}
+										</Badge>
+									</div>
+									<div className="flex gap-3 text-xs text-zinc-600">
+										<span>🕐 {arrival.arrival_time || "-"}</span>
+										<span>🚗 {formatLabel(arrival.travel_mode || "")}</span>
+										{arrival.pickup_required && <span>✓ Pickup</span>}
+									</div>
+								</button>
+							))}
+						</div>
+					</>
+				)}
+			</Card>
 			{editing !== null && (
 				<EntityDrawer
 					open
@@ -378,7 +384,7 @@ export const TravelPage = () => {
 					]}
 					onCancel={() => setEditing(null)}
 					onSave={async row => {
-						await upsert.mutateAsync(row);
+						await upsert.mutateAsync(row as TravelArrivalUpdate);
 						setEditing(null);
 					}}
 					onDelete={

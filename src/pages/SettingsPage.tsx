@@ -20,6 +20,11 @@ import {
 import { Card } from "@/components/Card";
 import { SectionTitle } from "@/components/SectionTitle";
 import { StatCard } from "@/components/StatCard";
+import {
+	fieldClassName,
+	primaryButtonClassName,
+	secondaryButtonClassName,
+} from "@/components/uiStyles";
 
 import { PAGES_META } from "@/core/data";
 
@@ -110,7 +115,7 @@ export const SettingsPage = () => {
 									{field.label}
 								</label>
 								<input
-									className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-colors focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+									className={fieldClassName}
 									value={meta[field.key as keyof typeof meta] || ""}
 									onChange={event =>
 										setMeta(prev => ({
@@ -121,9 +126,7 @@ export const SettingsPage = () => {
 								/>
 							</div>
 						))}
-						<button className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700">
-							Save Conference Details
-						</button>
+						<button className={primaryButtonClassName}>Save Conference Details</button>
 					</div>
 				</Card>
 			</div>
@@ -208,14 +211,12 @@ export const SettingsPage = () => {
 								<input
 									type="color"
 									value="#2563eb"
-									className="h-10 w-16 rounded-md border border-gray-200 cursor-pointer"
+									className="h-10 w-16 cursor-pointer rounded-md border border-gray-200"
 								/>
 								<span className="text-sm text-zinc-600">#2563eb</span>
 							</div>
 						</div>
-						<button className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700">
-							Save Theme
-						</button>
+						<button className={primaryButtonClassName}>Save Theme</button>
 					</div>
 				</Card>
 			</div>
@@ -235,7 +236,7 @@ export const SettingsPage = () => {
 								className="flex items-center justify-between rounded-md bg-gray-50 p-3"
 							>
 								<span className="text-sm font-medium text-zinc-900">{role}</span>
-								<button className="rounded-md border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-zinc-700 transition-colors hover:bg-gray-50">
+								<button className={`${secondaryButtonClassName} px-3 py-1 text-xs`}>
 									Manage
 								</button>
 							</div>

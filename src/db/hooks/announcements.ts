@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -9,28 +10,31 @@ type AnnouncementInsert = Database["public"]["Tables"]["announcements"]["Insert"
 type AnnouncementUpdate = Database["public"]["Tables"]["announcements"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 
-export type AnnouncementWithRelations = Announcement & {
-	conference_ref: Conference | null;
+type AnnouncementRawWithRelations = Announcement & {
+	conference_rel: Conference | null;
+};
+
+export type AnnouncementMapped = Omit<Announcement, "conference"> & {
+	conference: Conference | null;
 };
 
 export const ANNOUNCEMENT_SELECT = `
   *,
-  conference_ref:conferences(*)
+  conference_rel:conferences(*)
 `;
 
-const stripAnnouncementRelations = (
-	row: Partial<AnnouncementWithRelations>,
-): Partial<AnnouncementUpdate> => {
-	const { conference_ref, ...payload } = row;
-	return payload;
-};
+const mapAnnouncement = createRelationMapper<AnnouncementRawWithRelations, AnnouncementMapped>({
+	conference_rel: "conference",
+});
+
+const stripAnnouncementRelations = createRelationStripper<AnnouncementUpdate>(["conference_rel"]);
 
 export const useAnnouncements = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["announcements", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<AnnouncementMapped[]> => {
 			const { data, error } = await neon
 				.from("announcements")
 				.select(ANNOUNCEMENT_SELECT)
@@ -38,7 +42,7 @@ export const useAnnouncements = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return ((data ?? []) as AnnouncementRawWithRelations[]).map(mapAnnouncement);
 		},
 	});
 };
@@ -68,7 +72,7 @@ export const useUpsertAnnouncement = () => {
 
 			if (error) throw error;
 
-			return data as AnnouncementWithRelations;
+			return mapAnnouncement(data as AnnouncementRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["announcements", conferenceId] }),
 	});

@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -13,32 +14,47 @@ type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 type Attendee = Database["public"]["Tables"]["attendees"]["Row"];
 type AccommodationRoom = Database["public"]["Tables"]["accommodation_rooms"]["Row"];
 
-export type AccommodationAllocationWithRelations = AccommodationAllocation & {
-	conference_ref: Conference | null;
-	attendee_ref: Attendee | null;
-	room_ref: AccommodationRoom | null;
+type AccommodationAllocationRawWithRelations = AccommodationAllocation & {
+	conference_rel: Conference | null;
+	attendee_rel: Attendee | null;
+	room_rel: AccommodationRoom | null;
+};
+
+export type AccommodationAllocationMapped = Omit<
+	AccommodationAllocation,
+	"conference" | "attendee" | "room"
+> & {
+	conference: Conference | null;
+	attendee: Attendee | null;
+	room: AccommodationRoom | null;
 };
 
 export const ACCOMMODATION_ALLOCATION_SELECT = `
   *,
-  conference_ref:conferences(*),
-  attendee_ref:attendees(*),
-  room_ref:accommodation_rooms(*)
+  conference_rel:conferences(*),
+  attendee_rel:attendees(*),
+  room_rel:accommodation_rooms(*)
 `;
 
-const stripAccommodationAllocationRelations = (
-	row: Partial<AccommodationAllocationWithRelations>,
-): Partial<AccommodationAllocationUpdate> => {
-	const { conference_ref, attendee_ref, room_ref, ...payload } = row;
-	return payload;
-};
+const mapAccommodationAllocation = createRelationMapper<
+	AccommodationAllocationRawWithRelations,
+	AccommodationAllocationMapped
+>({
+	conference_rel: "conference",
+	attendee_rel: "attendee",
+	room_rel: "room",
+});
+
+const stripAccommodationAllocationRelations = createRelationStripper<AccommodationAllocationUpdate>(
+	["conference_rel", "attendee_rel", "room_rel"],
+);
 
 export const useAccommodationAllocations = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["accommodation_allocations", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<AccommodationAllocationMapped[]> => {
 			const { data, error } = await neon
 				.from("accommodation_allocations")
 				.select(ACCOMMODATION_ALLOCATION_SELECT)
@@ -46,7 +62,9 @@ export const useAccommodationAllocations = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return ((data ?? []) as AccommodationAllocationRawWithRelations[]).map(
+				mapAccommodationAllocation,
+			);
 		},
 	});
 };
@@ -76,7 +94,7 @@ export const useUpsertAccommodationAllocation = () => {
 
 			if (error) throw error;
 
-			return data as AccommodationAllocationWithRelations;
+			return mapAccommodationAllocation(data as AccommodationAllocationRawWithRelations);
 		},
 		onSuccess: () =>
 			qc.invalidateQueries({ queryKey: ["accommodation_allocations", conferenceId] }),

@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -9,28 +10,31 @@ type DashboardPageInsert = Database["public"]["Tables"]["dashboard_pages"]["Inse
 type DashboardPageUpdate = Database["public"]["Tables"]["dashboard_pages"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 
-export type DashboardPageWithRelations = DashboardPage & {
-	conference_ref: Conference | null;
+type DashboardPageRawWithRelations = DashboardPage & {
+	conference_rel: Conference | null;
+};
+
+export type DashboardPageMapped = Omit<DashboardPage, "conference"> & {
+	conference: Conference | null;
 };
 
 export const DASHBOARD_PAGE_SELECT = `
   *,
-  conference_ref:conferences(*)
+  conference_rel:conferences(*)
 `;
 
-const stripDashboardPageRelations = (
-	row: Partial<DashboardPageWithRelations>,
-): Partial<DashboardPageUpdate> => {
-	const { conference_ref, ...payload } = row;
-	return payload;
-};
+const mapDashboardPage = createRelationMapper<DashboardPageRawWithRelations, DashboardPageMapped>({
+	conference_rel: "conference",
+});
+
+const stripDashboardPageRelations = createRelationStripper<DashboardPageUpdate>(["conference_rel"]);
 
 export const useDashboardPages = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["dashboard_pages", conferenceId],
-		queryFn: async (): Promise<DashboardPageWithRelations[]> => {
+		queryFn: async (): Promise<DashboardPageMapped[]> => {
 			const { data, error } = await neon
 				.from("dashboard_pages")
 				.select(DASHBOARD_PAGE_SELECT)
@@ -38,7 +42,7 @@ export const useDashboardPages = () => {
 
 			if (error) throw error;
 
-			return (data ?? []) as DashboardPageWithRelations[];
+			return (data ?? []) as DashboardPageMapped[];
 		},
 	});
 };
@@ -68,7 +72,7 @@ export const useUpsertDashboardPage = () => {
 
 			if (error) throw error;
 
-			return data as DashboardPageWithRelations;
+			return mapDashboardPage(data as DashboardPageRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["dashboard_pages", conferenceId] }),
 	});

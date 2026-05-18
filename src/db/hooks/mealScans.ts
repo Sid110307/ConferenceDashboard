@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -10,28 +11,38 @@ type MealScanUpdate = Database["public"]["Tables"]["meal_scans"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 type Attendee = Database["public"]["Tables"]["attendees"]["Row"];
 
-export type MealScanWithRelations = MealScan & {
-	conference_ref: Conference | null;
-	attendee_ref: Attendee | null;
+type MealScanRawWithRelations = MealScan & {
+	conference_rel: Conference | null;
+	attendee_rel: Attendee | null;
+};
+
+export type MealScanMapped = Omit<MealScan, "conference" | "attendee"> & {
+	conference: Conference | null;
+	attendee: Attendee | null;
 };
 
 export const MEAL_SCAN_SELECT = `
   *,
-  conference_ref:conferences(*),
-  attendee_ref:attendees(*)
+  conference_rel:conferences(*),
+  attendee_rel:attendees(*)
 `;
 
-const stripMealScanRelations = (row: Partial<MealScanWithRelations>): Partial<MealScanUpdate> => {
-	const { conference_ref, attendee_ref, ...payload } = row;
-	return payload;
-};
+const mapMealScan = createRelationMapper<MealScanRawWithRelations, MealScanMapped>({
+	conference_rel: "conference",
+	attendee_rel: "attendee",
+});
+
+const stripMealScanRelations = createRelationStripper<MealScanUpdate>([
+	"conference_rel",
+	"attendee_rel",
+]);
 
 export const useMealScans = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["meal_scans", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<MealScanMapped[]> => {
 			const { data, error } = await neon
 				.from("meal_scans")
 				.select(MEAL_SCAN_SELECT)
@@ -39,7 +50,7 @@ export const useMealScans = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return ((data ?? []) as MealScanRawWithRelations[]).map(mapMealScan);
 		},
 	});
 };
@@ -69,7 +80,7 @@ export const useUpsertMealScan = () => {
 
 			if (error) throw error;
 
-			return data as MealScanWithRelations;
+			return mapMealScan(data as MealScanRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["meal_scans", conferenceId] }),
 	});

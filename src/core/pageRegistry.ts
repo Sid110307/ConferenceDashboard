@@ -1,5 +1,9 @@
 import React from "react";
 
+
+
+
+
 export type PageComponent = React.ComponentType<Record<string, never>>;
 
 const PAGE_IMPORTS: Record<string, React.LazyExoticComponent<PageComponent>> = {
@@ -42,6 +46,9 @@ const PAGE_IMPORTS: Record<string, React.LazyExoticComponent<PageComponent>> = {
 	),
 	settings: React.lazy(() =>
 		import("@/pages/SettingsPage").then(m => ({ default: m.SettingsPage })),
+	),
+	users: React.lazy(() =>
+		import("@/pages/UserManagementPage").then(m => ({ default: m.UserManagementPage })),
 	),
 };
 

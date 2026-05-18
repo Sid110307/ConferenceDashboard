@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -9,28 +10,36 @@ type AccommodationRoomInsert = Database["public"]["Tables"]["accommodation_rooms
 type AccommodationRoomUpdate = Database["public"]["Tables"]["accommodation_rooms"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 
-export type AccommodationRoomWithRelations = AccommodationRoom & {
-	conference_ref: Conference | null;
+type AccommodationRoomRawWithRelations = AccommodationRoom & {
+	conference_rel: Conference | null;
+};
+
+export type AccommodationRoomMapped = Omit<AccommodationRoom, "conference"> & {
+	conference: Conference | null;
 };
 
 export const ACCOMMODATION_ROOM_SELECT = `
   *,
-  conference_ref:conferences(*)
+  conference_rel:conferences(*)
 `;
 
-const stripAccommodationRoomRelations = (
-	row: Partial<AccommodationRoomWithRelations>,
-): Partial<AccommodationRoomUpdate> => {
-	const { conference_ref, ...payload } = row;
-	return payload;
-};
+const mapAccommodationRoom = createRelationMapper<
+	AccommodationRoomRawWithRelations,
+	AccommodationRoomMapped
+>({
+	conference_rel: "conference",
+});
+
+const stripAccommodationRoomRelations = createRelationStripper<AccommodationRoomUpdate>([
+	"conference_rel",
+]);
 
 export const useAccommodationRooms = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["accommodation_rooms", conferenceId],
-		queryFn: async (): Promise<AccommodationRoomWithRelations[]> => {
+		queryFn: async (): Promise<AccommodationRoomMapped[]> => {
 			const { data, error } = await neon
 				.from("accommodation_rooms")
 				.select(ACCOMMODATION_ROOM_SELECT)
@@ -38,7 +47,7 @@ export const useAccommodationRooms = () => {
 
 			if (error) throw error;
 
-			return (data ?? []) as AccommodationRoomWithRelations[];
+			return ((data ?? []) as AccommodationRoomRawWithRelations[]).map(mapAccommodationRoom);
 		},
 	});
 };
@@ -68,7 +77,7 @@ export const useUpsertAccommodationRoom = () => {
 
 			if (error) throw error;
 
-			return data as AccommodationRoomWithRelations;
+			return mapAccommodationRoom(data as AccommodationRoomRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["accommodation_rooms", conferenceId] }),
 	});

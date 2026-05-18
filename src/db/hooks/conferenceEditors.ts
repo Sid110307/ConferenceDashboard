@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -9,21 +10,29 @@ type ConferenceEditorInsert = Database["public"]["Tables"]["conference_editors"]
 type ConferenceEditorUpdate = Database["public"]["Tables"]["conference_editors"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 
-export type ConferenceEditorWithRelations = ConferenceEditor & {
-	conference_ref: Conference | null;
+type ConferenceEditorRawWithRelations = ConferenceEditor & {
+	conference_rel: Conference | null;
+};
+
+export type ConferenceEditorMapped = Omit<ConferenceEditor, "conference"> & {
+	conference: Conference | null;
 };
 
 export const CONFERENCE_EDITOR_SELECT = `
   *,
-  conference_ref:conferences(*)
+  conference_rel:conferences(*)
 `;
 
-const stripConferenceEditorRelations = (
-	row: Partial<ConferenceEditorWithRelations>,
-): Partial<ConferenceEditorUpdate> => {
-	const { conference_ref, ...payload } = row;
-	return payload;
-};
+const mapConferenceEditor = createRelationMapper<
+	ConferenceEditorRawWithRelations,
+	ConferenceEditorMapped
+>({
+	conference_rel: "conference",
+});
+
+const stripConferenceEditorRelations = createRelationStripper<ConferenceEditorUpdate>([
+	"conference_rel",
+]);
 
 export const useConferenceEditors = () => {
 	const { conferenceId } = useConference();
@@ -38,7 +47,7 @@ export const useConferenceEditors = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return ((data ?? []) as ConferenceEditorRawWithRelations[]).map(mapConferenceEditor);
 		},
 	});
 };
@@ -68,7 +77,7 @@ export const useUpsertConferenceEditor = () => {
 
 			if (error) throw error;
 
-			return data as ConferenceEditorWithRelations;
+			return mapConferenceEditor(data as ConferenceEditorRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["conference_editors", conferenceId] }),
 	});

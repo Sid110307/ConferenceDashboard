@@ -5,6 +5,7 @@ import {
 	useDeleteHelpdeskIssue,
 	useHelpdeskIssues,
 	useUpsertHelpdeskIssue,
+	type HelpdeskIssueMapped,
 } from "@/db/hooks/helpdeskIssues";
 import type { Database } from "@/db/types";
 import { AlertCircle, CheckCircle, Clock } from "lucide-react";
@@ -14,6 +15,11 @@ import { Card } from "@/components/Card";
 import EntityDrawer from "@/components/EntityDrawer";
 import { SectionTitle } from "@/components/SectionTitle";
 import { StatCard } from "@/components/StatCard";
+import {
+	primaryButtonClassName,
+	tableActionButtonClassName,
+	tableDangerButtonClassName,
+} from "@/components/uiStyles";
 
 import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META, statusVariant } from "@/core/data";
@@ -28,7 +34,7 @@ export const HelpdeskPage = () => {
 	const isEditor = useConference()?.isEditor || false;
 	const upsert = useUpsertHelpdeskIssue();
 	const remove = useDeleteHelpdeskIssue();
-	const [editing, setEditing] = useState<HelpdeskIssueUpdate | null>(null);
+	const [editing, setEditing] = useState<HelpdeskIssueMapped | null>(null);
 
 	return (
 		<div className="flex gap-4 flex-col">
@@ -67,7 +73,7 @@ export const HelpdeskPage = () => {
 			<Card>
 				{isEditor && (
 					<button
-						className="mx-4 mt-4 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+						className={`mx-4 mt-4 ${primaryButtonClassName}`}
 						onClick={() => setEditing({})}
 					>
 						+ Add issue
@@ -108,10 +114,23 @@ export const HelpdeskPage = () => {
 									<tr key={index} className="hover:bg-gray-50">
 										<td className="px-4 py-3 text-zinc-900">
 											<Link
-												to={AppRoutes.helpdesk(issue.id)}
+												to={AppRoutes.attendees(
+													conferenceId,
+													issue.attendee_id || "",
+												)}
 												className="hover:text-blue-600 hover:underline"
 											>
-												{issue.reported_by_name || issue.attendee}
+												{(() => {
+													const reporterLabel: string =
+														issue.reported_by_name ||
+														(typeof issue.attendee === "string"
+															? issue.attendee
+															: issue.attendee?.name ||
+																issue.attendee?.attendee_code ||
+																"-");
+
+													return reporterLabel;
+												})()}
 											</Link>
 										</td>
 										<td className="px-4 py-3 text-xs text-zinc-600">
@@ -131,7 +150,7 @@ export const HelpdeskPage = () => {
 											</Badge>
 										</td>
 										<td className="px-4 py-3 text-xs text-zinc-600">
-											{issue.assigned_team}
+											{formatLabel(issue.assigned_team)}
 										</td>
 										<td className="px-5 py-3">
 											<Badge variant={statusVariant(statusLabel)}>
@@ -139,18 +158,25 @@ export const HelpdeskPage = () => {
 											</Badge>
 										</td>
 										<td className="px-5 py-3 text-xs text-zinc-600">
-											{issue.created_at}
+											{new Date(issue.created_at || "").toLocaleString([], {
+												month: "short",
+												day: "numeric",
+												hour: "2-digit",
+												minute: "2-digit",
+											})}
 										</td>
 										{isEditor && (
 											<td className="px-4 py-3 text-xs">
 												<button
-													className="mr-2 rounded-md px-2 py-1 text-xs border border-gray-100"
-													onClick={() => setEditing(issue)}
+													className={`${tableActionButtonClassName} mr-2`}
+													onClick={() => {
+														setEditing(issue);
+													}}
 												>
 													Edit
 												</button>
 												<button
-													className="rounded-md px-2 py-1 text-xs border border-red-200 text-red-600"
+													className={tableDangerButtonClassName}
 													onClick={() => remove.mutate(issue.id)}
 												>
 													Delete
@@ -189,7 +215,7 @@ export const HelpdeskPage = () => {
 					]}
 					onCancel={() => setEditing(null)}
 					onSave={async row => {
-						await upsert.mutateAsync(row);
+						await upsert.mutateAsync(row as HelpdeskIssueUpdate);
 						setEditing(null);
 					}}
 					onDelete={

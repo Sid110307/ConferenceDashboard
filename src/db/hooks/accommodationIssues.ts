@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -11,32 +12,49 @@ type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 type Attendee = Database["public"]["Tables"]["attendees"]["Row"];
 type AccommodationRoom = Database["public"]["Tables"]["accommodation_rooms"]["Row"];
 
-export type AccommodationIssueWithRelations = AccommodationIssue & {
-	conference_ref: Conference | null;
-	attendee_ref: Attendee | null;
-	room_ref: AccommodationRoom | null;
+type AccommodationIssueRawWithRelations = AccommodationIssue & {
+	conference_rel: Conference | null;
+	attendee_rel: Attendee | null;
+	room_rel: AccommodationRoom | null;
+};
+
+export type AccommodationIssueMapped = Omit<
+	AccommodationIssue,
+	"conference" | "attendee" | "room"
+> & {
+	conference: Conference | null;
+	attendee: Attendee | null;
+	room: AccommodationRoom | null;
 };
 
 export const ACCOMMODATION_ISSUE_SELECT = `
   *,
-  conference_ref:conferences(*),
-  attendee_ref:attendees(*),
-  room_ref:accommodation_rooms(*)
+  conference_rel:conferences(*),
+  attendee_rel:attendees(*),
+  room_rel:accommodation_rooms(*)
 `;
 
-const stripAccommodationIssueRelations = (
-	row: Partial<AccommodationIssueWithRelations>,
-): Partial<AccommodationIssueUpdate> => {
-	const { conference_ref, attendee_ref, room_ref, ...payload } = row;
-	return payload;
-};
+const mapAccommodationIssue = createRelationMapper<
+	AccommodationIssueRawWithRelations,
+	AccommodationIssueMapped
+>({
+	conference_rel: "conference",
+	attendee_rel: "attendee",
+	room_rel: "room",
+});
+
+const stripAccommodationIssueRelations = createRelationStripper<AccommodationIssueUpdate>([
+	"conference_rel",
+	"attendee_rel",
+	"room_rel",
+]);
 
 export const useAccommodationIssues = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["accommodation_issues", conferenceId],
-		queryFn: async (): Promise<AccommodationIssueWithRelations[]> => {
+		queryFn: async (): Promise<AccommodationIssueMapped[]> => {
 			const { data, error } = await neon
 				.from("accommodation_issues")
 				.select(ACCOMMODATION_ISSUE_SELECT)
@@ -44,7 +62,9 @@ export const useAccommodationIssues = () => {
 
 			if (error) throw error;
 
-			return (data ?? []) as AccommodationIssueWithRelations[];
+			return ((data ?? []) as AccommodationIssueRawWithRelations[]).map(
+				mapAccommodationIssue,
+			);
 		},
 	});
 };
@@ -74,7 +94,7 @@ export const useUpsertAccommodationIssue = () => {
 
 			if (error) throw error;
 
-			return data as AccommodationIssueWithRelations;
+			return mapAccommodationIssue(data as AccommodationIssueRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["accommodation_issues", conferenceId] }),
 	});

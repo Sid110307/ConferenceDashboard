@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -9,28 +10,31 @@ type LogisticsItemInsert = Database["public"]["Tables"]["logistics_items"]["Inse
 type LogisticsItemUpdate = Database["public"]["Tables"]["logistics_items"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 
-export type LogisticsItemWithRelations = LogisticsItem & {
-	conference_ref: Conference | null;
+type LogisticsItemRawWithRelations = LogisticsItem & {
+	conference_rel: Conference | null;
+};
+
+export type LogisticsItemMapped = Omit<LogisticsItem, "conference"> & {
+	conference: Conference | null;
 };
 
 export const LOGISTICS_ITEM_SELECT = `
   *,
-  conference_ref:conferences(*)
+  conference_rel:conferences(*)
 `;
 
-const stripLogisticsItemRelations = (
-	row: Partial<LogisticsItemWithRelations>,
-): Partial<LogisticsItemUpdate> => {
-	const { conference_ref, ...payload } = row;
-	return payload;
-};
+const mapLogisticsItem = createRelationMapper<LogisticsItemRawWithRelations, LogisticsItemMapped>({
+	conference_rel: "conference",
+});
+
+const stripLogisticsItemRelations = createRelationStripper<LogisticsItemUpdate>(["conference_rel"]);
 
 export const useLogisticsItems = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["logistics_items", conferenceId],
-		queryFn: async (): Promise<LogisticsItemWithRelations[]> => {
+		queryFn: async (): Promise<LogisticsItemMapped[]> => {
 			const { data, error } = await neon
 				.from("logistics_items")
 				.select(LOGISTICS_ITEM_SELECT)
@@ -38,7 +42,7 @@ export const useLogisticsItems = () => {
 
 			if (error) throw error;
 
-			return (data ?? []) as LogisticsItemWithRelations[];
+			return (data ?? []) as LogisticsItemMapped[];
 		},
 	});
 };
@@ -68,7 +72,7 @@ export const useUpsertLogisticsItem = () => {
 
 			if (error) throw error;
 
-			return data as LogisticsItemWithRelations;
+			return mapLogisticsItem(data as LogisticsItemRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["logistics_items", conferenceId] }),
 	});

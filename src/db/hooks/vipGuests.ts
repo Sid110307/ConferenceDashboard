@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -9,26 +10,31 @@ type VipGuestInsert = Database["public"]["Tables"]["vip_guests"]["Insert"];
 type VipGuestUpdate = Database["public"]["Tables"]["vip_guests"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 
-export type VipGuestWithRelations = VipGuest & {
-	conference_ref: Conference | null;
+type VipGuestRawWithRelations = VipGuest & {
+	conference_rel: Conference | null;
+};
+
+export type VipGuestMapped = Omit<VipGuest, "conference"> & {
+	conference: Conference | null;
 };
 
 export const VIP_GUEST_SELECT = `
   *,
-  conference_ref:conferences(*)
+  conference_rel:conferences(*)
 `;
 
-const stripVipGuestRelations = (row: Partial<VipGuestWithRelations>): Partial<VipGuestUpdate> => {
-	const { conference_ref, ...payload } = row;
-	return payload;
-};
+const mapVipGuest = createRelationMapper<VipGuestRawWithRelations, VipGuestMapped>({
+	conference_rel: "conference",
+});
+
+const stripVipGuestRelations = createRelationStripper<VipGuestUpdate>(["conference_rel"]);
 
 export const useVipGuests = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["vip_guests", conferenceId],
-		queryFn: async (): Promise<VipGuestWithRelations[]> => {
+		queryFn: async (): Promise<VipGuestMapped[]> => {
 			const { data, error } = await neon
 				.from("vip_guests")
 				.select(VIP_GUEST_SELECT)
@@ -36,7 +42,7 @@ export const useVipGuests = () => {
 
 			if (error) throw error;
 
-			return (data ?? []) as VipGuestWithRelations[];
+			return (data ?? []) as VipGuestMapped[];
 		},
 	});
 };
@@ -66,7 +72,7 @@ export const useUpsertVipGuest = () => {
 
 			if (error) throw error;
 
-			return data as VipGuestWithRelations;
+			return mapVipGuest(data as VipGuestRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["vip_guests", conferenceId] }),
 	});

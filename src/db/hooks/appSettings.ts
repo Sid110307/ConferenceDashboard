@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -9,21 +10,24 @@ type AppSettingInsert = Database["public"]["Tables"]["app_settings"]["Insert"];
 type AppSettingUpdate = Database["public"]["Tables"]["app_settings"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 
-export type AppSettingWithRelations = AppSetting & {
-	conference_ref: Conference | null;
+type AppSettingRawWithRelations = AppSetting & {
+	conference_rel: Conference | null;
+};
+
+export type AppSettingMapped = Omit<AppSetting, "conference"> & {
+	conference: Conference | null;
 };
 
 export const APP_SETTING_SELECT = `
   *,
-  conference_ref:conferences(*)
+  conference_rel:conferences(*)
 `;
 
-const stripAppSettingRelations = (
-	row: Partial<AppSettingWithRelations>,
-): Partial<AppSettingUpdate> => {
-	const { conference_ref, ...payload } = row;
-	return payload;
-};
+const mapAppSetting = createRelationMapper<AppSettingRawWithRelations, AppSettingMapped>({
+	conference_rel: "conference",
+});
+
+const stripAppSettingRelations = createRelationStripper<AppSettingUpdate>(["conference_rel"]);
 
 export const useAppSettings = () => {
 	const { conferenceId } = useConference();
@@ -38,7 +42,7 @@ export const useAppSettings = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return ((data ?? []) as AppSettingRawWithRelations[]).map(mapAppSetting);
 		},
 	});
 };
@@ -68,7 +72,7 @@ export const useUpsertAppSetting = () => {
 
 			if (error) throw error;
 
-			return data as AppSettingWithRelations;
+			return mapAppSetting(data as AppSettingRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["app_settings", conferenceId] }),
 	});

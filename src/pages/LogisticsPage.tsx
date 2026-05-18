@@ -4,6 +4,7 @@ import {
 	useDeleteLogisticsItem,
 	useLogisticsItems,
 	useUpsertLogisticsItem,
+	type LogisticsItemMapped,
 } from "@/db/hooks/logisticsItems";
 import type { Database } from "@/db/types";
 
@@ -12,6 +13,11 @@ import { Card } from "@/components/Card";
 import EntityDrawer from "@/components/EntityDrawer";
 import { ProgressBar } from "@/components/ProgressBar";
 import { SectionTitle } from "@/components/SectionTitle";
+import {
+	primaryButtonClassName,
+	tableActionButtonClassName,
+	tableDangerButtonClassName,
+} from "@/components/uiStyles";
 
 import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META } from "@/core/data";
@@ -24,7 +30,7 @@ export const LogisticsPage = () => {
 	const { data: rows = [] } = useLogisticsItems();
 	const upsert = useUpsertLogisticsItem();
 	const remove = useDeleteLogisticsItem();
-	const [editing, setEditing] = useState<LogisticsItemUpdate | null>(null);
+	const [editing, setEditing] = useState<LogisticsItemMapped | null>(null);
 	const tableRows = rows;
 
 	return (
@@ -39,7 +45,7 @@ export const LogisticsPage = () => {
 			<Card>
 				{isEditor && (
 					<button
-						className="mx-4 mt-4 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+						className={`mx-4 mt-4 ${primaryButtonClassName}`}
 						onClick={() => setEditing({})}
 					>
 						+ Add item
@@ -121,14 +127,16 @@ export const LogisticsPage = () => {
 										{isEditor && (
 											<td className="px-4 py-3 text-xs">
 												<button
-													className="mr-2 rounded-md border border-gray-100 px-2 py-1"
-													onClick={() => setEditing(item)}
+													className={`${tableActionButtonClassName} mr-2`}
+													onClick={() => {
+														setEditing(item);
+													}}
 												>
 													Edit
 												</button>
 												{item.id && (
 													<button
-														className="rounded-md border border-red-200 px-2 py-1 text-red-600"
+														className={tableDangerButtonClassName}
 														onClick={() => remove.mutate(item.id)}
 													>
 														Delete
@@ -165,7 +173,7 @@ export const LogisticsPage = () => {
 					]}
 					onCancel={() => setEditing(null)}
 					onSave={async row => {
-						await upsert.mutateAsync(row);
+						await upsert.mutateAsync(row as LogisticsItemUpdate);
 						setEditing(null);
 					}}
 					onDelete={

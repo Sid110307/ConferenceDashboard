@@ -12,6 +12,7 @@ import {
 	QrCode,
 	Receipt,
 	Settings,
+	Shield,
 	UserCheck,
 	Users,
 	Utensils,
@@ -118,7 +119,7 @@ export const OPERATIONS_GROUP: NavGroup = {
 		},
 		{
 			id: "venue",
-			label: "Venue & Halls",
+			label: "Venue and Halls",
 			icon: Building2,
 			roles: ["staff", "admin"],
 			ariaLabel: "Venue and halls",
@@ -156,6 +157,13 @@ export const ADMINISTRATION_GROUP: NavGroup = {
 			icon: Download,
 			roles: ["admin"],
 			ariaLabel: "Generate reports and exports",
+		},
+		{
+			id: "users",
+			label: "User Management",
+			icon: Shield,
+			roles: ["admin"],
+			ariaLabel: "Manage user roles and permissions",
 		},
 		{
 			id: "settings",

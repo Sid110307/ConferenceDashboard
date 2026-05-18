@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -11,30 +12,43 @@ type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 type Session = Database["public"]["Tables"]["sessions"]["Row"];
 type Attendee = Database["public"]["Tables"]["attendees"]["Row"];
 
-export type FeedbackWithRelations = Feedback & {
-	conference_ref: Conference | null;
-	session_ref: Session | null;
-	attendee_ref: Attendee | null;
+type FeedbackRawWithRelations = Feedback & {
+	conference_rel: Conference | null;
+	session_rel: Session | null;
+	attendee_rel: Attendee | null;
+};
+
+export type FeedbackMapped = Omit<Feedback, "conference" | "session" | "attendee"> & {
+	conference: Conference | null;
+	session: Session | null;
+	attendee: Attendee | null;
 };
 
 export const FEEDBACK_SELECT = `
   *,
-  conference_ref:conferences(*),
-  session_ref:sessions(*),
-  attendee_ref:attendees(*)
+  conference_rel:conferences(*),
+  session_rel:sessions(*),
+  attendee_rel:attendees(*)
 `;
 
-const stripFeedbackRelations = (row: Partial<FeedbackWithRelations>): Partial<FeedbackUpdate> => {
-	const { conference_ref, session_ref, attendee_ref, ...payload } = row;
-	return payload;
-};
+const mapFeedback = createRelationMapper<FeedbackRawWithRelations, FeedbackMapped>({
+	conference_rel: "conference",
+	session_rel: "session",
+	attendee_rel: "attendee",
+});
+
+const stripFeedbackRelations = createRelationStripper<FeedbackUpdate>([
+	"conference_rel",
+	"session_rel",
+	"attendee_rel",
+]);
 
 export const useFeedback = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["feedback", conferenceId],
-		queryFn: async () => {
+		queryFn: async (): Promise<FeedbackMapped[]> => {
 			const { data, error } = await neon
 				.from("feedback")
 				.select(FEEDBACK_SELECT)
@@ -42,7 +56,7 @@ export const useFeedback = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return ((data ?? []) as FeedbackRawWithRelations[]).map(mapFeedback);
 		},
 	});
 };
@@ -68,7 +82,7 @@ export const useUpsertFeedback = () => {
 
 			if (error) throw error;
 
-			return data as FeedbackWithRelations;
+			return mapFeedback(data as FeedbackRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["feedback", conferenceId] }),
 	});

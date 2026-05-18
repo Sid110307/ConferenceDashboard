@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -10,30 +11,41 @@ type NavigationItemUpdate = Database["public"]["Tables"]["navigation_items"]["Up
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 type NavigationGroup = Database["public"]["Tables"]["navigation_groups"]["Row"];
 
-export type NavigationItemWithRelations = NavigationItem & {
-	conference_ref: Conference | null;
-	group_ref: NavigationGroup | null;
+type NavigationItemRawWithRelations = NavigationItem & {
+	conference_rel: Conference | null;
+	group_rel: NavigationGroup | null;
+};
+
+export type NavigationItemMapped = Omit<NavigationItem, "conference" | "group"> & {
+	conference: Conference | null;
+	group: NavigationGroup | null;
 };
 
 export const NAVIGATION_ITEM_SELECT = `
   *,
-  conference_ref:conferences(*),
-  group_ref:navigation_groups(*)
+  conference_rel:conferences(*),
+  group_rel:navigation_groups(*)
 `;
 
-const stripNavigationItemRelations = (
-	row: Partial<NavigationItemWithRelations>,
-): Partial<NavigationItemUpdate> => {
-	const { conference_ref, group_ref, ...payload } = row;
-	return payload;
-};
+const mapNavigationItem = createRelationMapper<
+	NavigationItemRawWithRelations,
+	NavigationItemMapped
+>({
+	conference_rel: "conference",
+	group_rel: "group",
+});
+
+const stripNavigationItemRelations = createRelationStripper<NavigationItemUpdate>([
+	"conference_rel",
+	"group_rel",
+]);
 
 export const useNavigationItems = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["navigation_items", conferenceId],
-		queryFn: async (): Promise<NavigationItemWithRelations[]> => {
+		queryFn: async (): Promise<NavigationItemMapped[]> => {
 			const { data, error } = await neon
 				.from("navigation_items")
 				.select(NAVIGATION_ITEM_SELECT)
@@ -41,7 +53,7 @@ export const useNavigationItems = () => {
 
 			if (error) throw error;
 
-			return (data ?? []) as NavigationItemWithRelations[];
+			return ((data ?? []) as NavigationItemRawWithRelations[]).map(mapNavigationItem);
 		},
 	});
 };
@@ -71,7 +83,7 @@ export const useUpsertNavigationItem = () => {
 
 			if (error) throw error;
 
-			return data as NavigationItemWithRelations;
+			return mapNavigationItem(data as NavigationItemRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["navigation_items", conferenceId] }),
 	});

@@ -31,5 +31,6 @@ export const Routes = {
 	finance: (conferenceid?: string, financialId?: string) =>
 		formatPath(conferenceid, financialId ? `finance/${financialId}` : "finance"),
 	reports: (conferenceid?: string) => formatPath(conferenceid, "reports"),
+	users: (conferenceid?: string) => formatPath(conferenceid, "users"),
 	settings: (conferenceid?: string) => formatPath(conferenceid, "settings"),
 };

@@ -2,6 +2,14 @@ import { useEffect, useState } from "react";
 
 import { X } from "lucide-react";
 
+import {
+	dangerButtonClassName,
+	fieldClassName,
+	fieldWithPlaceholderClassName,
+	primaryButtonClassName,
+	secondaryButtonClassName,
+} from "@/components/uiStyles";
+
 import { formatLabel } from "@/core/display";
 
 type Field = {
@@ -78,7 +86,7 @@ export const EntityDrawer = <TForm extends Record<string, unknown>>({
 										{field.label || field.name}
 									</label>
 									<textarea
-										className="min-h-24 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-colors placeholder:text-zinc-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+										className={`${fieldWithPlaceholderClassName} min-h-24`}
 										value={textValue}
 										onChange={e =>
 											handleFieldChange(field.name, e.target.value)
@@ -95,7 +103,7 @@ export const EntityDrawer = <TForm extends Record<string, unknown>>({
 										{field.label || field.name}
 									</label>
 									<select
-										className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-colors focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+										className={fieldClassName}
 										value={textValue}
 										onChange={e =>
 											handleFieldChange(field.name, e.target.value)
@@ -118,7 +126,11 @@ export const EntityDrawer = <TForm extends Record<string, unknown>>({
 									{field.label || field.name}
 								</label>
 								<input
-									className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-colors placeholder:text-zinc-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+									className={
+										field.type === "number"
+											? fieldClassName
+											: fieldWithPlaceholderClassName
+									}
 									type={field.type === "number" ? "number" : "text"}
 									value={
 										field.type === "number"
@@ -150,7 +162,7 @@ export const EntityDrawer = <TForm extends Record<string, unknown>>({
 									onClick={async () => {
 										if (confirm("Delete this item?")) await onDelete();
 									}}
-									className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-100"
+									className={dangerButtonClassName}
 								>
 									Delete
 								</button>
@@ -159,7 +171,7 @@ export const EntityDrawer = <TForm extends Record<string, unknown>>({
 						<div className="flex gap-2">
 							<button
 								onClick={onCancel}
-								className="flex-1 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-gray-50 hover:text-zinc-900 sm:flex-none"
+								className={`${secondaryButtonClassName} flex-1 sm:flex-none`}
 							>
 								Cancel
 							</button>
@@ -167,7 +179,7 @@ export const EntityDrawer = <TForm extends Record<string, unknown>>({
 								onClick={async () => {
 									await onSave(form);
 								}}
-								className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 sm:flex-none"
+								className={`${primaryButtonClassName} flex-1 sm:flex-none`}
 							>
 								Save
 							</button>

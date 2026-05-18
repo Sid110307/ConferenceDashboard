@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -9,21 +10,24 @@ type FinanceItemInsert = Database["public"]["Tables"]["finance_items"]["Insert"]
 type FinanceItemUpdate = Database["public"]["Tables"]["finance_items"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 
-export type FinanceItemWithRelations = FinanceItem & {
-	conference_ref: Conference | null;
+type FinanceItemRawWithRelations = FinanceItem & {
+	conference_rel: Conference | null;
+};
+
+export type FinanceItemMapped = Omit<FinanceItem, "conference"> & {
+	conference: Conference | null;
 };
 
 export const FINANCE_ITEM_SELECT = `
   *,
-  conference_ref:conferences(*)
+  conference_rel:conferences(*)
 `;
 
-const stripFinanceItemRelations = (
-	row: Partial<FinanceItemWithRelations>,
-): Partial<FinanceItemUpdate> => {
-	const { conference_ref, ...payload } = row;
-	return payload;
-};
+const mapFinanceItem = createRelationMapper<FinanceItemRawWithRelations, FinanceItemMapped>({
+	conference_rel: "conference",
+});
+
+const stripFinanceItemRelations = createRelationStripper<FinanceItemUpdate>(["conference_rel"]);
 
 export const useFinanceItems = () => {
 	const { conferenceId } = useConference();
@@ -38,7 +42,7 @@ export const useFinanceItems = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return ((data ?? []) as FinanceItemRawWithRelations[]).map(mapFinanceItem);
 		},
 	});
 };
@@ -68,7 +72,7 @@ export const useUpsertFinanceItem = () => {
 
 			if (error) throw error;
 
-			return data as FinanceItemWithRelations;
+			return mapFinanceItem(data as FinanceItemRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["finance_items", conferenceId] }),
 	});

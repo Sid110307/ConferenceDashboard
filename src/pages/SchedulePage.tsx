@@ -8,6 +8,7 @@ import { Badge } from "@/components/Badge";
 import { Card } from "@/components/Card";
 import { SectionTitle } from "@/components/SectionTitle";
 
+import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META } from "@/core/data";
 import { formatLabel } from "@/core/display";
 import { Routes as AppRoutes } from "@/core/navigation";
@@ -17,6 +18,7 @@ type SessionRow = Database["public"]["Tables"]["sessions"]["Row"];
 export const SchedulePage = () => {
 	const { day: dayParam } = useParams<{ day?: string }>();
 	const navigate = useNavigate();
+	const { conferenceId } = useConference();
 	const { data: conference } = useConferenceDetails();
 	const { data: sessions = [] } = useSessions();
 	const defaultDay = conference?.current_day || 1;
@@ -87,7 +89,9 @@ export const SchedulePage = () => {
 				{days.map((day, index) => (
 					<button
 						key={index}
-						onClick={() => navigate(AppRoutes.schedule((index + 1).toString()))}
+						onClick={() =>
+							navigate(AppRoutes.schedule(conferenceId, (index + 1).toString()))
+						}
 						className={`rounded-md px-3 py-2 text-sm font-medium transition-all ${activeDay === index ? "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-100" : "border border-gray-200 bg-white text-zinc-600 hover:border-gray-300 hover:bg-gray-50 hover:text-zinc-900"}`}
 					>
 						{day.label}
@@ -99,7 +103,7 @@ export const SchedulePage = () => {
 					{days[activeDay]?.sessions.map((session, index: number) => (
 						<div
 							key={index}
-							className={`flex flex-col gap-3 px-4 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center ${session.status === "done" ? "opacity-50" : session.status === "ongoing" ? "border-l-2 border-blue-500" : ""}`}
+							className={`flex flex-col gap-3 px-4 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center ${session.status_label === "done" ? "opacity-50" : session.status_label === "ongoing" ? "border-l-2 border-blue-500" : ""}`}
 						>
 							<span className="w-28 shrink-0 font-mono text-xs text-zinc-600">
 								{session.start_time || session.end_time
@@ -119,7 +123,7 @@ export const SchedulePage = () => {
 								<Badge variant={typeVariant(session.session_type || "Other")}>
 									{formatLabel(session.session_type || "Other")}
 								</Badge>
-								{session.status === "ongoing" && <Badge variant="blue">Live</Badge>}
+								{session.status_label === "ongoing" && <Badge variant="blue">Live</Badge>}
 							</div>
 						</div>
 					))}

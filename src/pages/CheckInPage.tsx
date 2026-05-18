@@ -2,14 +2,18 @@ import { useState } from "react";
 
 import { useAttendees, useUpsertAttendee } from "@/db/hooks/attendees";
 import type { Database } from "@/db/types";
-import { CheckCircle, Clock, Package, QrCode, Search } from "lucide-react";
+import { CheckCircle, Clock, Package, QrCode } from "lucide-react";
 
 import { Badge } from "@/components/Badge";
 import { Card, CardHead } from "@/components/Card";
 import { CountUpNumber } from "@/components/CountUpNumber";
 import { ProgressBar } from "@/components/ProgressBar";
+import { SearchField } from "@/components/SearchField";
 import { SectionTitle } from "@/components/SectionTitle";
 import { StatCard } from "@/components/StatCard";
+import { primaryButtonClassName, secondaryButtonClassName } from "@/components/uiStyles";
+
+import { formatLabel } from "@/core/display";
 
 type SelectedAttendee = {
 	id: string;
@@ -54,11 +58,15 @@ export const CheckInPage = () => {
 			const dateB = new Date(b.checked_in_at ?? "").getTime();
 			return dateB - dateA;
 		})
+		.map((a: SelectedAttendee) => ({
+			...a,
+			checked_in_at: a.checked_in_at ? new Date(a.checked_in_at).toISOString() : null,
+		}))
 		.slice(0, 10);
 
 	const categoryCounts: Record<string, number> = {};
 	attendees.forEach((a: SelectedAttendee) => {
-		const c = (a.category || "Other").toString();
+		const c = formatLabel((a.category || "Other").toString());
 		categoryCounts[c] = (categoryCounts[c] || 0) + 1;
 	});
 	const colors = ["#60a5fa", "#a78bfa", "#34d399", "#fbbf24", "#f87171"];
@@ -114,19 +122,14 @@ export const CheckInPage = () => {
 				<CardHead title="Attendee Search" />
 				<div className="p-4">
 					<div className="flex gap-3">
-						<div className="relative flex-1">
-							<Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
-							<input
-								type="text"
-								placeholder="Search by name, email, phone, or ID..."
-								value={searchQuery}
-								onChange={e => {
-									setSearchQuery(e.target.value);
-									setSelectedAttendee(null);
-								}}
-								className="w-full rounded-md border border-gray-200 bg-white pl-9 pr-3 py-2 text-sm text-zinc-900 outline-none transition-colors placeholder:text-zinc-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-							/>
-						</div>
+						<SearchField
+							placeholder="Search by name, email, phone, or ID..."
+							value={searchQuery}
+							onChange={e => {
+								setSearchQuery(e.target.value);
+								setSelectedAttendee(null);
+							}}
+						/>
 					</div>
 
 					{searchQuery && filteredAttendees.length > 0 && (
@@ -211,14 +214,14 @@ export const CheckInPage = () => {
 							{selectedAttendee.checked_in_at && !selectedAttendee.badge_printed && (
 								<button
 									onClick={handlePrintBadge}
-									className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+									className={`${primaryButtonClassName} flex-1`}
 								>
 									🖨️ Print Badge
 								</button>
 							)}
 							<button
 								onClick={() => setSelectedAttendee(null)}
-								className="flex-1 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-gray-50"
+								className={`${secondaryButtonClassName} flex-1`}
 							>
 								Close
 							</button>

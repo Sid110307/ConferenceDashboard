@@ -1,16 +1,19 @@
 import { useState } from "react";
 
-import { useDeleteVenue, useUpsertVenue, useVenues } from "@/db/hooks/venues";
+import { useDeleteVenue, useUpsertVenue, useVenues, type VenueMapped } from "@/db/hooks/venues";
 import type { Database } from "@/db/types.ts";
 
 import { Badge } from "@/components/Badge";
 import { Card } from "@/components/Card";
 import EntityDrawer from "@/components/EntityDrawer";
 import { SectionTitle } from "@/components/SectionTitle";
+import { tableActionButtonClassName, tableDangerButtonClassName } from "@/components/uiStyles";
 
 import { useConference } from "@/core/ConferenceContext";
 import { PAGES_META } from "@/core/data";
 import { formatLabel } from "@/core/display";
+
+type VenueUpdate = Database["public"]["Tables"]["venues"]["Update"];
 
 export const VenuePage = () => {
 	const { data: venues = [], isLoading } = useVenues();
@@ -18,14 +21,12 @@ export const VenuePage = () => {
 	const isEditor = useConference()?.isEditor || false;
 	const upsert = useUpsertVenue();
 	const remove = useDeleteVenue();
-	const [editing, setEditing] = useState<Database["public"]["Tables"]["venues"]["Row"] | null>(
-		null,
-	);
+	const [editing, setEditing] = useState<VenueMapped | null>(null);
 
 	return (
 		<div className="flex gap-4 flex-col">
 			<SectionTitle
-				title={PAGES_META.find(p => p.id === "venue")?.label || "Venue & Halls"}
+				title={PAGES_META.find(p => p.id === "venue")?.label || "Venue and Halls"}
 				subtitle={
 					isLoading
 						? "Loading venues..."
@@ -49,21 +50,25 @@ export const VenuePage = () => {
 								<div className="flex items-center gap-2">
 									<Badge
 										variant={
-											formatLabel(venue.status) === "Active" ? "green" : "red"
+											formatLabel(venue.status_label) === "Active"
+												? "green"
+												: "red"
 										}
 									>
-										{formatLabel(venue.status)}
+										{formatLabel(venue.status_label)}
 									</Badge>
 									{isEditor && (
 										<div className="flex gap-1">
 											<button
-												className="rounded-md px-2 py-1 text-xs border border-gray-100"
-												onClick={() => setEditing(venue)}
+												className={tableActionButtonClassName}
+												onClick={() => {
+													setEditing(venue);
+												}}
 											>
 												Edit
 											</button>
 											<button
-												className="rounded-md px-2 py-1 text-xs border border-red-200 text-red-600"
+												className={tableDangerButtonClassName}
 												onClick={() => remove.mutate(venue.id)}
 											>
 												Delete
@@ -120,7 +125,7 @@ export const VenuePage = () => {
 					]}
 					onCancel={() => setEditing(null)}
 					onSave={async row => {
-						await upsert.mutateAsync(row);
+						await upsert.mutateAsync(row as VenueUpdate);
 						setEditing(null);
 					}}
 					onDelete={

@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -9,28 +10,36 @@ type NavigationGroupInsert = Database["public"]["Tables"]["navigation_groups"]["
 type NavigationGroupUpdate = Database["public"]["Tables"]["navigation_groups"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 
-export type NavigationGroupWithRelations = NavigationGroup & {
-	conference_ref: Conference | null;
+type NavigationGroupRawWithRelations = NavigationGroup & {
+	conference_rel: Conference | null;
+};
+
+export type NavigationGroupMapped = Omit<NavigationGroup, "conference"> & {
+	conference: Conference | null;
 };
 
 export const NAVIGATION_GROUP_SELECT = `
   *,
-  conference_ref:conferences(*)
+  conference_rel:conferences(*)
 `;
 
-const stripNavigationGroupRelations = (
-	row: Partial<NavigationGroupWithRelations>,
-): Partial<NavigationGroupUpdate> => {
-	const { conference_ref, ...payload } = row;
-	return payload;
-};
+const mapNavigationGroup = createRelationMapper<
+	NavigationGroupRawWithRelations,
+	NavigationGroupMapped
+>({
+	conference_rel: "conference",
+});
+
+const stripNavigationGroupRelations = createRelationStripper<NavigationGroupUpdate>([
+	"conference_rel",
+]);
 
 export const useNavigationGroups = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["navigation_groups", conferenceId],
-		queryFn: async (): Promise<NavigationGroupWithRelations[]> => {
+		queryFn: async (): Promise<NavigationGroupMapped[]> => {
 			const { data, error } = await neon
 				.from("navigation_groups")
 				.select(NAVIGATION_GROUP_SELECT)
@@ -38,7 +47,7 @@ export const useNavigationGroups = () => {
 
 			if (error) throw error;
 
-			return (data ?? []) as NavigationGroupWithRelations[];
+			return (data ?? []) as NavigationGroupMapped[];
 		},
 	});
 };
@@ -68,7 +77,7 @@ export const useUpsertNavigationGroup = () => {
 
 			if (error) throw error;
 
-			return data as NavigationGroupWithRelations;
+			return mapNavigationGroup(data as NavigationGroupRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["navigation_groups", conferenceId] }),
 	});

@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -9,21 +10,24 @@ type ThemeSettingInsert = Database["public"]["Tables"]["theme_settings"]["Insert
 type ThemeSettingUpdate = Database["public"]["Tables"]["theme_settings"]["Update"];
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 
-export type ThemeSettingWithRelations = ThemeSetting & {
-	conference_ref: Conference | null;
+type ThemeSettingRawWithRelations = ThemeSetting & {
+	conference_rel: Conference | null;
+};
+
+export type ThemeSettingMapped = Omit<ThemeSetting, "conference"> & {
+	conference: Conference | null;
 };
 
 export const THEME_SETTING_SELECT = `
   *,
-  conference_ref:conferences(*)
+  conference_rel:conferences(*)
 `;
 
-const stripThemeSettingRelations = (
-	row: Partial<ThemeSettingWithRelations>,
-): Partial<ThemeSettingUpdate> => {
-	const { conference_ref, ...payload } = row;
-	return payload;
-};
+const mapThemeSetting = createRelationMapper<ThemeSettingRawWithRelations, ThemeSettingMapped>({
+	conference_rel: "conference",
+});
+
+const stripThemeSettingRelations = createRelationStripper<ThemeSettingUpdate>(["conference_rel"]);
 
 export const useThemeSettings = () => {
 	const { conferenceId } = useConference();
@@ -38,7 +42,7 @@ export const useThemeSettings = () => {
 
 			if (error) throw error;
 
-			return data ?? [];
+			return ((data ?? []) as ThemeSettingRawWithRelations[]).map(mapThemeSetting);
 		},
 	});
 };
@@ -68,7 +72,7 @@ export const useUpsertThemeSetting = () => {
 
 			if (error) throw error;
 
-			return data as ThemeSettingWithRelations;
+			return mapThemeSetting(data as ThemeSettingRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["theme_settings", conferenceId] }),
 	});

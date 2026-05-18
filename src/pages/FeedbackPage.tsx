@@ -16,7 +16,7 @@ export const FeedbackPage = () => (
 			<StatCard icon={CheckCircle} label="Certs Generated" value="0" color="gray" />
 			<StatCard icon={Download} label="Certs Downloaded" value="0" color="gray" />
 		</div>
-		<Card className="p-8 text-center sm:p-10">
+		<Card className="p-8! text-center sm:p-10!">
 			<Clock size={32} className="mx-auto mb-3 text-zinc-600" />
 			<p className="font-medium text-zinc-400">Feedback collection active</p>
 			<p className="mt-1 text-sm text-zinc-600">

@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -10,30 +11,38 @@ type TravelArrivalUpdate = Database["public"]["Tables"]["travel_arrivals"]["Upda
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 type Attendee = Database["public"]["Tables"]["attendees"]["Row"];
 
-export type TravelArrivalWithRelations = TravelArrival & {
-	conference_ref: Conference | null;
-	attendee_ref: Attendee | null;
+type TravelArrivalRawWithRelations = TravelArrival & {
+	conference_rel: Conference | null;
+	attendee_rel: Attendee | null;
+};
+
+export type TravelArrivalMapped = Omit<TravelArrival, "conference" | "attendee"> & {
+	conference: Conference | null;
+	attendee: Attendee | null;
 };
 
 export const TRAVEL_ARRIVAL_SELECT = `
   *,
-  conference_ref:conferences(*),
-  attendee_ref:attendees(*)
+  conference_rel:conferences(*),
+  attendee_rel:attendees(*)
 `;
 
-const stripTravelArrivalRelations = (
-	row: Partial<TravelArrivalWithRelations>,
-): Partial<TravelArrivalUpdate> => {
-	const { conference_ref, attendee_ref, ...payload } = row;
-	return payload;
-};
+const mapTravelArrival = createRelationMapper<TravelArrivalRawWithRelations, TravelArrivalMapped>({
+	conference_rel: "conference",
+	attendee_rel: "attendee",
+});
+
+const stripTravelArrivalRelations = createRelationStripper<TravelArrivalUpdate>([
+	"conference_rel",
+	"attendee_rel",
+]);
 
 export const useTravelArrivals = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["travel_arrivals", conferenceId],
-		queryFn: async (): Promise<TravelArrivalWithRelations[]> => {
+		queryFn: async (): Promise<TravelArrivalMapped[]> => {
 			const { data, error } = await neon
 				.from("travel_arrivals")
 				.select(TRAVEL_ARRIVAL_SELECT)
@@ -41,7 +50,7 @@ export const useTravelArrivals = () => {
 
 			if (error) throw error;
 
-			return (data ?? []) as TravelArrivalWithRelations[];
+			return ((data ?? []) as TravelArrivalRawWithRelations[]).map(mapTravelArrival);
 		},
 	});
 };
@@ -71,7 +80,7 @@ export const useUpsertTravelArrival = () => {
 
 			if (error) throw error;
 
-			return data as TravelArrivalWithRelations;
+			return mapTravelArrival(data as TravelArrivalRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["travel_arrivals", conferenceId] }),
 	});

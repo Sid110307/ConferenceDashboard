@@ -1,4 +1,5 @@
 import { neon } from "@/db/neon";
+import { createRelationMapper, createRelationStripper } from "@/db/normalization";
 import type { Database } from "@/db/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -10,30 +11,41 @@ type DashboardWidgetUpdate = Database["public"]["Tables"]["dashboard_widgets"]["
 type Conference = Database["public"]["Tables"]["conferences"]["Row"];
 type DashboardPage = Database["public"]["Tables"]["dashboard_pages"]["Row"];
 
-export type DashboardWidgetWithRelations = DashboardWidget & {
-	conference_ref: Conference | null;
-	page_ref: DashboardPage | null;
+type DashboardWidgetRawWithRelations = DashboardWidget & {
+	conference_rel: Conference | null;
+	page_rel: DashboardPage | null;
+};
+
+export type DashboardWidgetMapped = Omit<DashboardWidget, "conference" | "page"> & {
+	conference: Conference | null;
+	page: DashboardPage | null;
 };
 
 export const DASHBOARD_WIDGET_SELECT = `
   *,
-  conference_ref:conferences(*),
-  page_ref:dashboard_pages(*)
+  conference_rel:conferences(*),
+  page_rel:dashboard_pages(*)
 `;
 
-const stripDashboardWidgetRelations = (
-	row: Partial<DashboardWidgetWithRelations>,
-): Partial<DashboardWidgetUpdate> => {
-	const { conference_ref, page_ref, ...payload } = row;
-	return payload;
-};
+const mapDashboardWidget = createRelationMapper<
+	DashboardWidgetRawWithRelations,
+	DashboardWidgetMapped
+>({
+	conference_rel: "conference",
+	page_rel: "page",
+});
+
+const stripDashboardWidgetRelations = createRelationStripper<DashboardWidgetUpdate>([
+	"conference_rel",
+	"page_rel",
+]);
 
 export const useDashboardWidgets = () => {
 	const { conferenceId } = useConference();
 
 	return useQuery({
 		queryKey: ["dashboard_widgets", conferenceId],
-		queryFn: async (): Promise<DashboardWidgetWithRelations[]> => {
+		queryFn: async (): Promise<DashboardWidgetMapped[]> => {
 			const { data, error } = await neon
 				.from("dashboard_widgets")
 				.select(DASHBOARD_WIDGET_SELECT)
@@ -41,7 +53,7 @@ export const useDashboardWidgets = () => {
 
 			if (error) throw error;
 
-			return (data ?? []) as DashboardWidgetWithRelations[];
+			return ((data ?? []) as DashboardWidgetRawWithRelations[]).map(mapDashboardWidget);
 		},
 	});
 };
@@ -71,7 +83,7 @@ export const useUpsertDashboardWidget = () => {
 
 			if (error) throw error;
 
-			return data as DashboardWidgetWithRelations;
+			return mapDashboardWidget(data as DashboardWidgetRawWithRelations);
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["dashboard_widgets", conferenceId] }),
 	});
