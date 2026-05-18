@@ -78,7 +78,6 @@ export const HelpdeskPage = () => {
 						<thead>
 							<tr className="border-b border-gray-100">
 								{[
-									"ID",
 									"Attendee",
 									"Issue Type",
 									"Priority",
@@ -107,14 +106,6 @@ export const HelpdeskPage = () => {
 								const priorityLabel = formatLabel(String(issue.priority || ""));
 								return (
 									<tr key={index} className="hover:bg-gray-50">
-										<td className="px-4 py-3 font-mono text-xs text-blue-600">
-											<Link
-												to={AppRoutes.helpdesk(issue.id)}
-												className="hover:underline"
-											>
-												{issue.id}
-											</Link>
-										</td>
 										<td className="px-4 py-3 text-zinc-900">
 											<Link
 												to={AppRoutes.helpdesk(issue.id)}

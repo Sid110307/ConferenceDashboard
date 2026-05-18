@@ -45,6 +45,7 @@ export const useSessions = () => {
 
 			if (error) throw error;
 
+			console.log(data);
 			return (data ?? []) as SessionWithRelations[];
 		},
 	});
