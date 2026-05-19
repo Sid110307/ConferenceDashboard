@@ -1,9 +1,5 @@
 import React from "react";
 
-
-
-
-
 export type PageComponent = React.ComponentType<Record<string, never>>;
 
 const PAGE_IMPORTS: Record<string, React.LazyExoticComponent<PageComponent>> = {

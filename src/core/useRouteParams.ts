@@ -1,9 +1,5 @@
 import { useParams } from "react-router";
 
-
-
-
-
 export const useRouteParams = () => {
 	const params = useParams();
 	return {

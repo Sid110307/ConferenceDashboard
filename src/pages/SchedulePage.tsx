@@ -123,7 +123,9 @@ export const SchedulePage = () => {
 								<Badge variant={typeVariant(session.session_type || "Other")}>
 									{formatLabel(session.session_type || "Other")}
 								</Badge>
-								{session.status_label === "ongoing" && <Badge variant="blue">Live</Badge>}
+								{session.status_label === "ongoing" && (
+									<Badge variant="blue">Live</Badge>
+								)}
 							</div>
 						</div>
 					))}

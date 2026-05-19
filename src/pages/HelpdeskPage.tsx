@@ -116,7 +116,7 @@ export const HelpdeskPage = () => {
 											<Link
 												to={AppRoutes.attendees(
 													conferenceId,
-													issue.attendee_id || "",
+													issue.attendee?.id || "",
 												)}
 												className="hover:text-blue-600 hover:underline"
 											>
