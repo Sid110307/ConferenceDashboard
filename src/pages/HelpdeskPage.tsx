@@ -74,7 +74,7 @@ export const HelpdeskPage = () => {
 				{isEditor && (
 					<button
 						className={`mx-4 mt-4 ${primaryButtonClassName}`}
-						onClick={() => setEditing({})}
+						onClick={() => setEditing({} as HelpdeskIssueMapped)}
 					>
 						+ Add issue
 					</button>

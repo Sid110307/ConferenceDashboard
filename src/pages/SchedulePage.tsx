@@ -40,7 +40,7 @@ export const SchedulePage = () => {
 		})[formatLabel(type)] || "gray";
 
 	const daysMap: Record<number, SessionRow[]> = {};
-	sessions.forEach((session: SessionRow) => {
+	sessions.forEach(session => {
 		let day = 1;
 
 		try {
@@ -69,7 +69,7 @@ export const SchedulePage = () => {
 		}
 
 		if (!daysMap[day]) daysMap[day] = [];
-		daysMap[day].push(session);
+		daysMap[day].push(session as SessionRow);
 	});
 
 	const days = Object.keys(daysMap)

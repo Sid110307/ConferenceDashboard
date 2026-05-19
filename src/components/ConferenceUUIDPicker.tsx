@@ -192,8 +192,8 @@ export const ConferenceUUIDPicker = () => {
 					className={[
 						"flex w-full items-center justify-center rounded-md border px-4 py-3 text-sm font-semibold shadow-sm transition-all",
 						canContinue
-							? "cursor-pointer border-blue-700 bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.99]"
-							: "cursor-not-allowed border-gray-200 bg-gray-100 text-zinc-400 opacity-100",
+							? "cursor-pointer border-blue-700! bg-blue-600! text-white! hover:bg-blue-700! active:scale-[0.99]"
+							: "cursor-not-allowed border-gray-200! bg-gray-100! text-zinc-400! opacity-100",
 					].join(" ")}
 				>
 					{isChecking ? "Checking..." : "Continue to Conference"}
