@@ -32,7 +32,7 @@ export default defineConfig([
 			},
 			globals: {
 				...globals.browser,
-				...globals.es2023,
+				...globals.es2022,
 			},
 		},
 		settings: {
