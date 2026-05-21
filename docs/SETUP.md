@@ -72,22 +72,22 @@ See [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the full design brief,
 
 ## Common commands
 
-| Command             | What it does                                  |
-| ------------------- | --------------------------------------------- |
-| `pnpm dev`          | api + web + worker in parallel                |
-| `pnpm dev:api`      | API only                                      |
-| `pnpm dev:web`      | Frontend only                                 |
-| `pnpm dev:worker`   | Worker only                                   |
-| `pnpm build`        | Production build of every package             |
-| `pnpm typecheck`    | TypeScript across all packages                |
-| `pnpm db:generate`  | Drizzle generates a new SQL migration         |
-| `pnpm db:migrate`   | Apply pending migrations                      |
-| `pnpm db:push`      | (Dev only) sync schema without migrations     |
-| `pnpm db:studio`    | Drizzle Studio (DB browser)                   |
-| `pnpm db:seed`      | Seed reference data (committees, enums)       |
-| `pnpm db:seed:demo` | Seed demo conference + attendees/travel/etc.  |
-| `pnpm db:reset`     | Drop schema + re-migrate + re-seed            |
-| `pnpm fresh`        | Full wipe and rebuild                         |
+| Command             | What it does                                 |
+|---------------------|----------------------------------------------|
+| `pnpm dev`          | api + web + worker in parallel               |
+| `pnpm dev:api`      | API only                                     |
+| `pnpm dev:web`      | Frontend only                                |
+| `pnpm dev:worker`   | Worker only                                  |
+| `pnpm build`        | Production build of every package            |
+| `pnpm typecheck`    | TypeScript across all packages               |
+| `pnpm db:generate`  | Drizzle generates a new SQL migration        |
+| `pnpm db:migrate`   | Apply pending migrations                     |
+| `pnpm db:push`      | (Dev only) sync schema without migrations    |
+| `pnpm db:studio`    | Drizzle Studio (DB browser)                  |
+| `pnpm db:seed`      | Seed reference data (committees, enums)      |
+| `pnpm db:seed:demo` | Seed demo conference + attendees/travel/etc. |
+| `pnpm db:reset`     | Drop schema + re-migrate + re-seed           |
+| `pnpm fresh`        | Full wipe and rebuild                        |
 
 ## Feature pages (apps/web)
 

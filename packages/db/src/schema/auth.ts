@@ -1,4 +1,7 @@
+import { uuidPk } from "@/schema/_shared";
+import { auditActionEnum, userRoleEnum } from "@/schema/enums";
 import { sql } from "drizzle-orm";
+
 import {
 	boolean,
 	customType,
@@ -12,8 +15,6 @@ import {
 	uuid,
 	varchar,
 } from "drizzle-orm/pg-core";
-import { auditActionEnum, userRoleEnum } from "@/schema/enums";
-import { uuidPk } from "@/schema/_shared";
 
 const citext = customType<{ data: string; driverData: string }>({
 	dataType() {

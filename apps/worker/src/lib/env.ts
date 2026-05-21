@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 
 const schema = z.object({
@@ -7,13 +6,16 @@ const schema = z.object({
 
 	DATABASE_URL: z.string(),
 	DATABASE_POOL_MAX: z.coerce.number().int().default(10),
-	DATABASE_SSL: z.string().optional().transform((v) => v === "true"),
+	DATABASE_SSL: z
+		.string()
+		.optional()
+		.transform(v => v === "true"),
 
 	REDIS_URL: z.string().default("redis://redis:6379"),
 	ENCRYPTION_KEY: z
 		.string()
 		.refine(
-			(v) => Buffer.from(v, "base64").length === 32,
+			v => Buffer.from(v, "base64").length === 32,
 			"ENCRYPTION_KEY must be 32 bytes base64-encoded",
 		),
 
@@ -26,7 +28,7 @@ const schema = z.object({
 		.string()
 		.optional()
 		.default("true")
-		.transform((v) => v !== "false"),
+		.transform(v => v !== "false"),
 
 	IMPORT_BATCH_SIZE: z.coerce.number().int().default(500),
 	IMPORT_MAX_ROWS: z.coerce.number().int().default(50000),

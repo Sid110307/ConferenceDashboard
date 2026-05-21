@@ -1,4 +1,10 @@
+import { auditColumns, customFieldsColumn, uuidPk } from "@/schema/_shared";
+import { users } from "@/schema/auth";
+import { conferences } from "@/schema/conferences";
+import { genderEnum, staffStatusEnum } from "@/schema/enums";
+import { files } from "@/schema/files";
 import { sql } from "drizzle-orm";
+
 import {
 	boolean,
 	date,
@@ -11,11 +17,6 @@ import {
 	uuid,
 	varchar,
 } from "drizzle-orm/pg-core";
-import { users } from "@/schema/auth";
-import { conferences } from "@/schema/conferences";
-import { files } from "@/schema/files";
-import { genderEnum, staffStatusEnum } from "@/schema/enums";
-import { auditColumns, customFieldsColumn, uuidPk } from "@/schema/_shared";
 
 export const committees = pgTable(
 	"committees",
@@ -38,11 +39,8 @@ export const committees = pgTable(
 		notes: text("notes"),
 		...auditColumns(() => users.id),
 	},
-	(t) => ({
-		confSlugUnique: uniqueIndex("committees_conf_slug_unique").on(
-			t.conferenceId,
-			t.slug,
-		),
+	t => ({
+		confSlugUnique: uniqueIndex("committees_conf_slug_unique").on(t.conferenceId, t.slug),
 		confSortIdx: index("committees_conf_sort_idx").on(t.conferenceId, t.sortOrder),
 		deletedIdx: index("committees_deleted_idx").on(t.deletedAt),
 	}),
@@ -97,7 +95,7 @@ export const staff = pgTable(
 		...customFieldsColumn(),
 		...auditColumns(() => users.id),
 	},
-	(t) => ({
+	t => ({
 		confIdx: index("staff_conf_idx").on(t.conferenceId),
 		confNameIdx: index("staff_conf_name_idx").on(t.conferenceId, t.name),
 		confEmailIdx: index("staff_conf_email_idx").on(t.conferenceId, t.email),
@@ -107,10 +105,7 @@ export const staff = pgTable(
 			.where(sql`staff_code IS NOT NULL`),
 		statusIdx: index("staff_status_idx").on(t.conferenceId, t.status),
 		deletedIdx: index("staff_deleted_idx").on(t.deletedAt),
-		nameTrgmIdx: index("staff_name_trgm_idx").using(
-			"gin",
-			sql`name gin_trgm_ops`,
-		),
+		nameTrgmIdx: index("staff_name_trgm_idx").using("gin", sql`name gin_trgm_ops`),
 	}),
 );
 
@@ -136,18 +131,12 @@ export const committeeAssignments = pgTable(
 		assignmentNotes: text("assignment_notes"),
 		...auditColumns(() => users.id),
 	},
-	(t) => ({
-		uniqueAssignment: uniqueIndex("committee_assignments_unique").on(
-			t.committeeId,
-			t.staffId,
-		),
+	t => ({
+		uniqueAssignment: uniqueIndex("committee_assignments_unique").on(t.committeeId, t.staffId),
 		confIdx: index("committee_assignments_conf_idx").on(t.conferenceId),
 		committeeIdx: index("committee_assignments_committee_idx").on(t.committeeId),
 		staffIdx: index("committee_assignments_staff_idx").on(t.staffId),
-		leadIdx: index("committee_assignments_lead_idx").on(
-			t.committeeId,
-			t.isLead,
-		),
+		leadIdx: index("committee_assignments_lead_idx").on(t.committeeId, t.isLead),
 		deletedIdx: index("committee_assignments_deleted_idx").on(t.deletedAt),
 	}),
 );

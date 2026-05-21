@@ -46,15 +46,7 @@ export const DIET_PREFERENCES = [
 ] as const;
 export type DietPreference = (typeof DIET_PREFERENCES)[number];
 
-export const TRAVEL_MODES = [
-	"flight",
-	"train",
-	"bus",
-	"car",
-	"taxi",
-	"local",
-	"other",
-] as const;
+export const TRAVEL_MODES = ["flight", "train", "bus", "car", "taxi", "local", "other"] as const;
 export type TravelMode = (typeof TRAVEL_MODES)[number];
 
 export const TRAVEL_DIRECTIONS = ["arrival", "departure"] as const;

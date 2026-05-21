@@ -1,5 +1,5 @@
-import { z } from "zod";
 import { LIMITS } from "@/constants";
+import { z } from "zod";
 
 export const uuidSchema = z.string().uuid();
 
@@ -27,9 +27,7 @@ export const phoneSchema = z
 
 export const emailSchema = z.string().trim().toLowerCase().email().max(255);
 
-export const isoDateSchema = z
-	.string()
-	.regex(/^\d{4}-\d{2}-\d{2}$/, "must be YYYY-MM-DD");
+export const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "must be YYYY-MM-DD");
 export const isoDatetimeSchema = z.string().datetime({ offset: true });
 
 export const slugSchema = z
@@ -39,6 +37,4 @@ export const slugSchema = z
 	.regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "must be a valid slug")
 	.max(64);
 
-export const moneySchema = z
-	.string()
-	.regex(/^-?\d+(\.\d{1,2})?$/, "must be a money amount");
+export const moneySchema = z.string().regex(/^-?\d+(\.\d{1,2})?$/, "must be a money amount");

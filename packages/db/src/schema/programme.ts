@@ -1,10 +1,26 @@
-import { sql } from "drizzle-orm";
-import { boolean, index, integer, pgTable, text, timestamp, uniqueIndex, uuid, varchar, } from "drizzle-orm/pg-core";
+import { auditColumns, customFieldsColumn, uuidPk } from "@/schema/_shared";
 import { users } from "@/schema/auth";
 import { conferences } from "@/schema/conferences";
+import {
+	publicStatusEnum,
+	sessionStatusEnum,
+	sessionTypeEnum,
+	venueStatusEnum,
+} from "@/schema/enums";
 import { files } from "@/schema/files";
-import { publicStatusEnum, sessionStatusEnum, sessionTypeEnum, venueStatusEnum, } from "@/schema/enums";
-import { auditColumns, customFieldsColumn, uuidPk } from "@/schema/_shared";
+import { sql } from "drizzle-orm";
+
+import {
+	boolean,
+	index,
+	integer,
+	pgTable,
+	text,
+	timestamp,
+	uniqueIndex,
+	uuid,
+	varchar,
+} from "drizzle-orm/pg-core";
 
 export const venues = pgTable(
 	"venues",
@@ -27,7 +43,7 @@ export const venues = pgTable(
 		...customFieldsColumn(),
 		...auditColumns(() => users.id),
 	},
-	(t) => ({
+	t => ({
 		confIdx: index("venues_conf_idx").on(t.conferenceId),
 		deletedIdx: index("venues_deleted_idx").on(t.deletedAt),
 	}),
@@ -48,7 +64,7 @@ export const tracks = pgTable(
 		sortOrder: integer("sort_order").notNull().default(0),
 		...auditColumns(() => users.id),
 	},
-	(t) => ({
+	t => ({
 		confCodeUnique: uniqueIndex("tracks_conf_code_unique")
 			.on(t.conferenceId, t.code)
 			.where(sql`code IS NOT NULL`),
@@ -83,7 +99,7 @@ export const speakers = pgTable(
 		...customFieldsColumn(),
 		...auditColumns(() => users.id),
 	},
-	(t) => ({
+	t => ({
 		confIdx: index("speakers_conf_idx").on(t.conferenceId),
 		deletedIdx: index("speakers_deleted_idx").on(t.deletedAt),
 	}),
@@ -114,12 +130,9 @@ export const conferenceSessions = pgTable(
 		...customFieldsColumn(),
 		...auditColumns(() => users.id),
 	},
-	(t) => ({
+	t => ({
 		confIdx: index("conf_sessions_conf_idx").on(t.conferenceId),
-		confStartIdx: index("conf_sessions_conf_start_idx").on(
-			t.conferenceId,
-			t.startTime,
-		),
+		confStartIdx: index("conf_sessions_conf_start_idx").on(t.conferenceId, t.startTime),
 		confTrackIdx: index("conf_sessions_conf_track_idx").on(t.conferenceId, t.trackId),
 		confVenueIdx: index("conf_sessions_conf_venue_idx").on(t.conferenceId, t.venueId),
 		deletedIdx: index("conf_sessions_deleted_idx").on(t.deletedAt),
@@ -145,11 +158,8 @@ export const sessionSpeakers = pgTable(
 			.notNull()
 			.default(sql`now()`),
 	},
-	(t) => ({
-		uniquePair: uniqueIndex("session_speakers_unique").on(
-			t.sessionId,
-			t.speakerId,
-		),
+	t => ({
+		uniquePair: uniqueIndex("session_speakers_unique").on(t.sessionId, t.speakerId),
 		sessionIdx: index("session_speakers_session_idx").on(t.sessionId),
 		speakerIdx: index("session_speakers_speaker_idx").on(t.speakerId),
 	}),

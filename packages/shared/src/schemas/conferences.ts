@@ -1,6 +1,6 @@
+import { USER_ROLES, type UserRole } from "@/constants";
+import { emailSchema, isoDateSchema, slugSchema } from "@/schemas/common";
 import { z } from "zod";
-import { USER_ROLES, type UserRole, } from "@/constants";
-import { emailSchema, isoDateSchema, slugSchema, } from "@/schemas/common";
 
 export const signInSchema = z.object({
 	email: emailSchema,
@@ -15,7 +15,6 @@ export const inviteUserSchema = z.object({
 	email: emailSchema,
 	role: z.enum(USER_ROLES as readonly [UserRole, ...UserRole[]]),
 });
-
 
 export const conferenceCreateSchema = z.object({
 	slug: slugSchema,
@@ -33,9 +32,7 @@ export const conferenceCreateSchema = z.object({
 });
 
 export const conferenceUpdateSchema = conferenceCreateSchema.partial().extend({
-	conferenceStatus: z
-		.enum(["draft", "active", "concluded", "archived"])
-		.optional(),
+	conferenceStatus: z.enum(["draft", "active", "concluded", "archived"]).optional(),
 	publicStatus: z.enum(["draft", "published", "archived"]).optional(),
 	currentDay: z.number().int().min(1).max(30).nullable().optional(),
 	settings: z.record(z.string(), z.any()).optional(),

@@ -1,13 +1,12 @@
-import { z } from "zod";
 import {
-	type Gender,
 	GENDERS,
 	PICKUP_STATUSES,
-	type PickupStatus,
 	ROOM_TYPES,
-	type RoomType,
 	TRAVEL_DIRECTIONS,
 	TRAVEL_MODES,
+	type Gender,
+	type PickupStatus,
+	type RoomType,
 	type TravelDirection,
 	type TravelMode,
 } from "@/constants";
@@ -21,6 +20,7 @@ import {
 	slugSchema,
 	uuidSchema,
 } from "@/schemas/common";
+import { z } from "zod";
 
 export const committeeCreateSchema = z.object({
 	slug: slugSchema,
@@ -97,19 +97,13 @@ export const vehicleCreateSchema = z.object({
 });
 
 export const vehicleUpdateSchema = vehicleCreateSchema.partial().extend({
-	status: z
-		.enum(["available", "in_use", "maintenance", "unavailable"])
-		.optional(),
+	status: z.enum(["available", "in_use", "maintenance", "unavailable"]).optional(),
 });
 
 export const travelSegmentCreateSchema = z.object({
 	attendeeId: uuidSchema,
-	direction: z.enum(
-		TRAVEL_DIRECTIONS as readonly [TravelDirection, ...TravelDirection[]],
-	),
-	travelMode: z
-		.enum(TRAVEL_MODES as readonly [TravelMode, ...TravelMode[]])
-		.default("other"),
+	direction: z.enum(TRAVEL_DIRECTIONS as readonly [TravelDirection, ...TravelDirection[]]),
+	travelMode: z.enum(TRAVEL_MODES as readonly [TravelMode, ...TravelMode[]]).default("other"),
 	carrier: z.string().max(255).optional(),
 	serviceNumber: z.string().max(32).optional(),
 	pnr: z.string().max(32).optional(),
@@ -149,21 +143,15 @@ export const travelSegmentUpdateSchema = travelSegmentCreateSchema
 	.omit({ attendeeId: true, direction: true })
 	.partial()
 	.extend({
-		status: z
-			.enum(["planned", "in_transit", "arrived", "delayed", "cancelled"])
-			.optional(),
+		status: z.enum(["planned", "in_transit", "arrived", "delayed", "cancelled"]).optional(),
 	});
 
 export const travelManifestQuerySchema = z.object({
 	direction: z.enum(TRAVEL_DIRECTIONS as readonly [TravelDirection, ...TravelDirection[]]),
 	gender: z.enum(GENDERS as readonly [Gender, ...Gender[]]).optional(),
 	date: isoDateSchema.optional(),
-	travelMode: z
-		.enum(TRAVEL_MODES as readonly [TravelMode, ...TravelMode[]])
-		.optional(),
-	pickupStatus: z
-		.enum(PICKUP_STATUSES as readonly [PickupStatus, ...PickupStatus[]])
-		.optional(),
+	travelMode: z.enum(TRAVEL_MODES as readonly [TravelMode, ...TravelMode[]]).optional(),
+	pickupStatus: z.enum(PICKUP_STATUSES as readonly [PickupStatus, ...PickupStatus[]]).optional(),
 });
 
 export const accommodationBlockCreateSchema = z.object({
@@ -180,9 +168,7 @@ export const accommodationRoomCreateSchema = z.object({
 	blockId: uuidSchema,
 	roomNumber: z.string().min(1).max(32),
 	floor: z.string().max(16).optional(),
-	roomType: z
-		.enum(ROOM_TYPES as readonly [RoomType, ...RoomType[]])
-		.default("double"),
+	roomType: z.enum(ROOM_TYPES as readonly [RoomType, ...RoomType[]]).default("double"),
 	capacity: z.number().int().min(1).max(20).default(2),
 	genderPreference: z.enum(["male", "female", "mixed", "none"]).default("none"),
 	amenities: z.array(z.string().max(40)).default([]),

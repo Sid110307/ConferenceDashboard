@@ -18,40 +18,35 @@ export const DEFAULT_COMMITTEES: DefaultCommittee[] = [
 	{
 		slug: "accommodation",
 		name: "Accommodation",
-		description:
-			"Room blocks, check-in/check-out, key management, and fault tickets.",
+		description: "Room blocks, check-in/check-out, key management, and fault tickets.",
 		icon: "BedDouble",
 		color: "indigo",
 	},
 	{
 		slug: "registration",
 		name: "Registration",
-		description:
-			"On-site registration desk, badge printing, kit handout, attendee directory.",
+		description: "On-site registration desk, badge printing, kit handout, attendee directory.",
 		icon: "ClipboardList",
 		color: "emerald",
 	},
 	{
 		slug: "food-dining",
 		name: "Food & Dining",
-		description:
-			"Daily meal plans, dietary preferences, meal scanning, caterer liaison.",
+		description: "Daily meal plans, dietary preferences, meal scanning, caterer liaison.",
 		icon: "Utensils",
 		color: "amber",
 	},
 	{
 		slug: "technical-stage",
 		name: "Technical / Stage",
-		description:
-			"Stage setup, lighting, mic checks, presentation laptops, transitions.",
+		description: "Stage setup, lighting, mic checks, presentation laptops, transitions.",
 		icon: "Mic2",
 		color: "purple",
 	},
 	{
 		slug: "anchoring",
 		name: "Anchoring",
-		description:
-			"Master of ceremonies, session anchors, script and announcement coordination.",
+		description: "Master of ceremonies, session anchors, script and announcement coordination.",
 		icon: "MessageSquare",
 		color: "pink",
 	},
@@ -82,88 +77,77 @@ export const DEFAULT_COMMITTEES: DefaultCommittee[] = [
 	{
 		slug: "central-coordination",
 		name: "Central Coordination",
-		description:
-			"Cross-committee coordination, escalation point, leadership liaison.",
+		description: "Cross-committee coordination, escalation point, leadership liaison.",
 		icon: "Network",
 		color: "slate",
 	},
 	{
 		slug: "publicity",
 		name: "Publicity & Outreach",
-		description:
-			"Pre-event awareness, press releases, social media buzz, sign-ups.",
+		description: "Pre-event awareness, press releases, social media buzz, sign-ups.",
 		icon: "Megaphone",
 		color: "rose",
 	},
 	{
 		slug: "publication",
 		name: "Publication",
-		description:
-			"Souvenir, programme book, abstracts compilation, proceedings.",
+		description: "Souvenir, programme book, abstracts compilation, proceedings.",
 		icon: "BookOpen",
 		color: "cyan",
 	},
 	{
 		slug: "banner-print",
 		name: "Banner & Print",
-		description:
-			"Signage, standees, flex banners, route signs, printed materials production.",
+		description: "Signage, standees, flex banners, route signs, printed materials production.",
 		icon: "Printer",
 		color: "yellow",
 	},
 	{
 		slug: "keynote-program",
 		name: "Keynote Program",
-		description:
-			"Keynote speakers — invitations, travel, accommodation, on-stage protocol.",
+		description: "Keynote speakers — invitations, travel, accommodation, on-stage protocol.",
 		icon: "Star",
 		color: "amber",
 	},
 	{
 		slug: "cultural-activities",
 		name: "Cultural Activities",
-		description:
-			"Cultural performances, evening programmes, entertainment liaison.",
+		description: "Cultural performances, evening programmes, entertainment liaison.",
 		icon: "Music",
 		color: "fuchsia",
 	},
 	{
 		slug: "photography-social-media",
 		name: "Photography & Social Media",
-		description:
-			"Event photography, videography, live social-media updates, content archive.",
+		description: "Event photography, videography, live social-media updates, content archive.",
 		icon: "Camera",
 		color: "sky",
 	},
 	{
 		slug: "venue-infrastructure",
 		name: "Venue & Infrastructure",
-		description:
-			"Halls, seating, electricity, water, cleanliness, civil readiness.",
+		description: "Halls, seating, electricity, water, cleanliness, civil readiness.",
 		icon: "Building2",
 		color: "stone",
 	},
 	{
 		slug: "audio-visual-it",
 		name: "Audio Visual / IT",
-		description:
-			"AV equipment, networking, Wi-Fi, livestreaming, recording, IT helpdesk.",
+		description: "AV equipment, networking, Wi-Fi, livestreaming, recording, IT helpdesk.",
 		icon: "MonitorPlay",
 		color: "teal",
 	},
 	{
 		slug: "finance-sponsorship",
 		name: "Finance & Sponsorship",
-		description:
-			"Budgeting, expenses, sponsor outreach, MoUs, invoice tracking.",
+		description: "Budgeting, expenses, sponsor outreach, MoUs, invoice tracking.",
 		icon: "Wallet",
 		color: "green",
 	},
 	{
 		slug: "daily-control-system",
 		name: "Daily Control System",
-		description:
-			"Per-day operations dashboard, shift handover, status snapshots.",
+		description: "Per-day operations dashboard, shift handover, status snapshots.",
 		icon: "Activity",
 		color: "blue",
 	},

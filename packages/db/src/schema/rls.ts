@@ -71,12 +71,8 @@ export async function applyRowLevelSecurity(db: NodePgDatabase<any>) {
 			CONFERENCE_ID_COLUMN_OVERRIDES[table] ??
 			(table === "conferences" ? "id" : "conference_id");
 
-		await db.execute(
-			sql.raw(`ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY;`),
-		);
-		await db.execute(
-			sql.raw(`ALTER TABLE "${table}" FORCE ROW LEVEL SECURITY;`),
-		);
+		await db.execute(sql.raw(`ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY;`));
+		await db.execute(sql.raw(`ALTER TABLE "${table}" FORCE ROW LEVEL SECURITY;`));
 		await db.execute(
 			sql.raw(`DROP POLICY IF EXISTS "${table}_tenant_isolation" ON "${table}";`),
 		);

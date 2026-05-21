@@ -1,12 +1,39 @@
-import { relations } from "drizzle-orm";
-import { accounts, auditLog, invitations, sessions as authSessions, userConferenceRoles, users, } from "@/schema/auth";
-import { conferences } from "@/schema/conferences";
-import { files } from "@/schema/files";
-import { committeeAssignments, committees, staff, } from "@/schema/staff";
+import {
+	accommodationBlocks,
+	accommodationIssues,
+	accommodationRooms,
+	roomAllocations,
+} from "@/schema/accommodation";
 import { attendees } from "@/schema/attendees";
-import { travelSegments, vehicles } from "@/schema/travel";
-import { accommodationBlocks, accommodationIssues, accommodationRooms, roomAllocations, } from "@/schema/accommodation";
+import {
+	accounts,
+	auditLog,
+	sessions as authSessions,
+	invitations,
+	userConferenceRoles,
+	users,
+} from "@/schema/auth";
+import {
+	messageCampaigns,
+	messageRecipients,
+	messageTemplates,
+	messagingProviders,
+} from "@/schema/communications";
+import { conferences } from "@/schema/conferences";
+import { customFieldDefinitions } from "@/schema/custom_fields";
+import { files } from "@/schema/files";
+import { financeItems, logisticsItems, sponsors } from "@/schema/finance";
 import { foodPlans, mealScans } from "@/schema/food";
+import { helpdeskIssues } from "@/schema/helpdesk";
+import { importJobs, importRows } from "@/schema/imports";
+import {
+	announcements,
+	appSettings,
+	certificates,
+	dailyControlLogs,
+	feedback,
+	themeSettings,
+} from "@/schema/misc";
 import {
 	conferenceSessions as programmeSessions,
 	sessionSpeakers,
@@ -14,14 +41,11 @@ import {
 	tracks,
 	venues,
 } from "@/schema/programme";
-import { messageCampaigns, messageRecipients, messageTemplates, messagingProviders, } from "@/schema/communications";
-import { importJobs, importRows } from "@/schema/imports";
-import { customFieldDefinitions } from "@/schema/custom_fields";
 import { reportJobs } from "@/schema/reports";
-import { helpdeskIssues } from "@/schema/helpdesk";
+import { committeeAssignments, committees, staff } from "@/schema/staff";
+import { travelSegments, vehicles } from "@/schema/travel";
 import { vipChecklist, vipGuests } from "@/schema/vip";
-import { financeItems, logisticsItems, sponsors } from "@/schema/finance";
-import { announcements, appSettings, certificates, dailyControlLogs, feedback, themeSettings, } from "@/schema/misc";
+import { relations } from "drizzle-orm";
 
 export const usersRelations = relations(users, ({ many }) => ({
 	accounts: many(accounts),
@@ -38,23 +62,20 @@ export const authSessionsRelations = relations(authSessions, ({ one }) => ({
 	user: one(users, { fields: [authSessions.userId], references: [users.id] }),
 }));
 
-export const userConferenceRolesRelations = relations(
-	userConferenceRoles,
-	({ one }) => ({
-		user: one(users, {
-			fields: [userConferenceRoles.userId],
-			references: [users.id],
-		}),
-		conference: one(conferences, {
-			fields: [userConferenceRoles.conferenceId],
-			references: [conferences.id],
-		}),
-		invitedBy: one(users, {
-			fields: [userConferenceRoles.invitedByUserId],
-			references: [users.id],
-		}),
+export const userConferenceRolesRelations = relations(userConferenceRoles, ({ one }) => ({
+	user: one(users, {
+		fields: [userConferenceRoles.userId],
+		references: [users.id],
 	}),
-);
+	conference: one(conferences, {
+		fields: [userConferenceRoles.conferenceId],
+		references: [conferences.id],
+	}),
+	invitedBy: one(users, {
+		fields: [userConferenceRoles.invitedByUserId],
+		references: [users.id],
+	}),
+}));
 
 export const invitationsRelations = relations(invitations, ({ one }) => ({
 	conference: one(conferences, {
@@ -66,7 +87,6 @@ export const invitationsRelations = relations(invitations, ({ one }) => ({
 		references: [users.id],
 	}),
 }));
-
 
 export const conferencesRelations = relations(conferences, ({ many, one }) => ({
 	memberships: many(userConferenceRoles),
@@ -103,7 +123,6 @@ export const conferencesRelations = relations(conferences, ({ many, one }) => ({
 	certificates: many(certificates),
 }));
 
-
 export const committeesRelations = relations(committees, ({ one, many }) => ({
 	conference: one(conferences, {
 		fields: [committees.conferenceId],
@@ -123,24 +142,20 @@ export const staffRelations = relations(staff, ({ one, many }) => ({
 	assignments: many(committeeAssignments),
 }));
 
-export const committeeAssignmentsRelations = relations(
-	committeeAssignments,
-	({ one }) => ({
-		conference: one(conferences, {
-			fields: [committeeAssignments.conferenceId],
-			references: [conferences.id],
-		}),
-		committee: one(committees, {
-			fields: [committeeAssignments.committeeId],
-			references: [committees.id],
-		}),
-		staff: one(staff, {
-			fields: [committeeAssignments.staffId],
-			references: [staff.id],
-		}),
+export const committeeAssignmentsRelations = relations(committeeAssignments, ({ one }) => ({
+	conference: one(conferences, {
+		fields: [committeeAssignments.conferenceId],
+		references: [conferences.id],
 	}),
-);
-
+	committee: one(committees, {
+		fields: [committeeAssignments.committeeId],
+		references: [committees.id],
+	}),
+	staff: one(staff, {
+		fields: [committeeAssignments.staffId],
+		references: [staff.id],
+	}),
+}));
 
 export const attendeesRelations = relations(attendees, ({ one, many }) => ({
 	conference: one(conferences, {
@@ -156,7 +171,6 @@ export const attendeesRelations = relations(attendees, ({ one, many }) => ({
 	helpdeskIssues: many(helpdeskIssues),
 	vipRecords: many(vipGuests),
 }));
-
 
 export const vehiclesRelations = relations(vehicles, ({ one, many }) => ({
 	conference: one(conferences, {
@@ -185,33 +199,26 @@ export const travelSegmentsRelations = relations(travelSegments, ({ one }) => ({
 	}),
 }));
 
-
-export const accommodationBlocksRelations = relations(
-	accommodationBlocks,
-	({ one, many }) => ({
-		conference: one(conferences, {
-			fields: [accommodationBlocks.conferenceId],
-			references: [conferences.id],
-		}),
-		rooms: many(accommodationRooms),
+export const accommodationBlocksRelations = relations(accommodationBlocks, ({ one, many }) => ({
+	conference: one(conferences, {
+		fields: [accommodationBlocks.conferenceId],
+		references: [conferences.id],
 	}),
-);
+	rooms: many(accommodationRooms),
+}));
 
-export const accommodationRoomsRelations = relations(
-	accommodationRooms,
-	({ one, many }) => ({
-		conference: one(conferences, {
-			fields: [accommodationRooms.conferenceId],
-			references: [conferences.id],
-		}),
-		block: one(accommodationBlocks, {
-			fields: [accommodationRooms.blockId],
-			references: [accommodationBlocks.id],
-		}),
-		allocations: many(roomAllocations),
-		issues: many(accommodationIssues),
+export const accommodationRoomsRelations = relations(accommodationRooms, ({ one, many }) => ({
+	conference: one(conferences, {
+		fields: [accommodationRooms.conferenceId],
+		references: [conferences.id],
 	}),
-);
+	block: one(accommodationBlocks, {
+		fields: [accommodationRooms.blockId],
+		references: [accommodationBlocks.id],
+	}),
+	allocations: many(roomAllocations),
+	issues: many(accommodationIssues),
+}));
 
 export const roomAllocationsRelations = relations(roomAllocations, ({ one }) => ({
 	conference: one(conferences, {
@@ -227,7 +234,6 @@ export const roomAllocationsRelations = relations(roomAllocations, ({ one }) => 
 		references: [attendees.id],
 	}),
 }));
-
 
 export const foodPlansRelations = relations(foodPlans, ({ one }) => ({
 	conference: one(conferences, {
@@ -246,7 +252,6 @@ export const mealScansRelations = relations(mealScans, ({ one }) => ({
 		references: [attendees.id],
 	}),
 }));
-
 
 export const venuesRelations = relations(venues, ({ one, many }) => ({
 	conference: one(conferences, {
@@ -272,104 +277,84 @@ export const speakersRelations = relations(speakers, ({ one, many }) => ({
 	sessions: many(sessionSpeakers),
 }));
 
-export const programmeSessionsRelations = relations(
-	programmeSessions,
-	({ one, many }) => ({
-		conference: one(conferences, {
-			fields: [programmeSessions.conferenceId],
-			references: [conferences.id],
-		}),
-		track: one(tracks, {
-			fields: [programmeSessions.trackId],
-			references: [tracks.id],
-		}),
-		venue: one(venues, {
-			fields: [programmeSessions.venueId],
-			references: [venues.id],
-		}),
-		speakers: many(sessionSpeakers),
-		feedback: many(feedback),
+export const programmeSessionsRelations = relations(programmeSessions, ({ one, many }) => ({
+	conference: one(conferences, {
+		fields: [programmeSessions.conferenceId],
+		references: [conferences.id],
 	}),
-);
-
-export const sessionSpeakersRelations = relations(
-	sessionSpeakers,
-	({ one }) => ({
-		session: one(programmeSessions, {
-			fields: [sessionSpeakers.sessionId],
-			references: [programmeSessions.id],
-		}),
-		speaker: one(speakers, {
-			fields: [sessionSpeakers.speakerId],
-			references: [speakers.id],
-		}),
+	track: one(tracks, {
+		fields: [programmeSessions.trackId],
+		references: [tracks.id],
 	}),
-);
-
-
-export const messagingProvidersRelations = relations(
-	messagingProviders,
-	({ one, many }) => ({
-		conference: one(conferences, {
-			fields: [messagingProviders.conferenceId],
-			references: [conferences.id],
-		}),
-		campaigns: many(messageCampaigns),
+	venue: one(venues, {
+		fields: [programmeSessions.venueId],
+		references: [venues.id],
 	}),
-);
+	speakers: many(sessionSpeakers),
+	feedback: many(feedback),
+}));
 
-export const messageTemplatesRelations = relations(
-	messageTemplates,
-	({ one, many }) => ({
-		conference: one(conferences, {
-			fields: [messageTemplates.conferenceId],
-			references: [conferences.id],
-		}),
-		campaigns: many(messageCampaigns),
+export const sessionSpeakersRelations = relations(sessionSpeakers, ({ one }) => ({
+	session: one(programmeSessions, {
+		fields: [sessionSpeakers.sessionId],
+		references: [programmeSessions.id],
 	}),
-);
-
-export const messageCampaignsRelations = relations(
-	messageCampaigns,
-	({ one, many }) => ({
-		conference: one(conferences, {
-			fields: [messageCampaigns.conferenceId],
-			references: [conferences.id],
-		}),
-		provider: one(messagingProviders, {
-			fields: [messageCampaigns.providerId],
-			references: [messagingProviders.id],
-		}),
-		template: one(messageTemplates, {
-			fields: [messageCampaigns.templateId],
-			references: [messageTemplates.id],
-		}),
-		recipients: many(messageRecipients),
+	speaker: one(speakers, {
+		fields: [sessionSpeakers.speakerId],
+		references: [speakers.id],
 	}),
-);
+}));
 
-export const messageRecipientsRelations = relations(
-	messageRecipients,
-	({ one }) => ({
-		conference: one(conferences, {
-			fields: [messageRecipients.conferenceId],
-			references: [conferences.id],
-		}),
-		campaign: one(messageCampaigns, {
-			fields: [messageRecipients.campaignId],
-			references: [messageCampaigns.id],
-		}),
-		attendee: one(attendees, {
-			fields: [messageRecipients.attendeeId],
-			references: [attendees.id],
-		}),
-		staff: one(staff, {
-			fields: [messageRecipients.staffId],
-			references: [staff.id],
-		}),
+export const messagingProvidersRelations = relations(messagingProviders, ({ one, many }) => ({
+	conference: one(conferences, {
+		fields: [messagingProviders.conferenceId],
+		references: [conferences.id],
 	}),
-);
+	campaigns: many(messageCampaigns),
+}));
 
+export const messageTemplatesRelations = relations(messageTemplates, ({ one, many }) => ({
+	conference: one(conferences, {
+		fields: [messageTemplates.conferenceId],
+		references: [conferences.id],
+	}),
+	campaigns: many(messageCampaigns),
+}));
+
+export const messageCampaignsRelations = relations(messageCampaigns, ({ one, many }) => ({
+	conference: one(conferences, {
+		fields: [messageCampaigns.conferenceId],
+		references: [conferences.id],
+	}),
+	provider: one(messagingProviders, {
+		fields: [messageCampaigns.providerId],
+		references: [messagingProviders.id],
+	}),
+	template: one(messageTemplates, {
+		fields: [messageCampaigns.templateId],
+		references: [messageTemplates.id],
+	}),
+	recipients: many(messageRecipients),
+}));
+
+export const messageRecipientsRelations = relations(messageRecipients, ({ one }) => ({
+	conference: one(conferences, {
+		fields: [messageRecipients.conferenceId],
+		references: [conferences.id],
+	}),
+	campaign: one(messageCampaigns, {
+		fields: [messageRecipients.campaignId],
+		references: [messageCampaigns.id],
+	}),
+	attendee: one(attendees, {
+		fields: [messageRecipients.attendeeId],
+		references: [attendees.id],
+	}),
+	staff: one(staff, {
+		fields: [messageRecipients.staffId],
+		references: [staff.id],
+	}),
+}));
 
 export const importJobsRelations = relations(importJobs, ({ one, many }) => ({
 	conference: one(conferences, {
@@ -390,17 +375,12 @@ export const importRowsRelations = relations(importRows, ({ one }) => ({
 	}),
 }));
 
-
-export const customFieldDefinitionsRelations = relations(
-	customFieldDefinitions,
-	({ one }) => ({
-		conference: one(conferences, {
-			fields: [customFieldDefinitions.conferenceId],
-			references: [conferences.id],
-		}),
+export const customFieldDefinitionsRelations = relations(customFieldDefinitions, ({ one }) => ({
+	conference: one(conferences, {
+		fields: [customFieldDefinitions.conferenceId],
+		references: [conferences.id],
 	}),
-);
-
+}));
 
 export const reportJobsRelations = relations(reportJobs, ({ one }) => ({
 	conference: one(conferences, {
@@ -409,7 +389,6 @@ export const reportJobsRelations = relations(reportJobs, ({ one }) => ({
 	}),
 	file: one(files, { fields: [reportJobs.fileId], references: [files.id] }),
 }));
-
 
 export const helpdeskIssuesRelations = relations(helpdeskIssues, ({ one }) => ({
 	conference: one(conferences, {
@@ -429,7 +408,6 @@ export const helpdeskIssuesRelations = relations(helpdeskIssues, ({ one }) => ({
 		references: [committees.id],
 	}),
 }));
-
 
 export const vipGuestsRelations = relations(vipGuests, ({ one, many }) => ({
 	conference: one(conferences, {
@@ -458,7 +436,6 @@ export const vipChecklistRelations = relations(vipChecklist, ({ one }) => ({
 	}),
 }));
 
-
 export const financeItemsRelations = relations(financeItems, ({ one }) => ({
 	conference: one(conferences, {
 		fields: [financeItems.conferenceId],
@@ -477,7 +454,6 @@ export const sponsorsRelations = relations(sponsors, ({ one }) => ({
 	}),
 	logo: one(files, { fields: [sponsors.logoFileId], references: [files.id] }),
 }));
-
 
 export const certificatesRelations = relations(certificates, ({ one }) => ({
 	conference: one(conferences, {

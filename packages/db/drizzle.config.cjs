@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 const { resolve } = require("node:path");
 const { config: loadEnv } = require("dotenv");
 const { defineConfig } = require("drizzle-kit");

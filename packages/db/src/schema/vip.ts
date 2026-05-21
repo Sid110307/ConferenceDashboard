@@ -1,10 +1,11 @@
-import { boolean, index, integer, pgTable, text, timestamp, uuid, } from "drizzle-orm/pg-core";
+import { auditColumns, customFieldsColumn, uuidPk } from "@/schema/_shared";
+import { attendees } from "@/schema/attendees";
 import { users } from "@/schema/auth";
 import { conferences } from "@/schema/conferences";
-import { attendees } from "@/schema/attendees";
+import { priorityEnum, protocolLevelEnum, vipStatusEnum } from "@/schema/enums";
 import { staff } from "@/schema/staff";
-import { priorityEnum, protocolLevelEnum, vipStatusEnum, } from "@/schema/enums";
-import { auditColumns, customFieldsColumn, uuidPk } from "@/schema/_shared";
+
+import { boolean, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const vipGuests = pgTable(
 	"vip_guests",
@@ -39,13 +40,10 @@ export const vipGuests = pgTable(
 		...customFieldsColumn(),
 		...auditColumns(() => users.id),
 	},
-	(t) => ({
+	t => ({
 		confIdx: index("vip_guests_conf_idx").on(t.conferenceId),
 		statusIdx: index("vip_guests_status_idx").on(t.conferenceId, t.status),
-		protocolIdx: index("vip_guests_protocol_idx").on(
-			t.conferenceId,
-			t.protocolLevel,
-		),
+		protocolIdx: index("vip_guests_protocol_idx").on(t.conferenceId, t.protocolLevel),
 		deletedIdx: index("vip_guests_deleted_idx").on(t.deletedAt),
 	}),
 );
@@ -73,7 +71,7 @@ export const vipChecklist = pgTable(
 		sortOrder: integer("sort_order").notNull().default(0),
 		...auditColumns(() => users.id),
 	},
-	(t) => ({
+	t => ({
 		confIdx: index("vip_checklist_conf_idx").on(t.conferenceId),
 		vipIdx: index("vip_checklist_vip_idx").on(t.vipGuestId),
 		deletedIdx: index("vip_checklist_deleted_idx").on(t.deletedAt),

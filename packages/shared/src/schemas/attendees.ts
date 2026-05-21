@@ -1,21 +1,25 @@
-import { z } from "zod";
 import {
 	ATTENDEE_CATEGORIES,
-	type AttendeeCategory,
 	DIET_PREFERENCES,
+	GENDERS,
+	type AttendeeCategory,
 	type DietPreference,
 	type Gender,
-	GENDERS,
 } from "@/constants";
-import { customFieldsSchema, emailSchema, isoDateSchema, phoneSchema, uuidSchema, } from "@/schemas/common";
+import {
+	customFieldsSchema,
+	emailSchema,
+	isoDateSchema,
+	phoneSchema,
+	uuidSchema,
+} from "@/schemas/common";
+import { z } from "zod";
 
 const genderEnum = z.enum(GENDERS as readonly [Gender, ...Gender[]]);
 const categoryEnum = z.enum(
 	ATTENDEE_CATEGORIES as readonly [AttendeeCategory, ...AttendeeCategory[]],
 );
-const dietEnum = z.enum(
-	DIET_PREFERENCES as readonly [DietPreference, ...DietPreference[]],
-);
+const dietEnum = z.enum(DIET_PREFERENCES as readonly [DietPreference, ...DietPreference[]]);
 
 export const attendeeCreateSchema = z.object({
 	salutation: z.string().max(16).optional(),

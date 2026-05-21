@@ -1,10 +1,11 @@
 import { resolve } from "node:path";
-console.log(resolve(import.meta.dirname));
 
 import { dbAdmin, pgPoolDirect } from "@/client";
 import { applyRowLevelSecurity } from "@/schema/rls";
 import { config as loadEnv } from "dotenv";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
+
+console.log(resolve(import.meta.dirname));
 
 loadEnv({ path: resolve(import.meta.dirname, "../../../.env") });
 

@@ -1,8 +1,7 @@
-import { boolean, index, integer, pgTable, text, timestamp, uuid, varchar, } from "drizzle-orm/pg-core";
+import { auditColumns, customFieldsColumn, uuidPk } from "@/schema/_shared";
+import { attendees } from "@/schema/attendees";
 import { users } from "@/schema/auth";
 import { conferences } from "@/schema/conferences";
-import { attendees } from "@/schema/attendees";
-import { committees } from "@/schema/staff";
 import {
 	pickupStatusEnum,
 	travelDirectionEnum,
@@ -10,7 +9,18 @@ import {
 	travelStatusEnum,
 	vehicleStatusEnum,
 } from "@/schema/enums";
-import { auditColumns, customFieldsColumn, uuidPk } from "@/schema/_shared";
+import { committees } from "@/schema/staff";
+
+import {
+	boolean,
+	index,
+	integer,
+	pgTable,
+	text,
+	timestamp,
+	uuid,
+	varchar,
+} from "drizzle-orm/pg-core";
 
 export const vehicles = pgTable(
 	"vehicles",
@@ -31,10 +41,9 @@ export const vehicles = pgTable(
 		driverPhone: text("driver_phone"),
 		driverLicense: varchar("driver_license", { length: 64 }),
 
-		assignedCommitteeId: uuid("assigned_committee_id").references(
-			() => committees.id,
-			{ onDelete: "set null" },
-		),
+		assignedCommitteeId: uuid("assigned_committee_id").references(() => committees.id, {
+			onDelete: "set null",
+		}),
 		isExternal: boolean("is_external").notNull().default(false),
 		vendorName: text("vendor_name"),
 		vendorContact: text("vendor_contact"),
@@ -45,12 +54,9 @@ export const vehicles = pgTable(
 		...customFieldsColumn(),
 		...auditColumns(() => users.id),
 	},
-	(t) => ({
+	t => ({
 		confIdx: index("vehicles_conf_idx").on(t.conferenceId),
-		confCodeUnique: index("vehicles_conf_code_idx").on(
-			t.conferenceId,
-			t.vehicleCode,
-		),
+		confCodeUnique: index("vehicles_conf_code_idx").on(t.conferenceId, t.vehicleCode),
 		statusIdx: index("vehicles_status_idx").on(t.conferenceId, t.status),
 		deletedIdx: index("vehicles_deleted_idx").on(t.deletedAt),
 	}),
@@ -108,7 +114,7 @@ export const travelSegments = pgTable(
 		...customFieldsColumn(),
 		...auditColumns(() => users.id),
 	},
-	(t) => ({
+	t => ({
 		confIdx: index("travel_segments_conf_idx").on(t.conferenceId),
 		attendeeIdx: index("travel_segments_attendee_idx").on(t.attendeeId),
 		confDirectionIdx: index("travel_segments_conf_direction_idx").on(
@@ -125,10 +131,7 @@ export const travelSegments = pgTable(
 			t.pickupStatus,
 		),
 		vehicleIdx: index("travel_segments_vehicle_idx").on(t.vehicleId),
-		groupIdx: index("travel_segments_group_idx").on(
-			t.conferenceId,
-			t.travelGroupCode,
-		),
+		groupIdx: index("travel_segments_group_idx").on(t.conferenceId, t.travelGroupCode),
 		deletedIdx: index("travel_segments_deleted_idx").on(t.deletedAt),
 	}),
 );

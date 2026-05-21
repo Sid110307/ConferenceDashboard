@@ -22,3 +22,6 @@ logs/
 packages/db/drizzle/
 coverage/
 .nyc_output/
+
+# Turborepo
+.turbo

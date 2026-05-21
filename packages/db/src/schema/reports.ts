@@ -1,10 +1,11 @@
-import { sql } from "drizzle-orm";
-import { index, integer, jsonb, pgTable, text, timestamp, uuid, } from "drizzle-orm/pg-core";
+import { auditColumns, uuidPk } from "@/schema/_shared";
 import { users } from "@/schema/auth";
 import { conferences } from "@/schema/conferences";
+import { reportFormatEnum, reportStatusEnum, reportTypeEnum } from "@/schema/enums";
 import { files } from "@/schema/files";
-import { reportFormatEnum, reportStatusEnum, reportTypeEnum, } from "@/schema/enums";
-import { auditColumns, uuidPk } from "@/schema/_shared";
+import { sql } from "drizzle-orm";
+
+import { index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const reportJobs = pgTable(
 	"report_jobs",
@@ -37,7 +38,7 @@ export const reportJobs = pgTable(
 
 		...auditColumns(() => users.id),
 	},
-	(t) => ({
+	t => ({
 		confIdx: index("report_jobs_conf_idx").on(t.conferenceId),
 		statusIdx: index("report_jobs_status_idx").on(t.conferenceId, t.status),
 		typeIdx: index("report_jobs_type_idx").on(t.conferenceId, t.reportType),

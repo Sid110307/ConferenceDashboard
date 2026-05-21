@@ -1,4 +1,3 @@
-
 export * from "@/schema/enums";
 export * from "@/schema/auth";
 export * from "@/schema/conferences";
@@ -59,8 +58,4 @@ export {
 } from "@/schema/relations";
 
 export { applyRowLevelSecurity } from "@/schema/rls";
-export {
-	auditColumns,
-	customFieldsColumn,
-	uuidPk,
-} from "@/schema/_shared";
+export { auditColumns, customFieldsColumn, uuidPk } from "@/schema/_shared";

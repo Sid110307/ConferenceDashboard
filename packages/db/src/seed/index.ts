@@ -1,9 +1,17 @@
+
+
+
 import "dotenv/config";
-import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+
 import { dbAdmin } from "@/client";
 import { users } from "@/schema/auth";
 import { applyRowLevelSecurity } from "@/schema/rls";
+import bcrypt from "bcryptjs";
+import { eq } from "drizzle-orm";
+
+
+
+
 
 async function main() {
 	console.log("Applying RLS policies...");
@@ -13,7 +21,9 @@ async function main() {
 	const password = process.env.SEED_SUPERADMIN_PASSWORD;
 
 	if (!email || !password) {
-		console.error("SEED_SUPERADMIN_EMAIL and SEED_SUPERADMIN_PASSWORD must be set in environment");
+		console.error(
+			"SEED_SUPERADMIN_EMAIL and SEED_SUPERADMIN_PASSWORD must be set in environment",
+		);
 		process.exit(1);
 	}
 
@@ -35,10 +45,7 @@ async function main() {
 		});
 		console.log(`Super Admin created with email: ${email} and password: ${password}`);
 	} else {
-		await dbAdmin
-			.update(users)
-			.set({ isPlatformAdmin: true })
-			.where(eq(users.email, email));
+		await dbAdmin.update(users).set({ isPlatformAdmin: true }).where(eq(users.email, email));
 		console.log(`Super Admin already exists with email: ${email}.`);
 	}
 
@@ -46,7 +53,7 @@ async function main() {
 	process.exit(0);
 }
 
-main().catch((err) => {
+main().catch(err => {
 	console.error(err);
 	process.exit(1);
 });

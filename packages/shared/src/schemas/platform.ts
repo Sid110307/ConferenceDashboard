@@ -1,24 +1,20 @@
-import { z } from "zod";
 import {
 	COMMS_CHANNELS,
 	COMMS_PROVIDERS,
-	type CommsChannel,
-	type CommsProvider,
 	CUSTOM_FIELD_ENTITIES,
 	CUSTOM_FIELD_TYPES,
+	IMPORT_ENTITIES,
+	type CommsChannel,
+	type CommsProvider,
 	type CustomFieldEntity,
 	type CustomFieldType,
-	IMPORT_ENTITIES,
 	type ImportEntity,
 } from "@/constants";
-import { isoDatetimeSchema, uuidSchema, } from "@/schemas/common";
+import { isoDatetimeSchema, uuidSchema } from "@/schemas/common";
+import { z } from "zod";
 
-const channelEnum = z.enum(
-	COMMS_CHANNELS as readonly [CommsChannel, ...CommsChannel[]],
-);
-const providerEnum = z.enum(
-	COMMS_PROVIDERS as readonly [CommsProvider, ...CommsProvider[]],
-);
+const channelEnum = z.enum(COMMS_CHANNELS as readonly [CommsChannel, ...CommsChannel[]]);
+const providerEnum = z.enum(COMMS_PROVIDERS as readonly [CommsProvider, ...CommsProvider[]]);
 
 export const messagingProviderCreateSchema = z.object({
 	name: z.string().min(1).max(120),
@@ -43,9 +39,7 @@ export const messageTemplateCreateSchema = z.object({
 	variables: z
 		.array(
 			z.object({
-				key: z
-					.string()
-					.regex(/^[a-z][a-z0-9_]*$/, "must be a snake_case identifier"),
+				key: z.string().regex(/^[a-z][a-z0-9_]*$/, "must be a snake_case identifier"),
 				label: z.string().max(120),
 				example: z.string().max(200).default(""),
 				required: z.boolean().optional(),
@@ -104,9 +98,7 @@ export const audiencePreviewSchema = z.object({
 });
 
 export const importJobCreateSchema = z.object({
-	targetEntity: z.enum(
-		IMPORT_ENTITIES as readonly [ImportEntity, ...ImportEntity[]],
-	),
+	targetEntity: z.enum(IMPORT_ENTITIES as readonly [ImportEntity, ...ImportEntity[]]),
 	fileId: uuidSchema,
 });
 
@@ -115,9 +107,7 @@ export const importJobMappingSchema = z.object({
 	options: z
 		.object({
 			dedupe_by: z.array(z.string()).optional(),
-			on_duplicate: z
-				.enum(["skip", "update", "error", "create_anyway"])
-				.optional(),
+			on_duplicate: z.enum(["skip", "update", "error", "create_anyway"]).optional(),
 			update_existing: z.boolean().optional(),
 			trim_whitespace: z.boolean().optional(),
 			empty_string_as_null: z.boolean().optional(),
@@ -131,20 +121,13 @@ export const importJobActionSchema = z.object({
 });
 
 export const customFieldDefinitionSchema = z.object({
-	entity: z.enum(
-		CUSTOM_FIELD_ENTITIES as readonly [
-			CustomFieldEntity,
-			...CustomFieldEntity[],
-		],
-	),
+	entity: z.enum(CUSTOM_FIELD_ENTITIES as readonly [CustomFieldEntity, ...CustomFieldEntity[]]),
 	fieldKey: z
 		.string()
 		.regex(/^[a-z][a-z0-9_]*$/, "must be a snake_case identifier")
 		.max(64),
 	fieldLabel: z.string().min(1).max(255),
-	fieldType: z.enum(
-		CUSTOM_FIELD_TYPES as readonly [CustomFieldType, ...CustomFieldType[]],
-	),
+	fieldType: z.enum(CUSTOM_FIELD_TYPES as readonly [CustomFieldType, ...CustomFieldType[]]),
 	isRequired: z.boolean().default(false),
 	isUnique: z.boolean().default(false),
 	isVisibleInList: z.boolean().default(false),
@@ -208,7 +191,5 @@ export type AudienceFilter = z.infer<typeof audienceFilterSchema>;
 export type AudiencePreviewInput = z.infer<typeof audiencePreviewSchema>;
 export type ImportJobCreateInput = z.infer<typeof importJobCreateSchema>;
 export type ImportJobMappingInput = z.infer<typeof importJobMappingSchema>;
-export type CustomFieldDefinitionInput = z.infer<
-	typeof customFieldDefinitionSchema
->;
+export type CustomFieldDefinitionInput = z.infer<typeof customFieldDefinitionSchema>;
 export type ReportJobCreateInput = z.infer<typeof reportJobCreateSchema>;

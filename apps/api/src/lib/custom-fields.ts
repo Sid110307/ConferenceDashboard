@@ -1,7 +1,6 @@
 import { UnprocessableError } from "@/lib/errors";
-import { UnprocessableError } from "@/lib/errors";
 import type { AppDb, TenantTx } from "@/lib/tenancy";
-import { type CustomFieldDefinition, customFieldDefinitions } from "@conference/db";
+import { customFieldDefinitions, type CustomFieldDefinition } from "@conference/db";
 import type { CustomFieldEntity } from "@conference/shared";
 import { and, eq, isNull } from "drizzle-orm";
 

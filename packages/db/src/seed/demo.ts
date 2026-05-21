@@ -1,24 +1,28 @@
+
+
+
 import "dotenv/config";
+
+import { dbAdmin } from "@/client";
+import { accommodationBlocks, accommodationRooms, roomAllocations } from "@/schema/accommodation";
+import { attendees } from "@/schema/attendees";
+import { users } from "@/schema/auth";
+import { messageCampaigns, messageTemplates } from "@/schema/communications";
+import { conferences } from "@/schema/conferences";
+import { customFieldDefinitions } from "@/schema/custom_fields";
+import { financeItems, sponsors } from "@/schema/finance";
+import { foodPlans } from "@/schema/food";
+import { helpdeskIssues } from "@/schema/helpdesk";
+import { dailyControlLogs } from "@/schema/misc";
+import { conferenceSessions, sessionSpeakers, speakers, tracks, venues } from "@/schema/programme";
+import { committeeAssignments, committees, staff } from "@/schema/staff";
+import { travelSegments, vehicles } from "@/schema/travel";
 import { faker } from "@faker-js/faker";
 import { addHours, addMinutes } from "date-fns";
 import { eq, sql } from "drizzle-orm";
 
-import { dbAdmin } from "@/client";
-import { users } from "@/schema/auth";
-import { conferences } from "@/schema/conferences";
-import { committeeAssignments, committees, staff } from "@/schema/staff";
-import { attendees } from "@/schema/attendees";
-import { travelSegments, vehicles } from "@/schema/travel";
-import { accommodationBlocks, accommodationRooms, roomAllocations, } from "@/schema/accommodation";
-import { foodPlans } from "@/schema/food";
-import { conferenceSessions, sessionSpeakers, speakers, tracks, venues } from "@/schema/programme";
-import { customFieldDefinitions } from "@/schema/custom_fields";
-import { messageCampaigns, messageTemplates } from "@/schema/communications";
-import { helpdeskIssues } from "@/schema/helpdesk";
-import { dailyControlLogs } from "@/schema/misc";
-import { financeItems, sponsors } from "@/schema/finance";
-
 import { DEFAULT_COMMITTEES, DEFAULT_CUSTOM_FIELDS } from "./reference";
+
 
 faker.seed(69420);
 
@@ -47,16 +51,52 @@ const INDIAN_STATES = [
 	"West Bengal",
 ];
 const INDIAN_FIRST_NAMES_M = [
-	"Arjun", "Vikram", "Rohan", "Karthik", "Aditya", "Siddharth", "Rahul",
-	"Ananth", "Suresh", "Vinod", "Manish", "Pradeep", "Ramesh", "Mohan",
+	"Arjun",
+	"Vikram",
+	"Rohan",
+	"Karthik",
+	"Aditya",
+	"Siddharth",
+	"Rahul",
+	"Ananth",
+	"Suresh",
+	"Vinod",
+	"Manish",
+	"Pradeep",
+	"Ramesh",
+	"Mohan",
 ];
 const INDIAN_FIRST_NAMES_F = [
-	"Ananya", "Priya", "Lakshmi", "Sneha", "Divya", "Meera", "Sruthi",
-	"Kavitha", "Pooja", "Aishwarya", "Bhavya", "Nikitha", "Shruti", "Padma",
+	"Ananya",
+	"Priya",
+	"Lakshmi",
+	"Sneha",
+	"Divya",
+	"Meera",
+	"Sruthi",
+	"Kavitha",
+	"Pooja",
+	"Aishwarya",
+	"Bhavya",
+	"Nikitha",
+	"Shruti",
+	"Padma",
 ];
 const INDIAN_LAST_NAMES = [
-	"Sharma", "Rao", "Iyer", "Reddy", "Hegde", "Bhat", "Naik", "Murthy",
-	"Acharya", "Pai", "Shenoy", "Gowda", "Kamath", "Kulkarni",
+	"Sharma",
+	"Rao",
+	"Iyer",
+	"Reddy",
+	"Hegde",
+	"Bhat",
+	"Naik",
+	"Murthy",
+	"Acharya",
+	"Pai",
+	"Shenoy",
+	"Gowda",
+	"Kamath",
+	"Kulkarni",
 ];
 const INDIAN_AIRPORTS = [
 	["BLR", "Bengaluru (KIA)"],
@@ -103,9 +143,7 @@ async function main() {
 		.from(users)
 		.where(eq(users.isPlatformAdmin, true))
 		.limit(1);
-	if (!adminRow) throw new Error(
-		"Run `pnpm db:seed` first to create the platform super-admin.",
-	);
+	if (!adminRow) throw new Error("Run `pnpm db:seed` first to create the platform super-admin.");
 	const adminId = adminRow.id;
 
 	console.log("Creating conference...");
@@ -154,9 +192,7 @@ async function main() {
 			})),
 		)
 		.returning({ id: committees.id, slug: committees.slug });
-	const committeesBySlug = Object.fromEntries(
-		committeeRows.map((c) => [c.slug, c.id]),
-	);
+	const committeesBySlug = Object.fromEntries(committeeRows.map(c => [c.slug, c.id]));
 
 	console.log("Creating default custom fields...");
 	for (const def of DEFAULT_CUSTOM_FIELDS) {
@@ -231,7 +267,7 @@ async function main() {
 	const committeeSlugs = Object.keys(committeesBySlug);
 	for (let i = 0; i < staffIds.length; i++) {
 		const sId = staffIds[i]!;
-		const count = (i % 3 === 0) ? 2 : 1;
+		const count = i % 3 === 0 ? 2 : 1;
 		const picked = faker.helpers.arrayElements(committeeSlugs, count);
 
 		let isLead = i < 5;
@@ -250,15 +286,19 @@ async function main() {
 
 	console.log("Creating attendees...");
 	const attendeeIds: { id: string; gender: "male" | "female"; name: string }[] = [];
-	const categories: Array<
-		"student" | "faculty" | "industry" | "speaker" | "vip" | "guest"
-	> = ["student", "faculty", "industry", "speaker", "vip", "guest"];
+	const categories: Array<"student" | "faculty" | "industry" | "speaker" | "vip" | "guest"> = [
+		"student",
+		"faculty",
+		"industry",
+		"speaker",
+		"vip",
+		"guest",
+	];
 
 	for (let i = 0; i < 50; i++) {
 		const gender: "male" | "female" = i % 2 === 0 ? "male" : "female";
 		const name = pickIndianName(gender);
-		const category =
-			i < 4 ? "vip" : i < 8 ? "speaker" : faker.helpers.arrayElement(categories);
+		const category = i < 4 ? "vip" : i < 8 ? "speaker" : faker.helpers.arrayElement(categories);
 		const isVip = category === "vip" || (category === "speaker" && i < 6);
 
 		const [row] = await dbAdmin
@@ -311,7 +351,10 @@ async function main() {
 				category,
 				registrationStatus: i < 45 ? "confirmed" : "registered",
 				checkinStatus: i < 30 ? "checked_in" : "not_checked_in",
-				checkedInAt: i < 30 ? new Date(`2026-12-26T08:${String(i).padStart(2, "0")}:00+05:30`) : null,
+				checkedInAt:
+					i < 30
+						? new Date(`2026-12-26T08:${String(i).padStart(2, "0")}:00+05:30`)
+						: null,
 				badgePrinted: i < 28,
 				kitCollected: i < 25,
 				dietaryPreference: faker.helpers.arrayElement([
@@ -322,9 +365,7 @@ async function main() {
 					"none",
 				]),
 				isVip,
-				protocolLevel: isVip
-					? faker.helpers.arrayElement(["a_plus", "a", "b"])
-					: "none",
+				protocolLevel: isVip ? faker.helpers.arrayElement(["a_plus", "a", "b"]) : "none",
 				bloodGroup: faker.helpers.arrayElement([
 					"A+",
 					"B+",
@@ -387,7 +428,9 @@ async function main() {
 			direction: "arrival",
 			travelMode: mode,
 			carrier:
-				mode === "flight" ? faker.helpers.arrayElement(AIRLINE_CARRIERS) : "Indian Railways",
+				mode === "flight"
+					? faker.helpers.arrayElement(AIRLINE_CARRIERS)
+					: "Indian Railways",
 			serviceNumber:
 				mode === "flight"
 					? `6E-${faker.number.int({ min: 100, max: 999 })}`
@@ -397,14 +440,16 @@ async function main() {
 				mode === "flight"
 					? `${faker.number.int({ min: 1, max: 32 })}${faker.helpers.arrayElement(["A", "B", "C", "D", "E", "F"])}`
 					: `S${faker.number.int({ min: 1, max: 12 })}-${faker.number.int({ min: 1, max: 72 })}`,
-			originCity: mode === "flight" ? arrivalAirport[1] ?? null : "Hubballi",
-			originLocation:
-				mode === "flight" ? `${arrivalAirport[0]} airport` : "Hubballi Jn",
+			originCity: mode === "flight" ? (arrivalAirport[1] ?? null) : "Hubballi",
+			originLocation: mode === "flight" ? `${arrivalAirport[0]} airport` : "Hubballi Jn",
 			destinationCity: "Bengaluru",
 			destinationLocation:
 				mode === "flight" ? "Kempegowda International Airport" : "KSR Bengaluru",
 			scheduledTime: addMinutes(baseArrival, i * 25),
-			actualTime: i < 35 ? addMinutes(baseArrival, i * 25 + faker.number.int({ min: -10, max: 20 })) : null,
+			actualTime:
+				i < 35
+					? addMinutes(baseArrival, i * 25 + faker.number.int({ min: -10, max: 20 }))
+					: null,
 			status: i < 35 ? "arrived" : i < 45 ? "planned" : "delayed",
 			pickupRequired: true,
 			pickupStatus:
@@ -421,7 +466,9 @@ async function main() {
 			direction: "departure",
 			travelMode: mode,
 			carrier:
-				mode === "flight" ? faker.helpers.arrayElement(AIRLINE_CARRIERS) : "Indian Railways",
+				mode === "flight"
+					? faker.helpers.arrayElement(AIRLINE_CARRIERS)
+					: "Indian Railways",
 			serviceNumber:
 				mode === "flight"
 					? `AI-${faker.number.int({ min: 100, max: 999 })}`
@@ -429,14 +476,13 @@ async function main() {
 			originCity: "Bengaluru",
 			originLocation:
 				mode === "flight" ? "Kempegowda International Airport" : "KSR Bengaluru",
-			destinationCity: mode === "flight" ? arrivalAirport[1] ?? null : "Hubballi",
+			destinationCity: mode === "flight" ? (arrivalAirport[1] ?? null) : "Hubballi",
 			scheduledTime: addMinutes(baseDeparture, i * 20),
 			status: "planned",
 			pickupRequired: true,
 			pickupStatus: "scheduled",
 			pickupPoint: "IISc Guest House",
-			dropPoint:
-				mode === "flight" ? "Terminal 2 Departures" : "KSR Platform 1",
+			dropPoint: mode === "flight" ? "Terminal 2 Departures" : "KSR Platform 1",
 			vehicleId: vehicleIds[(i + 2) % vehicleIds.length],
 			createdBy: adminId,
 		});
@@ -492,7 +538,10 @@ async function main() {
 			bedNumber: i % 2 === 0 ? "1" : "2",
 			plannedCheckinDate: startDate,
 			plannedCheckoutDate: endDate,
-			checkinAt: i < 12 ? new Date(`2026-12-26T09:${String(i + 10).padStart(2, "0")}:00+05:30`) : null,
+			checkinAt:
+				i < 12
+					? new Date(`2026-12-26T09:${String(i + 10).padStart(2, "0")}:00+05:30`)
+					: null,
 			keyIssued: i < 12,
 			status: i < 12 ? "checked_in" : "pending",
 			createdBy: adminId,
@@ -801,11 +850,13 @@ async function main() {
 		},
 	]);
 
-	console.log("\nDemo conference seeded successfully: demo-2026 | ${attendeeIds.length} attendees, ${staffIds.length} staff, ${committeeRows.length} committees, ${roomIds.length} rooms.");
+	console.log(
+		"\nDemo conference seeded successfully: demo-2026 | ${attendeeIds.length} attendees, ${staffIds.length} staff, ${committeeRows.length} committees, ${roomIds.length} rooms.",
+	);
 	process.exit(0);
 }
 
-main().catch((err) => {
+main().catch(err => {
 	console.error(err);
 	process.exit(1);
 });
