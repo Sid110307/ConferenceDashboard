@@ -1,14 +1,14 @@
-import { auditColumns, uuidPk } from "@/schema/_shared";
-import { attendees } from "@/schema/attendees";
-import { users } from "@/schema/auth";
-import { conferences } from "@/schema/conferences";
+import { auditColumns, uuidPk } from "./_shared";
+import { attendees } from "./attendees";
+import { users } from "./auth";
+import { conferences } from "./conferences";
 import {
 	campaignStatusEnum,
 	commsChannelEnum,
 	commsProviderEnum,
 	recipientStatusEnum,
-} from "@/schema/enums";
-import { staff } from "@/schema/staff";
+} from "./enums";
+import { staff } from "./staff";
 import { sql } from "drizzle-orm";
 
 import {

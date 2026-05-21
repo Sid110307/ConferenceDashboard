@@ -21,7 +21,7 @@ const schema = z.object({
 
 	S3_ENDPOINT: z.string().url().optional(),
 	S3_REGION: z.string().default("us-east-1"),
-	S3_BUCKET: z.string().default("conference-os"),
+	S3_BUCKET: z.string().default("conference-dashboard"),
 	S3_ACCESS_KEY: z.string().optional(),
 	S3_SECRET_KEY: z.string().optional(),
 	S3_FORCE_PATH_STYLE: z
@@ -45,7 +45,7 @@ const schema = z.object({
 
 const parsed = schema.safeParse(process.env);
 if (!parsed.success) {
-	console.error("Invalid worker environment:");
+	console.error("Invalid environment variables:");
 	for (const issue of parsed.error.issues) {
 		console.error(`  ${issue.path.join(".")}: ${issue.message}`);
 	}

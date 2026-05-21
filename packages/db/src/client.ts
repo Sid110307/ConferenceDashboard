@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 
-import * as schema from "@/schema";
+import * as schema from "./schema";
 import { config as loadEnv } from "dotenv";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import pg from "pg";

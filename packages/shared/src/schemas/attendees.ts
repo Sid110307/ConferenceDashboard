@@ -5,14 +5,14 @@ import {
 	type AttendeeCategory,
 	type DietPreference,
 	type Gender,
-} from "@/constants";
+} from "../constants";
 import {
 	customFieldsSchema,
 	emailSchema,
 	isoDateSchema,
 	phoneSchema,
 	uuidSchema,
-} from "@/schemas/common";
+} from "./common";
 import { z } from "zod";
 
 const genderEnum = z.enum(GENDERS as readonly [Gender, ...Gender[]]);

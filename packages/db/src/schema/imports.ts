@@ -1,8 +1,8 @@
-import { auditColumns, uuidPk } from "@/schema/_shared";
-import { users } from "@/schema/auth";
-import { conferences } from "@/schema/conferences";
-import { importEntityEnum, importRowStatusEnum, importStatusEnum } from "@/schema/enums";
-import { files } from "@/schema/files";
+import { auditColumns, uuidPk } from "./_shared";
+import { users } from "./auth";
+import { conferences } from "./conferences";
+import { importEntityEnum, importRowStatusEnum, importStatusEnum } from "./enums";
+import { files } from "./files";
 import { sql } from "drizzle-orm";
 
 import {

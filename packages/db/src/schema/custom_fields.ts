@@ -1,7 +1,7 @@
-import { auditColumns, uuidPk } from "@/schema/_shared";
-import { users } from "@/schema/auth";
-import { conferences } from "@/schema/conferences";
-import { customFieldEntityEnum, customFieldTypeEnum } from "@/schema/enums";
+import { auditColumns, uuidPk } from "./_shared";
+import { users } from "./auth";
+import { conferences } from "./conferences";
+import { customFieldEntityEnum, customFieldTypeEnum } from "./enums";
 import { sql } from "drizzle-orm";
 
 import {

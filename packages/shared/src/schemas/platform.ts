@@ -9,8 +9,8 @@ import {
 	type CustomFieldEntity,
 	type CustomFieldType,
 	type ImportEntity,
-} from "@/constants";
-import { isoDatetimeSchema, uuidSchema } from "@/schemas/common";
+} from "../constants";
+import { isoDatetimeSchema, uuidSchema } from "./common";
 import { z } from "zod";
 
 const channelEnum = z.enum(COMMS_CHANNELS as readonly [CommsChannel, ...CommsChannel[]]);

@@ -3,8 +3,8 @@ import {
 	accommodationIssues,
 	accommodationRooms,
 	roomAllocations,
-} from "@/schema/accommodation";
-import { attendees } from "@/schema/attendees";
+} from "./accommodation";
+import { attendees } from "./attendees";
 import {
 	accounts,
 	auditLog,
@@ -12,20 +12,20 @@ import {
 	invitations,
 	userConferenceRoles,
 	users,
-} from "@/schema/auth";
+} from "./auth";
 import {
 	messageCampaigns,
 	messageRecipients,
 	messageTemplates,
 	messagingProviders,
-} from "@/schema/communications";
-import { conferences } from "@/schema/conferences";
-import { customFieldDefinitions } from "@/schema/custom_fields";
-import { files } from "@/schema/files";
-import { financeItems, logisticsItems, sponsors } from "@/schema/finance";
-import { foodPlans, mealScans } from "@/schema/food";
-import { helpdeskIssues } from "@/schema/helpdesk";
-import { importJobs, importRows } from "@/schema/imports";
+} from "./communications";
+import { conferences } from "./conferences";
+import { customFieldDefinitions } from "./custom_fields";
+import { files } from "./files";
+import { financeItems, logisticsItems, sponsors } from "./finance";
+import { foodPlans, mealScans } from "./food";
+import { helpdeskIssues } from "./helpdesk";
+import { importJobs, importRows } from "./imports";
 import {
 	announcements,
 	appSettings,
@@ -33,18 +33,18 @@ import {
 	dailyControlLogs,
 	feedback,
 	themeSettings,
-} from "@/schema/misc";
+} from "./misc";
 import {
 	conferenceSessions as programmeSessions,
 	sessionSpeakers,
 	speakers,
 	tracks,
 	venues,
-} from "@/schema/programme";
-import { reportJobs } from "@/schema/reports";
-import { committeeAssignments, committees, staff } from "@/schema/staff";
-import { travelSegments, vehicles } from "@/schema/travel";
-import { vipChecklist, vipGuests } from "@/schema/vip";
+} from "./programme";
+import { reportJobs } from "./reports";
+import { committeeAssignments, committees, staff } from "./staff";
+import { travelSegments, vehicles } from "./travel";
+import { vipChecklist, vipGuests } from "./vip";
 import { relations } from "drizzle-orm";
 
 export const usersRelations = relations(users, ({ many }) => ({

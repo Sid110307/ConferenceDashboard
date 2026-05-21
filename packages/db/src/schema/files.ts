@@ -1,6 +1,6 @@
-import { uuidPk } from "@/schema/_shared";
-import { users } from "@/schema/auth";
-import { conferences } from "@/schema/conferences";
+import { uuidPk } from "./_shared";
+import { users } from "./auth";
+import { conferences } from "./conferences";
 import { sql } from "drizzle-orm";
 
 import {

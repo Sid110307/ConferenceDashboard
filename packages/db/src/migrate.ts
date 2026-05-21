@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 
 import { dbAdmin, pgPoolDirect } from "@/client";
-import { applyRowLevelSecurity } from "@/schema/rls";
+import { applyRowLevelSecurity } from "./schema/rls";
 import { config as loadEnv } from "dotenv";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 

@@ -14,6 +14,8 @@ export default {
 	quoteProps: "consistent",
 	endOfLine: "lf",
 	importOrder: [
+		"^dotenv(.*)$",
+		"",
 		"^react(.*)$",
 		"<BUILTIN_MODULES>",
 		"",

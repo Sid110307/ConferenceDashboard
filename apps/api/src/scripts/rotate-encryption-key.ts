@@ -1,9 +1,9 @@
+import "dotenv/config";
+
 import { decrypt, encrypt } from "@/lib/crypto";
 import { logger } from "@/lib/logger";
 import { db, messagingProviders } from "@conference/db";
 import { eq } from "drizzle-orm";
-
-import "dotenv/config";
 
 const oldKeyB64 = process.env.OLD_ENCRYPTION_KEY;
 if (!oldKeyB64) {

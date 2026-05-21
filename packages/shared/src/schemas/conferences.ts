@@ -1,5 +1,5 @@
-import { USER_ROLES, type UserRole } from "@/constants";
-import { emailSchema, isoDateSchema, slugSchema } from "@/schemas/common";
+import { USER_ROLES, type UserRole } from "../constants";
+import { emailSchema, isoDateSchema, slugSchema } from "./common";
 import { z } from "zod";
 
 export const signInSchema = z.object({

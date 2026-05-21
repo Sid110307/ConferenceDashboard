@@ -228,7 +228,7 @@ async function renderXLSX(
 	rows: Record<string, any>[],
 ): Promise<Buffer> {
 	const wb = new ExcelJS.Workbook();
-	wb.creator = "Conference-OS";
+	wb.creator = "ConferenceDashboard";
 	wb.created = new Date();
 
 	const ws = wb.addWorksheet(sheetName.slice(0, 31));

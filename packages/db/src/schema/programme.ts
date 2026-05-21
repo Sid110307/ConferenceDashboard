@@ -1,13 +1,13 @@
-import { auditColumns, customFieldsColumn, uuidPk } from "@/schema/_shared";
-import { users } from "@/schema/auth";
-import { conferences } from "@/schema/conferences";
+import { auditColumns, customFieldsColumn, uuidPk } from "./_shared";
+import { users } from "./auth";
+import { conferences } from "./conferences";
 import {
 	publicStatusEnum,
 	sessionStatusEnum,
 	sessionTypeEnum,
 	venueStatusEnum,
-} from "@/schema/enums";
-import { files } from "@/schema/files";
+} from "./enums";
+import { files } from "./files";
 import { sql } from "drizzle-orm";
 
 import {

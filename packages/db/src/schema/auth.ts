@@ -1,5 +1,5 @@
-import { uuidPk } from "@/schema/_shared";
-import { auditActionEnum, userRoleEnum } from "@/schema/enums";
+import { uuidPk } from "./_shared";
+import { auditActionEnum, userRoleEnum } from "./enums";
 import { sql } from "drizzle-orm";
 
 import {

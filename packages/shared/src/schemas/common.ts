@@ -1,4 +1,4 @@
-import { LIMITS } from "@/constants";
+import { LIMITS } from "../constants";
 import { z } from "zod";
 
 export const uuidSchema = z.string().uuid();

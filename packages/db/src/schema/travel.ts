@@ -1,15 +1,15 @@
-import { auditColumns, customFieldsColumn, uuidPk } from "@/schema/_shared";
-import { attendees } from "@/schema/attendees";
-import { users } from "@/schema/auth";
-import { conferences } from "@/schema/conferences";
+import { auditColumns, customFieldsColumn, uuidPk } from "./_shared";
+import { attendees } from "./attendees";
+import { users } from "./auth";
+import { conferences } from "./conferences";
 import {
 	pickupStatusEnum,
 	travelDirectionEnum,
 	travelModeEnum,
 	travelStatusEnum,
 	vehicleStatusEnum,
-} from "@/schema/enums";
-import { committees } from "@/schema/staff";
+} from "./enums";
+import { committees } from "./staff";
 
 import {
 	boolean,

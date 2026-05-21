@@ -1,9 +1,9 @@
-import { auditColumns, customFieldsColumn, uuidPk } from "@/schema/_shared";
-import { attendees } from "@/schema/attendees";
-import { users } from "@/schema/auth";
-import { conferences } from "@/schema/conferences";
-import { helpdeskCategoryEnum, issueStatusEnum, priorityEnum } from "@/schema/enums";
-import { committees, staff } from "@/schema/staff";
+import { auditColumns, customFieldsColumn, uuidPk } from "./_shared";
+import { attendees } from "./attendees";
+import { users } from "./auth";
+import { conferences } from "./conferences";
+import { helpdeskCategoryEnum, issueStatusEnum, priorityEnum } from "./enums";
+import { committees, staff } from "./staff";
 
 import { index, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 

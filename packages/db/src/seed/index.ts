@@ -1,11 +1,8 @@
-
-
-
 import "dotenv/config";
 
 import { dbAdmin } from "@/client";
-import { users } from "@/schema/auth";
-import { applyRowLevelSecurity } from "@/schema/rls";
+import { users } from "./auth";
+import { applyRowLevelSecurity } from "./rls";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 

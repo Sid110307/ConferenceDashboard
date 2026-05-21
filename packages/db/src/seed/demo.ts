@@ -1,6 +1,3 @@
-
-
-
 import "dotenv/config";
 
 import { dbAdmin } from "@/client";

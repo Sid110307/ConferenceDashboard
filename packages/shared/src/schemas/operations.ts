@@ -9,7 +9,7 @@ import {
 	type RoomType,
 	type TravelDirection,
 	type TravelMode,
-} from "@/constants";
+} from "../constants";
 import {
 	customFieldsSchema,
 	emailSchema,
@@ -19,7 +19,7 @@ import {
 	phoneSchema,
 	slugSchema,
 	uuidSchema,
-} from "@/schemas/common";
+} from "./common";
 import { z } from "zod";
 
 export const committeeCreateSchema = z.object({

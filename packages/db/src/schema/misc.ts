@@ -1,10 +1,10 @@
-import { auditColumns, uuidPk } from "@/schema/_shared";
-import { attendees } from "@/schema/attendees";
-import { users } from "@/schema/auth";
-import { conferences } from "@/schema/conferences";
-import { certificateStatusEnum, certificateTypeEnum, priorityEnum } from "@/schema/enums";
-import { files } from "@/schema/files";
-import { conferenceSessions } from "@/schema/programme";
+import { auditColumns, uuidPk } from "./_shared";
+import { attendees } from "./attendees";
+import { users } from "./auth";
+import { conferences } from "./conferences";
+import { certificateStatusEnum, certificateTypeEnum, priorityEnum } from "./enums";
+import { files } from "./files";
+import { conferenceSessions } from "./programme";
 import { sql } from "drizzle-orm";
 
 import {
