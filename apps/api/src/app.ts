@@ -66,7 +66,6 @@ export function buildApp() {
 	app.on(["GET", "POST"], "/api/auth/**", c => auth.handler(c.req.raw));
 
 	const api = new Hono<AppContext>();
-
 	api.route("/auth", authRouter);
 	api.route("/conferences", conferencesRouter);
 
@@ -76,7 +75,7 @@ export function buildApp() {
 
 	tenant.get("/", c => {
 		return c.json({
-			data: c.get("conference"),
+			conference: c.get("conference"),
 			membership: c.get("membership"),
 		});
 	});

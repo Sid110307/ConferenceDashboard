@@ -8,6 +8,8 @@ export type RealtimeEvent = {
 	ts?: string;
 };
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
+
 export function useRealtime(
 	conferenceSlug: string | null | undefined,
 	onEvent?: (ev: RealtimeEvent) => void,
@@ -18,7 +20,7 @@ export function useRealtime(
 
 	useEffect(() => {
 		if (!conferenceSlug) return;
-		const url = `/api/v1/c/${conferenceSlug}/realtime/stream`;
+		const url = `${API_BASE}/api/v1/c/${conferenceSlug}/realtime/stream`;
 		const es = new EventSource(url, { withCredentials: true });
 
 		const handler = (e: MessageEvent) => {
