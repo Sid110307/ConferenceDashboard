@@ -1,8 +1,3 @@
-import { auditColumns, uuidPk } from "./_shared";
-import { attendees } from "./attendees";
-import { users } from "./auth";
-import { conferences } from "./conferences";
-import { mealTypeEnum } from "./enums";
 import { sql } from "drizzle-orm";
 
 import {
@@ -16,6 +11,12 @@ import {
 	uuid,
 	varchar,
 } from "drizzle-orm/pg-core";
+
+import { auditColumns, uuidPk } from "./_shared";
+import { attendees } from "./attendees";
+import { users } from "./auth";
+import { conferences } from "./conferences";
+import { mealTypeEnum } from "./enums";
 
 export const foodPlans = pgTable(
 	"food_plans",

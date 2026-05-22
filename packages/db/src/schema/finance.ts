@@ -1,3 +1,15 @@
+import {
+	boolean,
+	index,
+	integer,
+	numeric,
+	pgTable,
+	text,
+	timestamp,
+	uuid,
+	varchar,
+} from "drizzle-orm/pg-core";
+
 import { auditColumns, customFieldsColumn, uuidPk } from "./_shared";
 import { users } from "./auth";
 import { conferences } from "./conferences";
@@ -10,18 +22,6 @@ import {
 	sponsorTierEnum,
 } from "./enums";
 import { files } from "./files";
-
-import {
-	boolean,
-	index,
-	integer,
-	numeric,
-	pgTable,
-	text,
-	timestamp,
-	uuid,
-	varchar,
-} from "drizzle-orm/pg-core";
 
 export const financeItems = pgTable(
 	"finance_items",
@@ -60,9 +60,7 @@ export const financeItems = pgTable(
 		deletedIdx: index("finance_items_deleted_idx").on(t.deletedAt),
 	}),
 );
-// ────────────────────────────────────────────────────────────────────
-// sponsors
-// ────────────────────────────────────────────────────────────────────
+
 export const sponsors = pgTable(
 	"sponsors",
 	{

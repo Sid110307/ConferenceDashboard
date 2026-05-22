@@ -50,11 +50,6 @@ const schema = z.object({
 
 	SESSION_COOKIE_NAME: z.string().default("conf_os_session"),
 	SESSION_TTL_DAYS: z.coerce.number().int().default(30),
-
-	TRUST_PROXY: z
-		.string()
-		.optional()
-		.transform(v => v === "true"),
 });
 
 const parsed = schema.safeParse(process.env);

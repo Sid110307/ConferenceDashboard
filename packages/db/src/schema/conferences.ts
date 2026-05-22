@@ -1,6 +1,3 @@
-import { auditColumns, customFieldsColumn, uuidPk } from "./_shared";
-import { users } from "./auth";
-import { conferenceStatusEnum, publicStatusEnum } from "./enums";
 import { sql } from "drizzle-orm";
 
 import {
@@ -14,6 +11,10 @@ import {
 	uuid,
 	varchar,
 } from "drizzle-orm/pg-core";
+
+import { auditColumns, customFieldsColumn, uuidPk } from "./_shared";
+import { users } from "./auth";
+import { conferenceStatusEnum, publicStatusEnum } from "./enums";
 
 export const conferences = pgTable(
 	"conferences",

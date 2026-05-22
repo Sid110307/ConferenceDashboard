@@ -1,8 +1,3 @@
-import { auditColumns, customFieldsColumn, uuidPk } from "./_shared";
-import { users } from "./auth";
-import { conferences } from "./conferences";
-import { genderEnum, staffStatusEnum } from "./enums";
-import { files } from "./files";
 import { sql } from "drizzle-orm";
 
 import {
@@ -17,6 +12,12 @@ import {
 	uuid,
 	varchar,
 } from "drizzle-orm/pg-core";
+
+import { auditColumns, customFieldsColumn, uuidPk } from "./_shared";
+import { users } from "./auth";
+import { conferences } from "./conferences";
+import { genderEnum, staffStatusEnum } from "./enums";
+import { files } from "./files";
 
 export const committees = pgTable(
 	"committees",

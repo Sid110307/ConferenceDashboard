@@ -105,7 +105,7 @@ export const DEFAULT_COMMITTEES: DefaultCommittee[] = [
 	{
 		slug: "keynote-program",
 		name: "Keynote Program",
-		description: "Keynote speakers — invitations, travel, accommodation, on-stage protocol.",
+		description: "Keynote speakers, invitations, travel, accommodation, on-stage protocol.",
 		icon: "Star",
 		color: "amber",
 	},

@@ -1,11 +1,12 @@
+import { sql } from "drizzle-orm";
+
+import { index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+
 import { auditColumns, uuidPk } from "./_shared";
 import { users } from "./auth";
 import { conferences } from "./conferences";
 import { reportFormatEnum, reportStatusEnum, reportTypeEnum } from "./enums";
 import { files } from "./files";
-import { sql } from "drizzle-orm";
-
-import { index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const reportJobs = pgTable(
 	"report_jobs",

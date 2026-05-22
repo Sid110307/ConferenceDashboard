@@ -1,11 +1,11 @@
+import { boolean, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+
 import { auditColumns, customFieldsColumn, uuidPk } from "./_shared";
 import { attendees } from "./attendees";
 import { users } from "./auth";
 import { conferences } from "./conferences";
 import { priorityEnum, protocolLevelEnum, vipStatusEnum } from "./enums";
 import { staff } from "./staff";
-
-import { boolean, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const vipGuests = pgTable(
 	"vip_guests",

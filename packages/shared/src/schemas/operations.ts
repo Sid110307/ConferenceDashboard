@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import {
 	GENDERS,
 	PICKUP_STATUSES,
@@ -20,7 +22,6 @@ import {
 	slugSchema,
 	uuidSchema,
 } from "./common";
-import { z } from "zod";
 
 export const committeeCreateSchema = z.object({
 	slug: slugSchema,

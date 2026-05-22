@@ -1,15 +1,3 @@
-import { auditColumns, customFieldsColumn, uuidPk } from "./_shared";
-import { users } from "./auth";
-import { conferences } from "./conferences";
-import {
-	attendeeCategoryEnum,
-	checkinStatusEnum,
-	dietPreferenceEnum,
-	genderEnum,
-	protocolLevelEnum,
-	registrationStatusEnum,
-} from "./enums";
-import { files } from "./files";
 import { sql } from "drizzle-orm";
 
 import {
@@ -23,6 +11,19 @@ import {
 	uuid,
 	varchar,
 } from "drizzle-orm/pg-core";
+
+import { auditColumns, customFieldsColumn, uuidPk } from "./_shared";
+import { users } from "./auth";
+import { conferences } from "./conferences";
+import {
+	attendeeCategoryEnum,
+	checkinStatusEnum,
+	dietPreferenceEnum,
+	genderEnum,
+	protocolLevelEnum,
+	registrationStatusEnum,
+} from "./enums";
+import { files } from "./files";
 
 export const attendees = pgTable(
 	"attendees",

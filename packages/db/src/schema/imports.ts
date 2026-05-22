@@ -1,8 +1,3 @@
-import { auditColumns, uuidPk } from "./_shared";
-import { users } from "./auth";
-import { conferences } from "./conferences";
-import { importEntityEnum, importRowStatusEnum, importStatusEnum } from "./enums";
-import { files } from "./files";
 import { sql } from "drizzle-orm";
 
 import {
@@ -18,6 +13,12 @@ import {
 	uuid,
 	varchar,
 } from "drizzle-orm/pg-core";
+
+import { auditColumns, uuidPk } from "./_shared";
+import { users } from "./auth";
+import { conferences } from "./conferences";
+import { importEntityEnum, importRowStatusEnum, importStatusEnum } from "./enums";
+import { files } from "./files";
 
 export const importJobs = pgTable(
 	"import_jobs",

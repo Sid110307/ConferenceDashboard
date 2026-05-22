@@ -1,14 +1,3 @@
-import { auditColumns, uuidPk } from "./_shared";
-import { attendees } from "./attendees";
-import { users } from "./auth";
-import { conferences } from "./conferences";
-import {
-	campaignStatusEnum,
-	commsChannelEnum,
-	commsProviderEnum,
-	recipientStatusEnum,
-} from "./enums";
-import { staff } from "./staff";
 import { sql } from "drizzle-orm";
 
 import {
@@ -22,6 +11,18 @@ import {
 	uniqueIndex,
 	uuid,
 } from "drizzle-orm/pg-core";
+
+import { auditColumns, uuidPk } from "./_shared";
+import { attendees } from "./attendees";
+import { users } from "./auth";
+import { conferences } from "./conferences";
+import {
+	campaignStatusEnum,
+	commsChannelEnum,
+	commsProviderEnum,
+	recipientStatusEnum,
+} from "./enums";
+import { staff } from "./staff";
 
 export const messagingProviders = pgTable(
 	"messaging_providers",
@@ -52,7 +53,6 @@ export const messagingProviders = pgTable(
 		...auditColumns(() => users.id),
 	},
 	t => ({
-		// Only one default per (conf, channel)
 		oneDefaultPerChannel: uniqueIndex("messaging_providers_default_unique")
 			.on(t.conferenceId, t.channel)
 			.where(sql`is_default = true AND deleted_at IS NULL`),

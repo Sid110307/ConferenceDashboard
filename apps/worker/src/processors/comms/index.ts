@@ -164,7 +164,7 @@ export async function processCampaignDispatchBatch(payload: {
 		.then(r => r[0]);
 	if (!camp) throw new Error(`campaign ${campaignId} not found`);
 	if (camp.status === "cancelled") {
-		logger.info({ campaignId }, "campaign cancelled — skipping batch");
+		logger.info({ campaignId }, "campaign cancelled, skipping dispatch");
 		return;
 	}
 

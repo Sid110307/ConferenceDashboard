@@ -1,7 +1,3 @@
-import { auditColumns, uuidPk } from "./_shared";
-import { users } from "./auth";
-import { conferences } from "./conferences";
-import { customFieldEntityEnum, customFieldTypeEnum } from "./enums";
 import { sql } from "drizzle-orm";
 
 import {
@@ -15,6 +11,11 @@ import {
 	uuid,
 	varchar,
 } from "drizzle-orm/pg-core";
+
+import { auditColumns, uuidPk } from "./_shared";
+import { users } from "./auth";
+import { conferences } from "./conferences";
+import { customFieldEntityEnum, customFieldTypeEnum } from "./enums";
 
 export const customFieldDefinitions = pgTable(
 	"custom_field_definitions",

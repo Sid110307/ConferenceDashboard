@@ -1,15 +1,3 @@
-import { auditColumns, customFieldsColumn, uuidPk } from "./_shared";
-import { attendees } from "./attendees";
-import { users } from "./auth";
-import { conferences } from "./conferences";
-import {
-	allocationStatusEnum,
-	genderPreferenceEnum,
-	issueStatusEnum,
-	priorityEnum,
-	roomStatusEnum,
-	roomTypeEnum,
-} from "./enums";
 import { sql } from "drizzle-orm";
 
 import {
@@ -25,6 +13,19 @@ import {
 	uuid,
 	varchar,
 } from "drizzle-orm/pg-core";
+
+import { auditColumns, customFieldsColumn, uuidPk } from "./_shared";
+import { attendees } from "./attendees";
+import { users } from "./auth";
+import { conferences } from "./conferences";
+import {
+	allocationStatusEnum,
+	genderPreferenceEnum,
+	issueStatusEnum,
+	priorityEnum,
+	roomStatusEnum,
+	roomTypeEnum,
+} from "./enums";
 
 export const accommodationBlocks = pgTable(
 	"accommodation_blocks",

@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import {
 	COMMS_CHANNELS,
 	COMMS_PROVIDERS,
@@ -11,7 +13,6 @@ import {
 	type ImportEntity,
 } from "../constants";
 import { isoDatetimeSchema, uuidSchema } from "./common";
-import { z } from "zod";
 
 const channelEnum = z.enum(COMMS_CHANNELS as readonly [CommsChannel, ...CommsChannel[]]);
 const providerEnum = z.enum(COMMS_PROVIDERS as readonly [CommsProvider, ...CommsProvider[]]);

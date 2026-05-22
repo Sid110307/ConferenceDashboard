@@ -245,7 +245,6 @@ vipChecklistRouter.post(
 	),
 	async c => {
 		const conf = c.get("conference")!;
-		const user = c.get("user")!;
 		const { vipId } = c.req.valid("param");
 		const input = c.req.valid("json");
 		const [row] = await withTenant(conf.id, async tx =>

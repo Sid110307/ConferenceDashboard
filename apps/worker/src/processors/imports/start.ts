@@ -23,7 +23,6 @@ export async function processImportStart(payload: {
 	if (!job) throw new Error(`import job ${jobId} not found`);
 
 	const targetEntity = job.targetEntity as TargetEntity;
-	const updateExisting = !!(job.options as any)?.update_existing;
 
 	let imported = 0;
 	let failed = 0;

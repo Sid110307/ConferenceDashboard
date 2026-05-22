@@ -332,7 +332,6 @@ export const customFieldTypeEnum = pgEnum("custom_field_type", [
 	"url",
 ]);
 
-/** Entities that support user-defined custom fields. */
 export const customFieldEntityEnum = pgEnum("custom_field_entity", [
 	"conferences",
 	"attendees",

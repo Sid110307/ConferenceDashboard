@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import {
 	ATTENDEE_CATEGORIES,
 	DIET_PREFERENCES,
@@ -6,14 +8,7 @@ import {
 	type DietPreference,
 	type Gender,
 } from "../constants";
-import {
-	customFieldsSchema,
-	emailSchema,
-	isoDateSchema,
-	phoneSchema,
-	uuidSchema,
-} from "./common";
-import { z } from "zod";
+import { customFieldsSchema, emailSchema, isoDateSchema, phoneSchema, uuidSchema } from "./common";
 
 const genderEnum = z.enum(GENDERS as readonly [Gender, ...Gender[]]);
 const categoryEnum = z.enum(

@@ -90,7 +90,7 @@ export function makeCrudRouter(cfg: CrudConfig) {
 
 			const page = query.page ?? 1;
 			const pageSize = Math.min(
-				query.pageSize ?? LIMITS.PAGE_SIZE_DEFAULT,
+				(query.pageSize as number) ?? LIMITS.PAGE_SIZE_DEFAULT,
 				LIMITS.PAGE_SIZE_MAX,
 			);
 			const offset = (page - 1) * pageSize;
@@ -160,7 +160,7 @@ export function makeCrudRouter(cfg: CrudConfig) {
 
 			const inserted = await (tx as TenantTx)
 				.insert(t)
-				.values(values as any)
+				.values(values as unknown as Record<string, unknown>)
 				.returning();
 			const row = inserted[0]!;
 
@@ -218,7 +218,7 @@ export function makeCrudRouter(cfg: CrudConfig) {
 
 				const result = await (tx as TenantTx)
 					.update(t)
-					.set(values as any)
+					.set(values as unknown as Record<string, unknown>)
 					.where(
 						and(
 							eq(t.id as AnyColumn, id),
@@ -300,7 +300,7 @@ export function makeCrudRouter(cfg: CrudConfig) {
 							deletedAt: new Date(),
 							deletedBy: user.id,
 							updatedBy: user.id,
-						} as any)
+						} as unknown as Record<string, unknown>)
 						.where(
 							and(
 								eq(t.id as AnyColumn, id),
@@ -340,7 +340,7 @@ export function makeCrudRouter(cfg: CrudConfig) {
 					includeDeleted: true,
 				});
 				if (!before) throw new NotFoundError(cfg.entity);
-				if (!(before as any).deletedAt) {
+				if (!(before as unknown as Record<string, unknown>).deletedAt) {
 					throw new BadRequestError(`${cfg.entity} is not deleted`);
 				}
 
@@ -351,7 +351,7 @@ export function makeCrudRouter(cfg: CrudConfig) {
 						deletedBy: null,
 						updatedBy: user.id,
 						updatedAt: new Date(),
-					} as any)
+					} as unknown as Record<string, unknown>)
 					.where(and(eq(t.id as AnyColumn, id), eq(t.conferenceId as AnyColumn, conf.id)))
 					.returning();
 
@@ -398,7 +398,7 @@ async function findOneById(
 	return rows[0] ?? null;
 }
 
-function clientIp(c: any): string | null {
+function clientIp(c: AppContext): string | null {
 	return (
 		c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? null
 	);

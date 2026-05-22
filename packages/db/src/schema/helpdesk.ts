@@ -1,11 +1,11 @@
+import { index, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
+
 import { auditColumns, customFieldsColumn, uuidPk } from "./_shared";
 import { attendees } from "./attendees";
 import { users } from "./auth";
 import { conferences } from "./conferences";
 import { helpdeskCategoryEnum, issueStatusEnum, priorityEnum } from "./enums";
 import { committees, staff } from "./staff";
-
-import { index, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 
 export const helpdeskIssues = pgTable(
 	"helpdesk_issues",

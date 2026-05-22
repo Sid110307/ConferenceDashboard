@@ -1,10 +1,3 @@
-import { auditColumns, uuidPk } from "./_shared";
-import { attendees } from "./attendees";
-import { users } from "./auth";
-import { conferences } from "./conferences";
-import { certificateStatusEnum, certificateTypeEnum, priorityEnum } from "./enums";
-import { files } from "./files";
-import { conferenceSessions } from "./programme";
 import { sql } from "drizzle-orm";
 
 import {
@@ -19,6 +12,14 @@ import {
 	uuid,
 	varchar,
 } from "drizzle-orm/pg-core";
+
+import { auditColumns, uuidPk } from "./_shared";
+import { attendees } from "./attendees";
+import { users } from "./auth";
+import { conferences } from "./conferences";
+import { certificateStatusEnum, certificateTypeEnum, priorityEnum } from "./enums";
+import { files } from "./files";
+import { conferenceSessions } from "./programme";
 
 export const certificates = pgTable(
 	"certificates",

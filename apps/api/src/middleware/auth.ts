@@ -7,9 +7,42 @@ import { ROLE_HIERARCHY, type UserRole } from "@conference/shared";
 import { and, eq, isNull } from "drizzle-orm";
 import { createMiddleware } from "hono/factory";
 
+const loadAuthUser = createMiddleware<AppContext>(async (c, next) => {
+	const session = await auth.api.getSession({ headers: c.req.raw.headers });
+	if (session?.user) {
+		const [row] = await db
+			.select({
+				id: usersTable.id,
+				email: usersTable.email,
+				name: usersTable.name,
+				image: usersTable.image,
+				isPlatformAdmin: usersTable.isPlatformAdmin,
+				isActive: usersTable.isActive,
+			})
+			.from(usersTable)
+			.where(eq(usersTable.id, session.user.id))
+			.limit(1);
+
+		if (!row) throw new UnauthorizedError();
+		if (!row.isActive) throw new UnauthorizedError("account deactivated");
+
+		c.set("user", {
+			id: row.id,
+			email: row.email,
+			name: row.name,
+			image: row.image,
+			isPlatformAdmin: row.isPlatformAdmin,
+		});
+		c.set("sessionId", session.session.id);
+	}
+	await next();
+});
+
+export { loadAuthUser };
+
 export const requireAuth = createMiddleware<AppContext>(async (c, next) => {
 	const session = await auth.api.getSession({ headers: c.req.raw.headers });
-	if (!session || !session.user) throw new UnauthorizedError();
+	if (!session?.user) throw new UnauthorizedError();
 
 	const [row] = await db
 		.select({
@@ -40,7 +73,6 @@ export const requireAuth = createMiddleware<AppContext>(async (c, next) => {
 
 export const resolveConference = createMiddleware<AppContext>(async (c, next) => {
 	const user = c.get("user");
-	if (!user) throw new UnauthorizedError();
 
 	const slug = c.req.param("conferenceSlug");
 	if (!slug) throw new NotFoundError("conference");
@@ -57,9 +89,17 @@ export const resolveConference = createMiddleware<AppContext>(async (c, next) =>
 		.limit(1);
 
 	if (!conf) throw new NotFoundError("conference");
-	if (user.isPlatformAdmin) {
+
+	const baseMembership: NonNullable<AppContext["Variables"]["membership"]> = {
+		role: "viewer" as const,
+		isActive: true,
+		permissions: {},
+	};
+
+	if (user?.isPlatformAdmin) {
 		c.set("conference", conf);
 		c.set("membership", {
+			userId: user.id,
 			role: "super_admin",
 			isActive: true,
 			permissions: {},
@@ -67,30 +107,38 @@ export const resolveConference = createMiddleware<AppContext>(async (c, next) =>
 		return next();
 	}
 
-	const [membership] = await db
-		.select({
-			role: userConferenceRoles.role,
-			isActive: userConferenceRoles.isActive,
-			permissions: userConferenceRoles.permissions,
-		})
-		.from(userConferenceRoles)
-		.where(
-			and(
-				eq(userConferenceRoles.userId, user.id),
-				eq(userConferenceRoles.conferenceId, conf.id),
-			),
-		)
-		.limit(1);
+	let membership: NonNullable<AppContext["Variables"]["membership"]> = baseMembership;
+	if (user) {
+		const [row] = await db
+			.select({
+				role: userConferenceRoles.role,
+				isActive: userConferenceRoles.isActive,
+				permissions: userConferenceRoles.permissions,
+			})
+			.from(userConferenceRoles)
+			.where(
+				and(
+					eq(userConferenceRoles.userId, user.id),
+					eq(userConferenceRoles.conferenceId, conf.id),
+				),
+			)
+			.limit(1);
 
-	if (!membership || !membership.isActive) {
-		throw new ForbiddenError("no access to this conference");
+		if (row?.isActive) {
+			membership = {
+				userId: user.id,
+				role: row.role,
+				isActive: row.isActive,
+				permissions: row.permissions ?? {},
+			};
+		}
 	}
 
 	c.set("conference", conf);
 	c.set("membership", {
 		role: membership.role,
 		isActive: membership.isActive,
-		permissions: membership.permissions ?? {},
+		permissions: membership.permissions,
 	});
 	await next();
 });

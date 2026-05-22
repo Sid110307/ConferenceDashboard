@@ -35,10 +35,10 @@ export const auth = betterAuth({
 			: undefined,
 	session: {
 		expiresIn: 60 * 60 * 24 * env.SESSION_TTL_DAYS,
-		updateAge: 60 * 60 * 24, // refresh max-age each day
+		updateAge: 60 * 60 * 24,
 		cookieCache: {
 			enabled: true,
-			maxAge: 60, // small cache so role updates take effect in ~1 min
+			maxAge: 60,
 		},
 	},
 	advanced: {

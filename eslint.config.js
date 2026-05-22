@@ -8,7 +8,7 @@ import globals from "globals";
 import tsEslint from "typescript-eslint";
 
 export default defineConfig([
-	globalIgnores(["dist", "node_modules", "build", "coverage"]),
+	globalIgnores(["**/dist", "**/node_modules", "**/build"]),
 	js.configs.recommended,
 	...tsEslint.configs.recommended,
 	{
@@ -28,6 +28,7 @@ export default defineConfig([
 		},
 		rules: {
 			"unused-imports/no-unused-imports": "error",
+			"@typescript-eslint/no-explicit-any": "off",
 			"@typescript-eslint/no-unused-vars": [
 				"warn",
 				{
@@ -65,7 +66,8 @@ export default defineConfig([
 			...react.configs.recommended.rules,
 			...react.configs["jsx-runtime"].rules,
 			...reactHooks.configs.recommended.rules,
-			"react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+			"react-refresh/only-export-components": "off",
+			"@typescript-eslint/no-explicit-any": "off",
 			"@typescript-eslint/no-unused-vars": [
 				"warn",
 				{

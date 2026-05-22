@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import type { AppContext } from "@/lib/context";
 import { env } from "@/lib/env";
-import { requireAuth, resolveConference } from "@/middleware/auth";
+import { loadAuthUser, resolveConference } from "@/middleware/auth";
 import { errorHandler } from "@/middleware/error-handler";
 import { requestIdMiddleware } from "@/middleware/request-id";
 import { requestLogMiddleware } from "@/middleware/request-log";
@@ -63,7 +63,7 @@ export function buildApp() {
 	app.use("*", secureHeaders());
 	app.use("*", requestLogMiddleware);
 	app.get("/health", c => c.json({ ok: true, service: "@conference/api" }));
-	app.on(["GET", "POST"], "/auth/**", c => auth.handler(c.req.raw));
+	app.on(["GET", "POST"], "/api/auth/**", c => auth.handler(c.req.raw));
 
 	const api = new Hono<AppContext>();
 
@@ -71,7 +71,7 @@ export function buildApp() {
 	api.route("/conferences", conferencesRouter);
 
 	const tenant = new Hono<AppContext>();
-	tenant.use("*", requireAuth);
+	tenant.use("*", loadAuthUser);
 	tenant.use("*", resolveConference);
 
 	tenant.get("/", c => {

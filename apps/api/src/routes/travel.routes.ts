@@ -105,7 +105,7 @@ travelRouter.get(
 		}
 
 		const result = await withTenant(conf.id, async tx => {
-			let baseQuery: any = tx
+			const baseQuery: any = tx
 				.select({
 					segment: travelSegments,
 					attendee: {

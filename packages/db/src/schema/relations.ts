@@ -1,3 +1,5 @@
+import { relations } from "drizzle-orm";
+
 import {
 	accommodationBlocks,
 	accommodationIssues,
@@ -45,7 +47,6 @@ import { reportJobs } from "./reports";
 import { committeeAssignments, committees, staff } from "./staff";
 import { travelSegments, vehicles } from "./travel";
 import { vipChecklist, vipGuests } from "./vip";
-import { relations } from "drizzle-orm";
 
 export const usersRelations = relations(users, ({ many }) => ({
 	accounts: many(accounts),

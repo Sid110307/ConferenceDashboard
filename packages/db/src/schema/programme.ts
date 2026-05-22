@@ -1,13 +1,3 @@
-import { auditColumns, customFieldsColumn, uuidPk } from "./_shared";
-import { users } from "./auth";
-import { conferences } from "./conferences";
-import {
-	publicStatusEnum,
-	sessionStatusEnum,
-	sessionTypeEnum,
-	venueStatusEnum,
-} from "./enums";
-import { files } from "./files";
 import { sql } from "drizzle-orm";
 
 import {
@@ -21,6 +11,12 @@ import {
 	uuid,
 	varchar,
 } from "drizzle-orm/pg-core";
+
+import { auditColumns, customFieldsColumn, uuidPk } from "./_shared";
+import { users } from "./auth";
+import { conferences } from "./conferences";
+import { publicStatusEnum, sessionStatusEnum, sessionTypeEnum, venueStatusEnum } from "./enums";
+import { files } from "./files";
 
 export const venues = pgTable(
 	"venues",
@@ -152,7 +148,7 @@ export const sessionSpeakers = pgTable(
 		speakerId: uuid("speaker_id")
 			.notNull()
 			.references(() => speakers.id, { onDelete: "cascade" }),
-		role: varchar("role", { length: 32 }), // 'keynote', 'panelist', 'moderator'
+		role: varchar("role", { length: 32 }),
 		sortOrder: integer("sort_order").notNull().default(0),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()

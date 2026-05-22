@@ -1,3 +1,14 @@
+import {
+	boolean,
+	index,
+	integer,
+	pgTable,
+	text,
+	timestamp,
+	uuid,
+	varchar,
+} from "drizzle-orm/pg-core";
+
 import { auditColumns, customFieldsColumn, uuidPk } from "./_shared";
 import { attendees } from "./attendees";
 import { users } from "./auth";
@@ -10,17 +21,6 @@ import {
 	vehicleStatusEnum,
 } from "./enums";
 import { committees } from "./staff";
-
-import {
-	boolean,
-	index,
-	integer,
-	pgTable,
-	text,
-	timestamp,
-	uuid,
-	varchar,
-} from "drizzle-orm/pg-core";
 
 export const vehicles = pgTable(
 	"vehicles",

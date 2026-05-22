@@ -1,13 +1,14 @@
+
+
+
 import "dotenv/config";
 
 import { dbAdmin } from "@/client";
-import { users } from "./auth";
-import { applyRowLevelSecurity } from "./rls";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 
-
-
+import { users } from "./auth";
+import { applyRowLevelSecurity } from "./rls";
 
 
 async function main() {

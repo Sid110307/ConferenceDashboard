@@ -1,5 +1,3 @@
-import { uuidPk } from "./_shared";
-import { auditActionEnum, userRoleEnum } from "./enums";
 import { sql } from "drizzle-orm";
 
 import {
@@ -16,6 +14,9 @@ import {
 	varchar,
 } from "drizzle-orm/pg-core";
 
+import { uuidPk } from "./_shared";
+import { auditActionEnum, userRoleEnum } from "./enums";
+
 const citext = customType<{ data: string; driverData: string }>({
 	dataType() {
 		return "citext";
@@ -30,7 +31,7 @@ export const users = pgTable(
 		emailVerified: timestamp("email_verified", { withTimezone: true }),
 		name: text("name"),
 		image: text("image"),
-		hashedPassword: text("hashed_password"), // null for pure OAuth users
+		hashedPassword: text("hashed_password"),
 		isPlatformAdmin: boolean("is_platform_admin").notNull().default(false),
 		isActive: boolean("is_active").notNull().default(true),
 		lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
@@ -60,7 +61,7 @@ export const accounts = pgTable(
 		userId: uuid("user_id")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
-		provider: varchar("provider", { length: 32 }).notNull(), // 'google' | 'github' | ...
+		provider: varchar("provider", { length: 32 }).notNull(),
 		providerAccountId: varchar("provider_account_id", { length: 191 }).notNull(),
 		accessToken: text("access_token"),
 		refreshToken: text("refresh_token"),
