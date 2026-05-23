@@ -18,6 +18,12 @@ const loadAuthUser = createMiddleware<AppContext>(async (c, next) => {
 				image: usersTable.image,
 				isPlatformAdmin: usersTable.isPlatformAdmin,
 				isActive: usersTable.isActive,
+				lastSeenAt: usersTable.lastSeenAt,
+				preferences: usersTable.preferences,
+				createdAt: usersTable.createdAt,
+				updatedAt: usersTable.updatedAt,
+				isActive: usersTable.isActive,
+				emailVerified: usersTable.emailVerified,
 			})
 			.from(usersTable)
 			.where(eq(usersTable.id, session.user.id))
@@ -52,6 +58,12 @@ export const requireAuth = createMiddleware<AppContext>(async (c, next) => {
 			image: usersTable.image,
 			isPlatformAdmin: usersTable.isPlatformAdmin,
 			isActive: usersTable.isActive,
+			lastSeenAt: usersTable.lastSeenAt,
+			preferences: usersTable.preferences,
+			createdAt: usersTable.createdAt,
+			updatedAt: usersTable.updatedAt,
+			isActive: usersTable.isActive,
+			emailVerified: usersTable.emailVerified,
 		})
 		.from(usersTable)
 		.where(eq(usersTable.id, session.user.id))
@@ -87,10 +99,10 @@ export const resolveConference = createMiddleware<AppContext>(async (c, next) =>
 		.from(conferences)
 		.where(and(eq(conferences.slug, slug), isNull(conferences.deletedAt)))
 		.limit(1);
-
 	if (!conf) throw new NotFoundError("conference");
 
 	const baseMembership: NonNullable<AppContext["Variables"]["membership"]> = {
+		userId: user?.id ?? "",
 		role: "viewer" as const,
 		isActive: true,
 		permissions: {},
@@ -136,6 +148,7 @@ export const resolveConference = createMiddleware<AppContext>(async (c, next) =>
 
 	c.set("conference", conf);
 	c.set("membership", {
+		userId: membership.userId,
 		role: membership.role,
 		isActive: membership.isActive,
 		permissions: membership.permissions,

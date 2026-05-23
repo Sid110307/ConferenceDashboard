@@ -2,15 +2,26 @@ import { useEffect, useMemo, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
 import { hasRole, useConference } from "@/lib/ConferenceContext";
-import { fmtRelative } from "@/lib/format";
-import { useListQuery } from "@/lib/useListQuery";
+import { fmtRelative, humanise } from "@/lib/format";
+import { PaginationType, useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
+import {
+	ATTENDEE_CATEGORIES,
+	attendeeCreateSchema,
+	attendeeListQuerySchema,
+	attendeeUpdateSchema,
+	DIET_PREFERENCES,
+	GENDERS,
+	type AttendeeBulkActionInput,
+	type AttendeeCreateInput,
+	type AttendeeListQuery,
+	type AttendeeUpdateInput,
+} from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
 	CheckCircle2,
 	CircleX,
-	Download,
 	Filter,
 	ListChecks,
 	Pencil,
@@ -34,13 +45,8 @@ import { useToast } from "@/components/Toast";
 import { FilterChip, Toolbar } from "@/components/Toolbar";
 
 const Search = z.object({
-	q: z.string().optional(),
+	...attendeeListQuerySchema.shape,
 	page: z.coerce.number().int().min(1).default(1).optional(),
-	category: z.string().optional(),
-	gender: z.string().optional(),
-	registrationStatus: z.string().optional(),
-	checkinStatus: z.string().optional(),
-	isVip: z.string().optional(),
 });
 
 export const Route = createFileRoute("/c/$slug/attendees")({
@@ -94,7 +100,7 @@ function AttendeesPage() {
 	const canEdit = hasRole(membership, "editor");
 	const canAdmin = hasRole(membership, "admin");
 
-	const params = {
+	const params: AttendeeListQuery & Partial<PaginationType> = {
 		q: search.q,
 		page: search.page ?? 1,
 		pageSize: PAGE_SIZE,
@@ -105,14 +111,14 @@ function AttendeesPage() {
 		isVip: search.isVip,
 	};
 
-	const list = useListQuery<Attendee>({
+	const list = useListQuery<{ data: Attendee[] }>({
 		key: ["attendees", conference.slug],
 		path: `/api/v1/c/${conference.slug}/attendees`,
 		params,
 	});
-	const stats = useQuery<Stats>({
+	const stats = useQuery<{ data: Stats[] }>({
 		queryKey: ["attendees-stats", conference.slug],
-		queryFn: () => api.get<Stats>(`/api/v1/c/${conference.slug}/attendees/stats`),
+		queryFn: () => api.get<{ data: Stats[] }>(`/api/v1/c/${conference.slug}/attendees/stats`),
 	});
 
 	const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -144,7 +150,7 @@ function AttendeesPage() {
 		onError: (e: any) => toast.error("Could not check out", e.message),
 	});
 	const bulkMut = useMutation({
-		mutationFn: (input: { action: string; ids: string[] }) =>
+		mutationFn: (input: AttendeeBulkActionInput) =>
 			api.post(`/api/v1/c/${conference.slug}/attendees/bulk-action`, input),
 		onSuccess: (_d, input) => {
 			invalidate();
@@ -157,8 +163,7 @@ function AttendeesPage() {
 	const rows = list.data?.data ?? [];
 	const total = list.data?.pagination?.total ?? 0;
 
-	const allOnPageSelected = rows.length > 0 && rows.every(r => selected.has(r.id));
-
+	const allOnPageSelected = rows.every(r => selected.has(r.id)) && rows.length > 0;
 	const columns: Column<Attendee>[] = [
 		{
 			key: "select",
@@ -296,7 +301,9 @@ function AttendeesPage() {
 			});
 		if (search.checkinStatus)
 			f.push({ key: "checkinStatus", label: "Check-in", value: search.checkinStatus });
-		if (search.isVip) f.push({ key: "isVip", label: "VIP", value: search.isVip });
+		if (typeof search.isVip === "boolean") {
+			f.push({ key: "isVip", label: "VIP", value: search.isVip ? "Yes" : "No" });
+		}
 		return f;
 	}, [search]);
 
@@ -304,7 +311,7 @@ function AttendeesPage() {
 		<div className="p-6">
 			<PageHeader
 				title="Attendees"
-				description={`${stats.data?.total ?? "—"} total · ${stats.data?.confirmed ?? "—"} confirmed · ${stats.data?.checkedIn ?? "—"} checked in`}
+				description={`${stats.data?.data?.total ?? "—"} total · ${stats.data?.data?.confirmed ?? "—"} confirmed · ${stats.data?.checkedIn ?? "—"} checked in`}
 				actions={
 					<>
 						{canEdit && (
@@ -318,13 +325,6 @@ function AttendeesPage() {
 								Import
 							</Button>
 						)}
-						<Button
-							variant="secondary"
-							leadingIcon={<Download size={14} />}
-							onClick={() => toast.info("Use Reports to download CSV/XLSX")}
-						>
-							Export
-						</Button>
 						{canEdit && (
 							<Button
 								variant="primary"
@@ -473,23 +473,13 @@ function FilterDropdown({
 					<FieldRow label="Category">
 						<Select
 							value={search.category ?? ""}
-							onChange={e =>
-								setSearch({ category: e.target.value || undefined, page: 1 })
-							}
+							onChange={e => {
+								const value = e.target.value as AttendeeListQuery["category"] | "";
+								setSearch({ category: value || undefined, page: 1 });
+							}}
 						>
 							<option value="">Any</option>
-							{[
-								"delegate",
-								"speaker",
-								"keynote",
-								"vip",
-								"sponsor",
-								"organiser",
-								"student",
-								"faculty",
-								"media",
-								"observer",
-							].map(c => (
+							{ATTENDEE_CATEGORIES.map(c => (
 								<option key={c} value={c}>
 									{c}
 								</option>
@@ -499,29 +489,34 @@ function FilterDropdown({
 					<FieldRow label="Gender">
 						<Select
 							value={search.gender ?? ""}
-							onChange={e =>
-								setSearch({ gender: e.target.value || undefined, page: 1 })
-							}
+							onChange={e => {
+								const value = e.target.value as AttendeeListQuery["gender"] | "";
+								setSearch({ gender: value || undefined, page: 1 });
+							}}
 						>
 							<option value="">Any</option>
-							<option value="male">Male</option>
-							<option value="female">Female</option>
-							<option value="other">Other</option>
-							<option value="prefer_not_to_say">Prefer not to say</option>
+							{GENDERS.map(g => (
+								<option key={g} value={g}>
+									{humanise(g)}
+								</option>
+							))}
 						</Select>
 					</FieldRow>
 					<FieldRow label="Registration status">
 						<Select
 							value={search.registrationStatus ?? ""}
-							onChange={e =>
+							onChange={e => {
+								const value = e.target.value as
+									| AttendeeListQuery["registrationStatus"]
+									| "";
 								setSearch({
-									registrationStatus: e.target.value || undefined,
+									registrationStatus: value || undefined,
 									page: 1,
-								})
-							}
+								});
+							}}
 						>
 							<option value="">Any</option>
-							{["pending", "registered", "confirmed", "cancelled", "waitlisted"].map(
+							{["registered", "confirmed", "cancelled", "waitlisted", "no_show"].map(
 								c => (
 									<option key={c} value={c}>
 										{c}
@@ -533,12 +528,15 @@ function FilterDropdown({
 					<FieldRow label="Check-in status">
 						<Select
 							value={search.checkinStatus ?? ""}
-							onChange={e =>
-								setSearch({ checkinStatus: e.target.value || undefined, page: 1 })
-							}
+							onChange={e => {
+								const value = e.target.value as
+									| AttendeeListQuery["checkinStatus"]
+									| "";
+								setSearch({ checkinStatus: value || undefined, page: 1 });
+							}}
 						>
 							<option value="">Any</option>
-							{["not_checked_in", "checked_in", "checked_out", "no_show"].map(c => (
+							{["not_checked_in", "checked_in", "checked_out"].map(c => (
 								<option key={c} value={c}>
 									{c.replace(/_/g, " ")}
 								</option>
@@ -547,9 +545,15 @@ function FilterDropdown({
 					</FieldRow>
 					<FieldRow label="VIP">
 						<Select
-							value={search.isVip ?? ""}
+							value={search.isVip === undefined ? "" : String(search.isVip)}
 							onChange={e =>
-								setSearch({ isVip: e.target.value || undefined, page: 1 })
+								setSearch({
+									isVip:
+										e.target.value === ""
+											? undefined
+											: e.target.value === "true",
+									page: 1,
+								})
 							}
 						>
 							<option value="">Any</option>
@@ -571,11 +575,15 @@ function BulkActionsMenu({
 }: {
 	selectedCount: number;
 	canAdmin: boolean;
-	onAction: (action: string) => void;
+	onAction: (action: AttendeeBulkActionInput["action"]) => void;
 	onClear: () => void;
 }) {
 	const [open, setOpen] = useState(false);
-	const actions: { value: string; label: string; tone?: "danger" | "primary" }[] = [
+	const actions: {
+		value: AttendeeBulkActionInput["action"];
+		label: string;
+		tone?: "danger" | "primary";
+	}[] = [
 		{ value: "check_in", label: "Check in" },
 		{ value: "check_out", label: "Check out" },
 		{ value: "confirm", label: "Mark confirmed" },
@@ -656,9 +664,11 @@ function AttendeeDrawer({
 		mutationFn: async () => {
 			const path = `/api/v1/c/${conference.slug}/attendees`;
 			if (isEdit && attendee) {
-				return api.patch<{ data: Attendee }>(`${path}/${attendee.id}`, cleanForApi(form));
+				const payload: AttendeeUpdateInput = attendeeUpdateSchema.parse(cleanForApi(form));
+				return api.patch<{ data: Attendee }>(`${path}/${attendee.id}`, payload);
 			}
-			return api.post<{ data: Attendee }>(path, cleanForApi(form));
+			const payload: AttendeeCreateInput = attendeeCreateSchema.parse(cleanForApi(form));
+			return api.post<{ data: Attendee }>(path, payload);
 		},
 		onSuccess: () => {
 			onSaved();
@@ -668,6 +678,8 @@ function AttendeeDrawer({
 		onError: (err: any) => {
 			if (err instanceof ApiError && err.details && typeof err.details === "object") {
 				toast.error("Validation failed", JSON.stringify(err.details));
+			} else if (err instanceof z.ZodError) {
+				toast.error("Validation failed", err.issues.map(i => i.message).join(", "));
 			} else {
 				toast.error("Save failed", err.message);
 			}
@@ -731,10 +743,11 @@ function AttendeeDrawer({
 						onChange={e => update({ gender: e.target.value || null })}
 					>
 						<option value="">—</option>
-						<option value="male">Male</option>
-						<option value="female">Female</option>
-						<option value="other">Other</option>
-						<option value="prefer_not_to_say">Prefer not to say</option>
+						{GENDERS.map(g => (
+							<option key={g} value={g}>
+								{humanise(g)}
+							</option>
+						))}
 					</Select>
 				</FieldRow>
 				<FieldRow label="Category">
@@ -743,20 +756,9 @@ function AttendeeDrawer({
 						onChange={e => update({ category: e.target.value || null })}
 					>
 						<option value="">—</option>
-						{[
-							"delegate",
-							"speaker",
-							"keynote",
-							"vip",
-							"sponsor",
-							"organiser",
-							"student",
-							"faculty",
-							"media",
-							"observer",
-						].map(c => (
+						{ATTENDEE_CATEGORIES.map(c => (
 							<option key={c} value={c}>
-								{c}
+								{humanise(c)}
 							</option>
 						))}
 					</Select>
@@ -767,10 +769,10 @@ function AttendeeDrawer({
 						onChange={e => update({ registrationStatus: e.target.value || null })}
 					>
 						<option value="">—</option>
-						{["pending", "registered", "confirmed", "cancelled", "waitlisted"].map(
+						{["registered", "confirmed", "cancelled", "waitlisted", "no_show"].map(
 							c => (
 								<option key={c} value={c}>
-									{c}
+									{humanise(c)}
 								</option>
 							),
 						)}
@@ -812,12 +814,11 @@ function AttendeeDrawer({
 						onChange={e => update({ dietaryPreference: e.target.value || null })}
 					>
 						<option value="">—</option>
-						<option value="veg">Veg</option>
-						<option value="non_veg">Non-veg</option>
-						<option value="vegan">Vegan</option>
-						<option value="jain">Jain</option>
-						<option value="no_onion_garlic">No onion/garlic</option>
-						<option value="special">Special</option>
+						{DIET_PREFERENCES.map(d => (
+							<option key={d} value={d}>
+								{humanise(d)}
+							</option>
+						))}
 					</Select>
 				</FieldRow>
 				<FieldRow label="Blood group">
@@ -838,7 +839,11 @@ function AttendeeDrawer({
 							"unknown",
 						].map(b => (
 							<option key={b} value={b}>
-								{b.toUpperCase().replace("_", " ")}
+								{b
+									.toUpperCase()
+									.replace("_", "")
+									.replace("POS", "+")
+									.replace("NEG", "-")}
 							</option>
 						))}
 					</Select>

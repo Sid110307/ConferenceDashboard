@@ -12,6 +12,7 @@ import { z } from "zod";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { DatePickerInput } from "@/components/DatePicker";
 import { CenterSpinner, EmptyState } from "@/components/EmptyState";
 import { EntityDrawer } from "@/components/EntityDrawer";
 import { FieldRow } from "@/components/FieldRow";
@@ -206,10 +207,9 @@ function PlanDrawer({ onClose }: { onClose: () => void }) {
 		>
 			<div className="space-y-4">
 				<FieldRow label="Date" required>
-					<Input
-						type="date"
+					<DatePickerInput
 						value={form.mealDate}
-						onChange={e => setForm(p => ({ ...p, mealDate: e.target.value }))}
+						onChange={e => setForm(p => ({ ...p, mealDate: e }))}
 					/>
 				</FieldRow>
 				<FieldRow label="Expected headcount">
@@ -287,10 +287,9 @@ function ScanDrawer({ onClose }: { onClose: () => void }) {
 					/>
 				</FieldRow>
 				<FieldRow label="Date" required>
-					<Input
-						type="date"
+					<DatePickerInput
 						value={form.mealDate}
-						onChange={e => setForm(p => ({ ...p, mealDate: e.target.value }))}
+						onChange={e => setForm(p => ({ ...p, mealDate: e }))}
 					/>
 				</FieldRow>
 				<FieldRow label="Meal" required>

@@ -107,8 +107,8 @@ export function buildApp() {
 	tenant.route("/helpdesk", helpdeskRouter);
 	tenant.route("/vip", vipRouter);
 	tenant.route("/vip-checklist", vipChecklistRouter);
-	tenant.route("/finance", financeItemsRouter);
 	tenant.route("/finance", financeSummaryRouter);
+	tenant.route("/finance", financeItemsRouter);
 	tenant.route("/sponsors", sponsorsRouter);
 
 	tenant.route("/comms/providers", providersRouter);

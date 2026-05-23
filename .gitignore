@@ -5,6 +5,7 @@ dist/
 build/
 *.tsbuildinfo
 .turbo/
+**/.tanstack/
 
 .env*
 !.env.example

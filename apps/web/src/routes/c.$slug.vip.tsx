@@ -56,7 +56,7 @@ function VipPage() {
 	const canEdit = hasRole(membership, "editor");
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 
-	const list = useListQuery<Vip>({
+	const list = useListQuery<{ data: Vip[] }>({
 		key: ["vip", conference.slug],
 		path: `/api/v1/c/${conference.slug}/vip`,
 		params: { page: search.page ?? 1, pageSize: PAGE_SIZE, q: search.q },
@@ -66,7 +66,6 @@ function VipPage() {
 	const [creating, setCreating] = useState(false);
 
 	const rows = list.data?.data ?? [];
-
 	const cols: Column<Vip>[] = [
 		{
 			key: "name",

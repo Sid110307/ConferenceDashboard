@@ -34,27 +34,38 @@ export const Route = createFileRoute("/c/$slug/finance")({
 
 type FinanceItem = {
 	id: string;
-	title: string;
-	category?: string | null;
-	direction: "income" | "expense";
-	amountPlanned?: string | null;
-	amountActual?: string | null;
-	notes?: string | null;
+	itemName: string;
+	itemType: string;
+	category: string | null;
+
+	budgetAmount: string;
+	actualAmount: string;
+	currency: string;
+
+	paymentStatus: string;
+	vendorOrSource: string | null;
+	invoiceNumber: string | null;
+	notes: string | null;
 };
 type Sponsor = {
 	id: string;
 	name: string;
-	tier?: string | null;
-	amountCommitted?: string | null;
-	amountReceived?: string | null;
-	contactName?: string | null;
-	contactEmail?: string | null;
+	tier: string | null;
+	contributionAmount: string;
+	currency: string;
+
+	contactName: string | null;
+	contactEmail: string | null;
+	contactPhone: string | null;
 };
 type Summary = {
-	incomePlanned: string;
-	incomeActual: string;
-	expensePlanned: string;
-	expenseActual: string;
+	totalBudget: number;
+	totalActual: number;
+	incomeBudget: number;
+	incomeActual: number;
+	expenseBudget: number;
+	expenseActual: number;
+	count: number;
 };
 
 const PAGE_SIZE = 25;
@@ -65,13 +76,13 @@ function FinancePage() {
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 	const tab = search.tab ?? "ledger";
 
-	const summary = useQuery<Summary>({
+	const summary = useQuery<{ data: Summary }>({
 		queryKey: ["finance-summary", conference.slug],
-		queryFn: () => api.get<Summary>(`/api/v1/c/${conference.slug}/finance/summary`),
+		queryFn: () => api.get<{ data: Summary }>(`/api/v1/c/${conference.slug}/finance/summary`),
 	});
 
-	const incomeActual = Number(summary.data?.incomeActual ?? 0);
-	const expenseActual = Number(summary.data?.expenseActual ?? 0);
+	const incomeActual = Number(summary.data?.data?.incomeActual ?? 0);
+	const expenseActual = Number(summary.data?.data?.expenseActual ?? 0);
 	const net = incomeActual - expenseActual;
 
 	return (
@@ -84,23 +95,26 @@ function FinancePage() {
 			<div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
 				<StatCard
 					label="Income (actual)"
-					value={fmtINR(incomeActual)}
+					value={incomeActual}
 					icon={<TrendingUp size={18} />}
 					tone="success"
-					hint={`Planned ${fmtINR(Number(summary.data?.incomePlanned ?? 0))}`}
+					prefix="₹"
+					hint={`Budget ${fmtINR(Number(summary.data?.data?.incomeBudget ?? 0))}`}
 				/>
 				<StatCard
 					label="Expense (actual)"
-					value={fmtINR(expenseActual)}
+					value={expenseActual}
 					icon={<TrendingDown size={18} />}
 					tone="danger"
-					hint={`Planned ${fmtINR(Number(summary.data?.expensePlanned ?? 0))}`}
+					prefix="₹"
+					hint={`Budget ${fmtINR(Number(summary.data?.data?.expenseBudget ?? 0))}`}
 				/>
 				<StatCard
 					label="Net position"
-					value={fmtINR(net)}
+					value={net}
 					icon={<Wallet size={18} />}
 					tone={net >= 0 ? "success" : "danger"}
+					prefix="₹"
 				/>
 			</div>
 
@@ -138,7 +152,7 @@ function LedgerTab({
 	setSearch: (p: Partial<z.infer<typeof Search>>) => void;
 }) {
 	const { conference } = useConference();
-	const list = useListQuery<FinanceItem>({
+	const list = useListQuery<{ data: FinanceItem[] }>({
 		key: ["finance-items", conference.slug],
 		path: `/api/v1/c/${conference.slug}/finance`,
 		params: { page: search.page ?? 1, pageSize: PAGE_SIZE },
@@ -148,11 +162,11 @@ function LedgerTab({
 
 	const cols: Column<FinanceItem>[] = [
 		{
-			key: "title",
+			key: "itemName",
 			header: "Item",
 			cell: r => (
 				<div className="min-w-0">
-					<div className="text-ink font-medium truncate">{r.title}</div>
+					<div className="text-ink font-medium truncate">{r.itemName}</div>
 					{r.category && (
 						<div className="text-xs text-ink-3 capitalize">{humanise(r.category)}</div>
 					)}
@@ -160,26 +174,24 @@ function LedgerTab({
 			),
 		},
 		{
-			key: "direction",
+			key: "itemType",
 			header: "Type",
 			cell: r => (
-				<Badge variant={r.direction === "income" ? "success" : "danger"}>
-					{r.direction}
-				</Badge>
+				<Badge variant={r.itemType === "income" ? "success" : "danger"}>{r.itemType}</Badge>
 			),
 			width: "w-28",
 		},
 		{
-			key: "planned",
-			header: "Planned",
-			cell: r => fmtINR(Number(r.amountPlanned ?? 0)),
+			key: "budgetAmount",
+			header: "Budget",
+			cell: r => fmtINR(Number(r.budgetAmount ?? 0)),
 			align: "right",
 			width: "w-32",
 		},
 		{
-			key: "actual",
+			key: "actualAmount",
 			header: "Actual",
-			cell: r => <span className="font-medium">{fmtINR(Number(r.amountActual ?? 0))}</span>,
+			cell: r => <span className="font-medium">{fmtINR(Number(r.actualAmount ?? 0))}</span>,
 			align: "right",
 			width: "w-32",
 		},
@@ -233,16 +245,18 @@ function FinanceItemDrawer({ item, onClose }: { item: FinanceItem | null; onClos
 	const qc = useQueryClient();
 	const toast = useToast();
 	const isEdit = !!item;
-	const [form, setForm] = useState<Partial<FinanceItem>>(item ?? { direction: "expense" });
+	const [form, setForm] = useState<Partial<FinanceItem>>(
+		item ?? ({ itemType: "expense" } as any),
+	);
 	const save = useMutation({
 		mutationFn: () => {
 			const path = `/api/v1/c/${conference.slug}/finance`;
 			const body = {
-				title: form.title,
+				itemName: form.itemName,
 				category: form.category || undefined,
-				direction: form.direction,
-				amountPlanned: form.amountPlanned ? String(form.amountPlanned) : undefined,
-				amountActual: form.amountActual ? String(form.amountActual) : undefined,
+				itemType: form.itemType,
+				budgetAmount: form.budgetAmount ? String(form.budgetAmount) : undefined,
+				actualAmount: form.actualAmount ? String(form.actualAmount) : undefined,
 				notes: form.notes || undefined,
 			};
 			return isEdit ? api.patch(`${path}/${item!.id}`, body) : api.post(path, body);
@@ -264,7 +278,7 @@ function FinanceItemDrawer({ item, onClose }: { item: FinanceItem | null; onClos
 		<EntityDrawer
 			open
 			onOpenChange={v => !v && onClose()}
-			title={isEdit ? item!.title : "New line item"}
+			title={isEdit ? item!.itemName : "New line item"}
 			width="md"
 			footer={
 				<>
@@ -282,17 +296,17 @@ function FinanceItemDrawer({ item, onClose }: { item: FinanceItem | null; onClos
 			}
 		>
 			<div className="space-y-4">
-				<FieldRow label="Title" required>
+				<FieldRow label="Item name" required>
 					<Input
-						value={form.title ?? ""}
-						onChange={e => upd({ title: e.target.value })}
+						value={form.itemName ?? ""}
+						onChange={e => upd({ itemName: e.target.value })}
 					/>
 				</FieldRow>
 				<div className="grid grid-cols-2 gap-3">
-					<FieldRow label="Direction">
+					<FieldRow label="Type">
 						<Select
-							value={form.direction ?? "expense"}
-							onChange={e => upd({ direction: e.target.value as any })}
+							value={form.itemType ?? "expense"}
+							onChange={e => upd({ itemType: e.target.value as any })}
 						>
 							<option value="income">Income</option>
 							<option value="expense">Expense</option>
@@ -304,18 +318,18 @@ function FinanceItemDrawer({ item, onClose }: { item: FinanceItem | null; onClos
 							onChange={e => upd({ category: e.target.value })}
 						/>
 					</FieldRow>
-					<FieldRow label="Planned amount (₹)">
+					<FieldRow label="Budget amount (₹)">
 						<Input
 							type="number"
-							value={form.amountPlanned ?? ""}
-							onChange={e => upd({ amountPlanned: e.target.value })}
+							value={form.budgetAmount ?? ""}
+							onChange={e => upd({ budgetAmount: e.target.value })}
 						/>
 					</FieldRow>
 					<FieldRow label="Actual amount (₹)">
 						<Input
 							type="number"
-							value={form.amountActual ?? ""}
-							onChange={e => upd({ amountActual: e.target.value })}
+							value={form.actualAmount ?? ""}
+							onChange={e => upd({ actualAmount: e.target.value })}
 						/>
 					</FieldRow>
 				</div>
@@ -340,7 +354,7 @@ function SponsorsTab({
 	setSearch: (p: Partial<z.infer<typeof Search>>) => void;
 }) {
 	const { conference } = useConference();
-	const list = useListQuery<Sponsor>({
+	const list = useListQuery<{ data: Sponsor[] }>({
 		key: ["sponsors", conference.slug],
 		path: `/api/v1/c/${conference.slug}/sponsors`,
 		params: { page: search.page ?? 1, pageSize: PAGE_SIZE },
@@ -372,16 +386,9 @@ function SponsorsTab({
 			width: "w-28",
 		},
 		{
-			key: "committed",
-			header: "Committed",
-			cell: r => fmtINR(Number(r.amountCommitted ?? 0)),
-			align: "right",
-			width: "w-32",
-		},
-		{
-			key: "received",
-			header: "Received",
-			cell: r => <span className="font-medium">{fmtINR(Number(r.amountReceived ?? 0))}</span>,
+			key: "contribution",
+			header: "Contribution",
+			cell: r => fmtINR(Number(r.contributionAmount ?? 0)),
 			align: "right",
 			width: "w-32",
 		},
@@ -442,10 +449,12 @@ function SponsorDrawer({ sponsor, onClose }: { sponsor: Sponsor | null; onClose:
 			const body = {
 				name: form.name,
 				tier: form.tier || undefined,
-				amountCommitted: form.amountCommitted ? String(form.amountCommitted) : undefined,
-				amountReceived: form.amountReceived ? String(form.amountReceived) : undefined,
+				contributionAmount: form.contributionAmount
+					? String(form.contributionAmount)
+					: undefined,
 				contactName: form.contactName || undefined,
 				contactEmail: form.contactEmail || undefined,
+				contactPhone: form.contactPhone || undefined,
 			};
 			return isEdit ? api.patch(`${path}/${sponsor!.id}`, body) : api.post(path, body);
 		},
@@ -495,18 +504,11 @@ function SponsorDrawer({ sponsor, onClose }: { sponsor: Sponsor | null; onClose:
 						))}
 					</Select>
 				</FieldRow>
-				<FieldRow label="Committed (₹)">
+				<FieldRow label="Contribution (₹)">
 					<Input
 						type="number"
-						value={form.amountCommitted ?? ""}
-						onChange={e => upd({ amountCommitted: e.target.value })}
-					/>
-				</FieldRow>
-				<FieldRow label="Received (₹)">
-					<Input
-						type="number"
-						value={form.amountReceived ?? ""}
-						onChange={e => upd({ amountReceived: e.target.value })}
+						value={form.contributionAmount ?? ""}
+						onChange={e => upd({ contributionAmount: e.target.value })}
 					/>
 				</FieldRow>
 				<FieldRow label="Contact name">
@@ -515,11 +517,17 @@ function SponsorDrawer({ sponsor, onClose }: { sponsor: Sponsor | null; onClose:
 						onChange={e => upd({ contactName: e.target.value })}
 					/>
 				</FieldRow>
-				<FieldRow label="Contact email" className="sm:col-span-2">
+				<FieldRow label="Contact email">
 					<Input
 						type="email"
 						value={form.contactEmail ?? ""}
 						onChange={e => upd({ contactEmail: e.target.value })}
+					/>
+				</FieldRow>
+				<FieldRow label="Contact phone">
+					<Input
+						value={form.contactPhone ?? ""}
+						onChange={e => upd({ contactPhone: e.target.value })}
 					/>
 				</FieldRow>
 			</div>

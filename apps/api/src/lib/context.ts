@@ -16,6 +16,7 @@ export type ActiveConference = {
 };
 
 export type ActiveMembership = {
+	userId: string;
 	role: UserRole;
 	isActive: boolean;
 	permissions: Record<string, boolean>;

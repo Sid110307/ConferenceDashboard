@@ -7,7 +7,7 @@ export function SearchField({
 	value,
 	onChange,
 	placeholder = "Search...",
-	debounceMs = 250,
+	debounceMs = 500,
 	className,
 	autoFocus,
 }: {

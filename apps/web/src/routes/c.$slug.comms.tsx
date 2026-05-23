@@ -5,6 +5,21 @@ import { hasRole, useConference } from "@/lib/ConferenceContext";
 import { fmtRelative, humanise } from "@/lib/format";
 import { useRealtime } from "@/lib/useRealtime";
 import { useUrlState } from "@/lib/useUrlState";
+import {
+	ATTENDEE_CATEGORIES,
+	audiencePreviewSchema,
+	COMMS_CHANNELS,
+	messageCampaignActionSchema,
+	messageCampaignCreateSchema,
+	messageTemplateCreateSchema,
+	messageTemplateUpdateSchema,
+	messagingProviderCreateSchema,
+	type AudienceFilter,
+	type CommsChannel,
+	type MessageCampaignInput,
+	type MessageTemplateInput,
+	type MessagingProviderInput,
+} from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Mail, MessageSquare, Plus, Send, Settings2, Users } from "lucide-react";
@@ -35,7 +50,7 @@ export const Route = createFileRoute("/c/$slug/comms")({
 type Provider = {
 	id: string;
 	name: string;
-	channel: "email" | "sms" | "whatsapp";
+	channel: CommsChannel;
 	provider: string;
 	isDefault: boolean;
 	isActive: boolean;
@@ -44,16 +59,14 @@ type Provider = {
 type Template = {
 	id: string;
 	name: string;
-	channel: string;
+	channel: CommsChannel;
 	subject?: string | null;
-	bodyText?: string | null;
-	bodyHtml?: string | null;
-	variables?: string[] | null;
+	body?: string | null;
 };
 type Campaign = {
 	id: string;
 	name: string;
-	channel: string;
+	channel: CommsChannel;
 	status: string;
 	templateId?: string | null;
 	providerId?: string | null;
@@ -61,7 +74,7 @@ type Campaign = {
 	sentCount: number;
 	failedCount: number;
 	audienceFilter?: Record<string, any> | null;
-	scheduledFor?: string | null;
+	scheduledAt?: string | null;
 	createdAt: string;
 };
 
@@ -109,17 +122,21 @@ const PROVIDER_KINDS: Record<string, { provider: string; label: string; fields: 
 		{ provider: "sendgrid", label: "SendGrid", fields: ["apiKey"] },
 	],
 	sms: [
-		{ provider: "twilio", label: "Twilio", fields: ["accountSid", "authToken", "fromNumber"] },
+		{
+			provider: "twilio_sms",
+			label: "Twilio",
+			fields: ["accountSid", "authToken", "fromNumber"],
+		},
 		{ provider: "msg91", label: "MSG91", fields: ["authKey", "senderId"] },
 	],
 	whatsapp: [
 		{
-			provider: "twilio",
+			provider: "twilio_wa",
 			label: "Twilio WhatsApp",
 			fields: ["accountSid", "authToken", "fromNumber"],
 		},
 		{
-			provider: "meta_cloud",
+			provider: "meta_wa",
 			label: "Meta Cloud API",
 			fields: ["phoneNumberId", "accessToken"],
 		},
@@ -199,7 +216,7 @@ function ProviderDrawer({ onClose }: { onClose: () => void }) {
 	const { conference } = useConference();
 	const qc = useQueryClient();
 	const toast = useToast();
-	const [channel, setChannel] = useState<"email" | "sms" | "whatsapp">("email");
+	const [channel, setChannel] = useState<CommsChannel>("email");
 	const [providerKind, setProviderKind] = useState("smtp");
 	const [name, setName] = useState("");
 	const [isDefault, setIsDefault] = useState(true);
@@ -212,17 +229,19 @@ function ProviderDrawer({ onClose }: { onClose: () => void }) {
 
 	const create = useMutation({
 		mutationFn: () =>
-			api.post(`/api/v1/c/${conference.slug}/comms/providers`, {
-				name,
-				channel,
-				provider: providerKind,
-				isDefault,
-				config,
-				configPublic: {
+			api.post(
+				`/api/v1/c/${conference.slug}/comms/providers`,
+				messagingProviderCreateSchema.parse({
+					name,
+					channel,
+					provider: providerKind,
+					isDefault,
+					config,
+					configPublic: {},
 					fromAddress: fromAddress || undefined,
 					fromName: fromName || undefined,
-				},
-			}),
+				}) as MessagingProviderInput,
+			),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["providers", conference.slug] });
 			toast.success("Provider added");
@@ -380,7 +399,7 @@ function TemplatesTab({ canEdit }: { canEdit: boolean }) {
 							</Badge>
 						</div>
 						{t.subject && <div className="mt-1 text-xs text-ink-2">{t.subject}</div>}
-						<div className="mt-1 text-xs text-ink-3 line-clamp-2">{t.bodyText}</div>
+						<div className="mt-1 text-xs text-ink-3 line-clamp-2">{t.body}</div>
 					</button>
 				))}
 			</div>
@@ -403,20 +422,25 @@ function TemplateDrawer({ template, onClose }: { template: Template | null; onCl
 	const toast = useToast();
 	const isEdit = !!template;
 	const [form, setForm] = useState<Partial<Template>>(
-		template ?? { channel: "email", name: "", bodyText: "" },
+		template ?? { channel: "email", name: "", body: "" },
 	);
 
 	const save = useMutation({
 		mutationFn: () => {
 			const path = `/api/v1/c/${conference.slug}/comms/templates`;
-			const body = {
+			const body: MessageTemplateInput = messageTemplateCreateSchema.parse({
 				name: form.name,
 				channel: form.channel,
 				subject: form.subject || undefined,
-				bodyText: form.bodyText,
-				bodyHtml: form.bodyHtml || undefined,
-			};
-			return isEdit ? api.patch(`${path}/${template!.id}`, body) : api.post(path, body);
+				body: form.body,
+			});
+			if (isEdit) {
+				return api.patch(
+					`${path}/${template!.id}`,
+					messageTemplateUpdateSchema.parse(body),
+				);
+			}
+			return api.post(path, body);
 		},
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["templates", conference.slug] });
@@ -460,7 +484,7 @@ function TemplateDrawer({ template, onClose }: { template: Template | null; onCl
 					<FieldRow label="Channel">
 						<Select
 							value={form.channel ?? "email"}
-							onChange={e => upd({ channel: e.target.value })}
+							onChange={e => upd({ channel: e.target.value as CommsChannel })}
 						>
 							<option value="email">Email</option>
 							<option value="sms">SMS</option>
@@ -482,24 +506,12 @@ function TemplateDrawer({ template, onClose }: { template: Template | null; onCl
 					hint="Use {{name}}, {{attendeeCode}}, {{conference.name}} etc. for personalisation."
 				>
 					<Textarea
-						value={form.bodyText ?? ""}
-						onChange={e => upd({ bodyText: e.target.value })}
+						value={form.body ?? ""}
+						onChange={e => upd({ body: e.target.value })}
 						className="min-h-[180px] font-mono text-[13px]"
 						placeholder={"Dear {{name}},\n\nWelcome to {{conference.name}}..."}
 					/>
 				</FieldRow>
-				{form.channel === "email" && (
-					<FieldRow
-						label="HTML body (optional)"
-						hint="Leave blank to send plain text only."
-					>
-						<Textarea
-							value={form.bodyHtml ?? ""}
-							onChange={e => upd({ bodyHtml: e.target.value })}
-							className="min-h-[120px] font-mono text-[13px]"
-						/>
-					</FieldRow>
-				)}
 			</div>
 		</EntityDrawer>
 	);
@@ -608,9 +620,10 @@ function CampaignSendButton({ campaign }: { campaign: Campaign }) {
 	const confirm = useConfirm();
 	const send = useMutation({
 		mutationFn: () =>
-			api.post(`/api/v1/c/${conference.slug}/comms/campaigns/${campaign.id}/action`, {
-				action: "send_now",
-			}),
+			api.post(
+				`/api/v1/c/${conference.slug}/comms/campaigns/${campaign.id}/action`,
+				messageCampaignActionSchema.parse({ action: "send_now" }),
+			),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["campaigns", conference.slug] });
 			toast.success("Campaign sending", "The worker is dispatching messages now.");
@@ -643,10 +656,11 @@ function CampaignBuilder({ onClose }: { onClose: () => void }) {
 	const toast = useToast();
 
 	const [name, setName] = useState("");
-	const [channel, setChannel] = useState("email");
+	const [channel, setChannel] = useState<CommsChannel>("email");
 	const [templateId, setTemplateId] = useState("");
 	const [providerId, setProviderId] = useState("");
-	const [audience, setAudience] = useState<Record<string, any>>({ all: true });
+	const [allAttendees, setAllAttendees] = useState(true);
+	const [audience, setAudience] = useState<AudienceFilter>({});
 	const [previewCount, setPreviewCount] = useState<number | null>(null);
 
 	const templates = useQuery<{ data: Template[] }>({
@@ -667,7 +681,7 @@ function CampaignBuilder({ onClose }: { onClose: () => void }) {
 		mutationFn: () =>
 			api.post<{ count: number }>(
 				`/api/v1/c/${conference.slug}/comms/campaigns/audience-preview`,
-				{ channel, audienceFilter: audience },
+				audiencePreviewSchema.parse({ channel, audienceFilter: audience }),
 			),
 		onSuccess: d => setPreviewCount(d.count),
 		onError: (e: any) => toast.error("Preview failed", e.message),
@@ -675,13 +689,16 @@ function CampaignBuilder({ onClose }: { onClose: () => void }) {
 
 	const create = useMutation({
 		mutationFn: () =>
-			api.post(`/api/v1/c/${conference.slug}/comms/campaigns`, {
-				name,
-				channel,
-				templateId,
-				providerId,
-				audienceFilter: audience,
-			}),
+			api.post(
+				`/api/v1/c/${conference.slug}/comms/campaigns`,
+				messageCampaignCreateSchema.parse({
+					name,
+					channel,
+					templateId: templateId || undefined,
+					providerId: providerId || undefined,
+					audienceFilter: audience,
+				}) as MessageCampaignInput,
+			),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["campaigns", conference.slug] });
 			toast.success("Campaign created", "Saved as draft for review.");
@@ -721,15 +738,17 @@ function CampaignBuilder({ onClose }: { onClose: () => void }) {
 					<Select
 						value={channel}
 						onChange={e => {
-							setChannel(e.target.value);
+							setChannel(e.target.value as CommsChannel);
 							setTemplateId("");
 							setProviderId("");
 							setPreviewCount(null);
 						}}
 					>
-						<option value="email">Email</option>
-						<option value="sms">SMS</option>
-						<option value="whatsapp">WhatsApp</option>
+						{COMMS_CHANNELS.map(ch => (
+							<option key={ch} value={ch}>
+								{humanise(ch)}
+							</option>
+						))}
 					</Select>
 				</FieldRow>
 				<div className="grid grid-cols-2 gap-3">
@@ -762,26 +781,30 @@ function CampaignBuilder({ onClose }: { onClose: () => void }) {
 					<label className="flex items-center gap-2 text-sm text-ink-2">
 						<input
 							type="checkbox"
-							checked={!!audience.all}
-							onChange={e => setAudience(e.target.checked ? { all: true } : {})}
+							checked={allAttendees}
+							onChange={e => {
+								setAllAttendees(e.target.checked);
+								if (e.target.checked) setAudience({});
+							}}
 							className="size-4 accent-accent"
 						/>
 						All attendees
 					</label>
-					{!audience.all && (
+					{!allAttendees && (
 						<div className="grid grid-cols-2 gap-3">
 							<FieldRow label="Category">
 								<Select
 									value={audience.category?.[0] ?? ""}
-									onChange={e =>
+									onChange={e => {
+										setAllAttendees(false);
 										setAudience(a => ({
 											...a,
 											category: e.target.value ? [e.target.value] : undefined,
-										}))
-									}
+										}));
+									}}
 								>
 									<option value="">Any</option>
-									{["delegate", "speaker", "vip", "student", "faculty"].map(c => (
+									{ATTENDEE_CATEGORIES.map(c => (
 										<option key={c} value={c}>
 											{c}
 										</option>
@@ -791,14 +814,15 @@ function CampaignBuilder({ onClose }: { onClose: () => void }) {
 							<FieldRow label="Check-in status">
 								<Select
 									value={audience.checkinStatus?.[0] ?? ""}
-									onChange={e =>
+									onChange={e => {
+										setAllAttendees(false);
 										setAudience(a => ({
 											...a,
 											checkinStatus: e.target.value
 												? [e.target.value]
 												: undefined,
-										}))
-									}
+										}));
+									}}
 								>
 									<option value="">Any</option>
 									<option value="checked_in">Checked in</option>
@@ -808,12 +832,13 @@ function CampaignBuilder({ onClose }: { onClose: () => void }) {
 							<FieldRow label="VIP only">
 								<Select
 									value={audience.isVip === true ? "true" : ""}
-									onChange={e =>
+									onChange={e => {
+										setAllAttendees(false);
 										setAudience(a => ({
 											...a,
 											isVip: e.target.value === "true" ? true : undefined,
-										}))
-									}
+										}));
+									}}
 								>
 									<option value="">Any</option>
 									<option value="true">VIP only</option>

@@ -43,7 +43,7 @@ export function DatePickerInput({
 					variant="secondary"
 					disabled={disabled}
 					className={cx(
-						"h-9 justify-start gap-2 px-3 text-left font-normal",
+						"w-full h-9 justify-start gap-2 px-3 text-left font-normal",
 						!selected && "text-ink-3",
 						className,
 					)}

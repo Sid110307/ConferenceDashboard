@@ -1,21 +1,31 @@
 import { useState } from "react";
 
+
+
 import { api } from "@/lib/api";
 import { hasRole, useConference } from "@/lib/ConferenceContext";
 import { useUrlState } from "@/lib/useUrlState";
+import { conferenceUpdateSchema, type ConferenceUpdateInput } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Building, Palette, Save, SlidersHorizontal } from "lucide-react";
 import { z } from "zod";
 
+
+
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { DatePickerInput } from "@/components/DatePicker";
 import { CenterSpinner, EmptyState } from "@/components/EmptyState";
 import { FieldRow } from "@/components/FieldRow";
 import { Input, Select, Textarea } from "@/components/Input";
 import { PageHeader } from "@/components/PageHeader";
 import { Tabs } from "@/components/Tabs";
 import { useToast } from "@/components/Toast";
+
+
+
+
 
 const Search = z.object({
 	tab: z.enum(["profile", "appearance", "advanced"]).default("profile").optional(),
@@ -63,12 +73,12 @@ function SettingsPage() {
 
 type ConferenceProfile = {
 	name: string;
-	tagline?: string | null;
+	description?: string | null;
 	startDate?: string | null;
 	endDate?: string | null;
 	venueName?: string | null;
 	venueAddress?: string | null;
-	status?: string | null;
+	conferenceStatus?: "draft" | "active" | "concluded" | "archived" | null;
 	timezone?: string | null;
 };
 
@@ -85,7 +95,11 @@ function ProfileTab() {
 	const merged = { ...(profile.data?.data ?? {}), ...form };
 
 	const save = useMutation({
-		mutationFn: () => api.patch(`/api/v1/c/${conference.slug}`, form),
+		mutationFn: () =>
+			api.patch(
+				`/api/v1/c/${conference.slug}`,
+				conferenceUpdateSchema.parse(form) as ConferenceUpdateInput,
+			),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["conf-profile", conference.slug] });
 			qc.invalidateQueries({ queryKey: ["active-conference", conference.slug] });
@@ -124,30 +138,28 @@ function ProfileTab() {
 				</FieldRow>
 				<FieldRow label="Tagline" className="sm:col-span-2">
 					<Input
-						value={merged.tagline ?? ""}
-						onChange={e => upd({ tagline: e.target.value })}
+						value={merged.description ?? ""}
+						onChange={e => upd({ description: e.target.value })}
 					/>
 				</FieldRow>
 				<FieldRow label="Start date">
-					<Input
-						type="date"
+					<DatePickerInput
 						value={merged.startDate?.slice(0, 10) ?? ""}
-						onChange={e => upd({ startDate: e.target.value })}
+						onChange={e => upd({ startDate: e })}
 					/>
 				</FieldRow>
 				<FieldRow label="End date">
-					<Input
-						type="date"
+					<DatePickerInput
 						value={merged.endDate?.slice(0, 10) ?? ""}
-						onChange={e => upd({ endDate: e.target.value })}
+						onChange={e => upd({ endDate: e })}
 					/>
 				</FieldRow>
 				<FieldRow label="Status">
 					<Select
-						value={merged.status ?? "planning"}
-						onChange={e => upd({ status: e.target.value })}
+						value={merged.conferenceStatus ?? "draft"}
+						onChange={e => upd({ conferenceStatus: e.target.value as any })}
 					>
-						{["planning", "active", "completed", "archived"].map(s => (
+						{["draft", "active", "concluded", "archived"].map(s => (
 							<option key={s} value={s}>
 								{s}
 							</option>

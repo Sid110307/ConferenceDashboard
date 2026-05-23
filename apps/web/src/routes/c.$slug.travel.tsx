@@ -5,6 +5,7 @@ import { hasRole, useConference } from "@/lib/ConferenceContext";
 import { fmtDateTime } from "@/lib/format";
 import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
+import { GENDERS, PICKUP_STATUSES, type Gender, type PickupStatus } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Bus, Filter, Plane, Truck } from "lucide-react";
@@ -14,9 +15,10 @@ import { Badge, StatusBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { DataTable, Pagination, type Column } from "@/components/DataTable";
+import { DatePickerInput } from "@/components/DatePicker";
 import { EntityDrawer } from "@/components/EntityDrawer";
 import { FieldRow } from "@/components/FieldRow";
-import { Input, Select } from "@/components/Input";
+import { Select } from "@/components/Input";
 import { PageHeader } from "@/components/PageHeader";
 import { SearchField } from "@/components/SearchField";
 import { Tabs } from "@/components/Tabs";
@@ -27,8 +29,8 @@ const Search = z.object({
 	q: z.string().optional(),
 	page: z.coerce.number().int().min(1).default(1).optional(),
 	direction: z.enum(["arrival", "departure"]).default("arrival").optional(),
-	gender: z.string().optional(),
-	pickupStatus: z.string().optional(),
+	gender: z.enum(GENDERS as readonly [Gender, ...Gender[]]).optional(),
+	pickupStatus: z.enum(PICKUP_STATUSES as readonly [PickupStatus, ...PickupStatus[]]).optional(),
 	vehicleId: z.string().optional(),
 	date: z.string().optional(),
 });
@@ -80,7 +82,7 @@ function TravelPage() {
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 	const direction = search.direction ?? "arrival";
 
-	const list = useListQuery<Segment>({
+	const list = useListQuery<{ data: Segment[] }>({
 		key: ["travel", conference.slug],
 		path: `/api/v1/c/${conference.slug}/travel`,
 		params: {
@@ -407,31 +409,29 @@ function FilterBar({
 					<FieldRow label="Gender (for printed manifests)">
 						<Select
 							value={search.gender ?? ""}
-							onChange={e =>
-								setSearch({ gender: e.target.value || undefined, page: 1 })
-							}
+							onChange={e => {
+								const value = e.target.value as Gender | "";
+								setSearch({ gender: value || undefined, page: 1 });
+							}}
 						>
 							<option value="">Any</option>
-							<option value="male">Male</option>
-							<option value="female">Female</option>
+							{GENDERS.map(g => (
+								<option key={g} value={g}>
+									{g.replace(/_/g, " ")}
+								</option>
+							))}
 						</Select>
 					</FieldRow>
 					<FieldRow label="Pickup status">
 						<Select
 							value={search.pickupStatus ?? ""}
-							onChange={e =>
-								setSearch({ pickupStatus: e.target.value || undefined, page: 1 })
-							}
+							onChange={e => {
+								const value = e.target.value as PickupStatus | "";
+								setSearch({ pickupStatus: value || undefined, page: 1 });
+							}}
 						>
 							<option value="">Any</option>
-							{[
-								"scheduled",
-								"assigned",
-								"en_route",
-								"arrived",
-								"missed",
-								"no_show",
-							].map(s => (
+							{PICKUP_STATUSES.map(s => (
 								<option key={s} value={s}>
 									{s.replace(/_/g, " ")}
 								</option>
@@ -439,12 +439,9 @@ function FilterBar({
 						</Select>
 					</FieldRow>
 					<FieldRow label="Date (YYYY-MM-DD)">
-						<Input
-							type="date"
+						<DatePickerInput
 							value={search.date ?? ""}
-							onChange={e =>
-								setSearch({ date: e.target.value || undefined, page: 1 })
-							}
+							onChange={e => setSearch({ date: e || undefined, page: 1 })}
 						/>
 					</FieldRow>
 					<FieldRow label="Vehicle">

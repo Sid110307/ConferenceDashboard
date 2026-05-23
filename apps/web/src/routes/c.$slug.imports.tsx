@@ -5,6 +5,16 @@ import { hasRole, useConference } from "@/lib/ConferenceContext";
 import { fmtRelative, humanise } from "@/lib/format";
 import { cx } from "@/lib/uiStyles";
 import { useRealtime } from "@/lib/useRealtime";
+import {
+	IMPORT_ENTITIES,
+	importJobActionSchema,
+	importJobCreateSchema,
+	importJobMappingSchema,
+	type ImportEntity,
+	type ImportJobActionSchema,
+	type ImportJobCreateInput,
+	type ImportJobMappingInput,
+} from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { AlertTriangle, ArrowRight, CheckCircle2, FileSpreadsheet, RotateCcw } from "lucide-react";
@@ -128,7 +138,7 @@ function ImportsPage() {
 		<div className="p-6">
 			<PageHeader
 				title="Bulk imports"
-				description="Upload a CSV or XLSX, map columns, preview, and apply."
+				description="Upload CSV or Excel files to bulk import attendees, staff, or travel segments."
 			/>
 
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -183,7 +193,7 @@ function NewImportCard({ onCreated }: { onCreated: (jobId: string) => void }) {
 	const { conference } = useConference();
 	const toast = useToast();
 	const fileInput = useRef<HTMLInputElement>(null);
-	const [entity, setEntity] = useState("attendees");
+	const [entity, setEntity] = useState<ImportEntity>("attendees");
 	const [busy, setBusy] = useState(false);
 
 	const handleFile = async (file: File) => {
@@ -221,11 +231,14 @@ function NewImportCard({ onCreated }: { onCreated: (jobId: string) => void }) {
 
 			const job = await api.post<{ data: ImportJob }>(
 				`/api/v1/c/${conference.slug}/imports`,
-				{ targetEntity: entity, fileId: presign.fileId },
+				importJobCreateSchema.parse({
+					targetEntity: entity,
+					fileId: presign.fileId,
+				}) as ImportJobCreateInput,
 			);
 
 			await api.post(`/api/v1/c/${conference.slug}/imports/${job.data.id}/action`, {
-				action: "preview",
+				...importJobActionSchema.parse({ action: "preview" }),
 			});
 			toast.success("Upload received", "Parsing and validating rows...");
 			onCreated(job.data.id);
@@ -240,10 +253,15 @@ function NewImportCard({ onCreated }: { onCreated: (jobId: string) => void }) {
 		<Card title="New import" subtitle="Step 1: choose entity and upload a file">
 			<div className="space-y-4">
 				<FieldRow label="Import into">
-					<Select value={entity} onChange={e => setEntity(e.target.value)}>
-						<option value="attendees">Attendees</option>
-						<option value="staff">Staff</option>
-						<option value="travel_segments">Travel segments</option>
+					<Select
+						value={entity}
+						onChange={e => setEntity(e.target.value as ImportEntity)}
+					>
+						{IMPORT_ENTITIES.map(v => (
+							<option key={v} value={v}>
+								{humanise(v)}
+							</option>
+						))}
 					</Select>
 				</FieldRow>
 
@@ -305,8 +323,11 @@ function JobWizard({ jobId, onReset }: { jobId: string; onReset: () => void }) {
 	const j = job.data?.data;
 
 	const action = useMutation({
-		mutationFn: (body: any) =>
-			api.post(`/api/v1/c/${conference.slug}/imports/${jobId}/action`, body),
+		mutationFn: (body: ImportJobActionSchema) =>
+			api.post(
+				`/api/v1/c/${conference.slug}/imports/${jobId}/action`,
+				importJobActionSchema.parse(body),
+			),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["import-job", conference.slug, jobId] });
 			qc.invalidateQueries({ queryKey: ["import-jobs", conference.slug] });
@@ -314,11 +335,14 @@ function JobWizard({ jobId, onReset }: { jobId: string; onReset: () => void }) {
 		onError: (e: any) => toast.error("Action failed", e.message),
 	});
 	const mapping = useMutation({
-		mutationFn: async (body: any) => {
-			await api.post(`/api/v1/c/${conference.slug}/imports/${jobId}/mapping`, body);
+		mutationFn: async (body: ImportJobMappingInput) => {
+			await api.post(
+				`/api/v1/c/${conference.slug}/imports/${jobId}/mapping`,
+				importJobMappingSchema.parse(body),
+			);
 
 			await api.post(`/api/v1/c/${conference.slug}/imports/${jobId}/action`, {
-				action: "preview",
+				...importJobActionSchema.parse({ action: "preview" }),
 			});
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["import-job", conference.slug, jobId] }),
@@ -535,7 +559,7 @@ function MappingCard({
 							>
 								<option value="skip">Skip</option>
 								<option value="update">Update existing</option>
-								<option value="fail">Fail the row</option>
+								<option value="error">Fail the row</option>
 							</Select>
 						</FieldRow>
 					</div>
@@ -586,7 +610,7 @@ function PreviewCard({ job, jobId }: { job: ImportJob; jobId: string }) {
 	const start = useMutation({
 		mutationFn: () =>
 			api.post(`/api/v1/c/${conference.slug}/imports/${jobId}/action`, {
-				action: "start",
+				...importJobActionSchema.parse({ action: "start" }),
 			}),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["import-job", conference.slug, jobId] });

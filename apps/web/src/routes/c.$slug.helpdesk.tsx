@@ -22,7 +22,6 @@ import { Input, Select, Textarea } from "@/components/Input";
 import { PageHeader } from "@/components/PageHeader";
 import { SearchField } from "@/components/SearchField";
 import { useToast } from "@/components/Toast";
-import { Toolbar } from "@/components/Toolbar";
 
 const Search = z.object({
 	q: z.string().optional(),
@@ -68,7 +67,7 @@ function HelpdeskPage() {
 	const qc = useQueryClient();
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 
-	const list = useListQuery<Issue>({
+	const list = useListQuery<{ data: Issue[] }>({
 		key: ["helpdesk", conference.slug],
 		path: `/api/v1/c/${conference.slug}/helpdesk`,
 		params: {
@@ -155,46 +154,41 @@ function HelpdeskPage() {
 			/>
 
 			<Card pad="sm">
-				<Toolbar
-					left={
-						<>
-							<SearchField
-								value={search.q ?? ""}
-								onChange={q => setSearch({ q, page: 1 })}
-								placeholder="Search issues..."
-								className="min-w-60"
-							/>
-							<Select
-								value={search.status ?? ""}
-								onChange={e =>
-									setSearch({ status: e.target.value || undefined, page: 1 })
-								}
-								className="w-40"
-							>
-								<option value="">Any status</option>
-								{["open", "in_progress", "resolved", "closed"].map(s => (
-									<option key={s} value={s}>
-										{humanise(s)}
-									</option>
-								))}
-							</Select>
-							<Select
-								value={search.priority ?? ""}
-								onChange={e =>
-									setSearch({ priority: e.target.value || undefined, page: 1 })
-								}
-								className="w-36"
-							>
-								<option value="">Any priority</option>
-								{["low", "medium", "high", "urgent"].map(s => (
-									<option key={s} value={s}>
-										{humanise(s)}
-									</option>
-								))}
-							</Select>
-						</>
-					}
-				/>
+				<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-4">
+					<SearchField
+						value={search.q ?? ""}
+						onChange={q => setSearch({ q, page: 1 })}
+						placeholder="Search issues..."
+						className="min-w-60 md:col-span-2 lg:col-span-1"
+					/>
+					<Select
+						value={search.status ?? ""}
+						onChange={e => setSearch({ status: e.target.value || undefined, page: 1 })}
+						className="w-40"
+					>
+						<option value="">Any status</option>
+						{["open", "in_progress", "resolved", "closed"].map(s => (
+							<option key={s} value={s}>
+								{humanise(s)}
+							</option>
+						))}
+					</Select>
+					<Select
+						value={search.priority ?? ""}
+						onChange={e =>
+							setSearch({ priority: e.target.value || undefined, page: 1 })
+						}
+						className="w-36"
+					>
+						<option value="">Any priority</option>
+						{["low", "medium", "high", "urgent"].map(s => (
+							<option key={s} value={s}>
+								{humanise(s)}
+							</option>
+						))}
+					</Select>
+				</div>
+
 				<DataTable
 					columns={cols}
 					rows={rows}

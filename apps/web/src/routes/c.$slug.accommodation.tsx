@@ -2,9 +2,14 @@ import { useState } from "react";
 
 import { api } from "@/lib/api";
 import { hasRole, useConference } from "@/lib/ConferenceContext";
-import { fmtRelative } from "@/lib/format";
+import { fmtRelative, slugify } from "@/lib/format";
 import { cx } from "@/lib/uiStyles";
 import { useUrlState } from "@/lib/useUrlState";
+import {
+	accommodationBlockCreateSchema,
+	allocationCheckActionSchema,
+	type AccommodationBlockInput,
+} from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Building2, Plus, Users } from "lucide-react";
@@ -262,10 +267,10 @@ function RoomDrawer({
 	});
 
 	const action = useMutation({
-		mutationFn: (input: { allocId: string; action: string }) =>
+		mutationFn: (input: { allocId: string; action: "check_in" | "check_out" | "cancel" }) =>
 			api.post(
 				`/api/v1/c/${conference.slug}/accommodation/allocations/${input.allocId}/action`,
-				{ action: input.action },
+				allocationCheckActionSchema.parse({ action: input.action }),
 			),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["acc-allocs", conference.slug, room.id] });
@@ -376,7 +381,15 @@ function BlockDrawer({ onClose }: { onClose: () => void }) {
 	const toast = useToast();
 	const [form, setForm] = useState({ name: "", address: "", notes: "" });
 	const create = useMutation({
-		mutationFn: () => api.post(`/api/v1/c/${conference.slug}/accommodation/blocks`, form),
+		mutationFn: () => {
+			const payload: AccommodationBlockInput = accommodationBlockCreateSchema.parse({
+				code: slugify(form.name).slice(0, 32),
+				name: form.name,
+				address: form.address || undefined,
+				notes: form.notes || undefined,
+			});
+			return api.post(`/api/v1/c/${conference.slug}/accommodation/blocks`, payload);
+		},
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["acc-blocks", conference.slug] });
 			toast.success("Block created");

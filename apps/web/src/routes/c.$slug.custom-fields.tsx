@@ -2,8 +2,17 @@ import { useState } from "react";
 
 import { api } from "@/lib/api";
 import { hasRole, useConference } from "@/lib/ConferenceContext";
-import { humanise } from "@/lib/format";
+import { humanise, slugify } from "@/lib/format";
 import { useUrlState } from "@/lib/useUrlState";
+import {
+	CUSTOM_FIELD_ENTITIES,
+	CUSTOM_FIELD_TYPES,
+	customFieldDefinitionSchema,
+	customFieldDefinitionUpdateSchema,
+	type CustomFieldDefinitionInput,
+	type CustomFieldEntity,
+	type CustomFieldType,
+} from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { GripVertical, Plus, SlidersHorizontal, Trash2 } from "lucide-react";
@@ -21,7 +30,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useToast } from "@/components/Toast";
 
 const Search = z.object({
-	entity: z.string().default("attendees").optional(),
+	entity: z.enum(CUSTOM_FIELD_ENTITIES).default("attendees").optional(),
 });
 
 export const Route = createFileRoute("/c/$slug/custom-fields")({
@@ -31,38 +40,32 @@ export const Route = createFileRoute("/c/$slug/custom-fields")({
 
 type FieldDef = {
 	id: string;
-	entity: string;
+	entity: CustomFieldEntity;
 	fieldKey: string;
-	label: string;
-	fieldType: string;
+	fieldLabel: string;
+	fieldType: CustomFieldType;
 	isRequired: boolean;
 	isActive: boolean;
-	options?: string[] | null;
+	options?: { value: string; label: string; color?: string }[] | null;
 	helpText?: string | null;
-	displayOrder: number;
+	sortOrder: number;
 };
 
-const ENTITIES = [
-	{ value: "attendees", label: "Attendees" },
-	{ value: "staff", label: "Staff" },
-	{ value: "travel_segments", label: "Travel segments" },
-	{ value: "vip_guests", label: "VIP guests" },
-	{ value: "helpdesk_issues", label: "Helpdesk issues" },
-];
-
-const FIELD_TYPES = [
-	"text",
-	"textarea",
-	"email",
-	"phone",
-	"url",
-	"number",
-	"checkbox",
-	"date",
-	"datetime",
-	"select",
-	"multiselect",
-];
+const ENTITIES = CUSTOM_FIELD_ENTITIES.map(value => ({ value, label: humanise(value) }));
+const FIELD_TYPES = CUSTOM_FIELD_TYPES;
+const FIELD_TYPES_HUMAN = {
+	text: "Text",
+	textarea: "Paragraph",
+	number: "Number",
+	date: "Date",
+	datetime: "Date & time",
+	select: "Dropdown (single)",
+	multiselect: "Dropdown (multiple choice)",
+	checkbox: "Checkbox",
+	email: "Email",
+	phone: "Phone",
+	url: "URL",
+} as const;
 
 const HAS_OPTIONS = new Set(["select", "multiselect"]);
 
@@ -100,7 +103,7 @@ function CustomFieldsPage() {
 		<div className="p-6">
 			<PageHeader
 				title="Custom Fields"
-				description="Extend core records with conference-specific data fields."
+				description="Add custom fields to attendees, sessions, or other entities to capture extra information specific to your conference."
 				actions={
 					canAdmin && (
 						<Button
@@ -118,7 +121,7 @@ function CustomFieldsPage() {
 				<span className="text-sm text-ink-2">Entity:</span>
 				<Select
 					value={entity}
-					onChange={e => setSearch({ entity: e.target.value })}
+					onChange={e => setSearch({ entity: e.target.value as CustomFieldEntity })}
 					className="w-56"
 				>
 					{ENTITIES.map(e => (
@@ -141,7 +144,7 @@ function CustomFieldsPage() {
 				<div className="divide-y divide-line">
 					{(fields.data?.data ?? [])
 						.slice()
-						.sort((a, b) => a.displayOrder - b.displayOrder)
+						.sort((a, b) => a.sortOrder - b.sortOrder)
 						.map(f => (
 							<div key={f.id} className="flex items-center gap-3 py-2.5">
 								<GripVertical size={14} className="text-ink-3 shrink-0" />
@@ -151,7 +154,7 @@ function CustomFieldsPage() {
 								>
 									<div className="flex items-center gap-2">
 										<span className="text-sm font-medium text-ink">
-											{f.label}
+											{f.fieldLabel}
 										</span>
 										<span className="font-mono text-[11px] text-ink-3">
 											{f.fieldKey}
@@ -174,7 +177,7 @@ function CustomFieldsPage() {
 									)}
 								</button>
 								<Badge variant="neutral" size="sm" className="capitalize">
-									{f.fieldType}
+									{FIELD_TYPES_HUMAN[f.fieldType]}
 								</Badge>
 								{canAdmin && (
 									<Button
@@ -183,7 +186,7 @@ function CustomFieldsPage() {
 										leadingIcon={<Trash2 size={12} />}
 										onClick={async () => {
 											const ok = await confirm({
-												title: `Delete "${f.label}"?`,
+												title: `Delete "${f.fieldLabel}"?`,
 												description:
 													"Existing data stored under this field will become inaccessible.",
 												tone: "danger",
@@ -220,37 +223,54 @@ function FieldDefDrawer({
 	onClose,
 }: {
 	field: FieldDef | null;
-	entity: string;
+	entity: CustomFieldEntity;
 	onClose: () => void;
 }) {
 	const { conference } = useConference();
 	const qc = useQueryClient();
 	const toast = useToast();
 	const isEdit = !!field;
+
+	const [fieldKeyTouched, setFieldKeyTouched] = useState(false);
 	const [form, setForm] = useState<Partial<FieldDef>>(
 		field ?? { entity, fieldType: "text", isRequired: false, isActive: true },
 	);
-	const [optionsText, setOptionsText] = useState((field?.options ?? []).join("\n"));
+	const [optionsText, setOptionsText] = useState(
+		(field?.options ?? []).map(o => o.value).join("\n"),
+	);
 
 	const save = useMutation({
 		mutationFn: () => {
 			const path = `/api/v1/c/${conference.slug}/custom-fields`;
-			const body: any = {
+			const options = HAS_OPTIONS.has(form.fieldType ?? "")
+				? optionsText
+						.split("\n")
+						.map(s => s.trim())
+						.filter(Boolean)
+						.map(value => ({ value, label: value }))
+				: [];
+
+			const body: CustomFieldDefinitionInput = customFieldDefinitionSchema.parse({
 				entity,
 				fieldKey: form.fieldKey,
-				label: form.label,
+				fieldLabel: form.fieldLabel,
 				fieldType: form.fieldType,
 				isRequired: form.isRequired ?? false,
-				isActive: form.isActive ?? true,
 				helpText: form.helpText || undefined,
-			};
-			if (HAS_OPTIONS.has(form.fieldType ?? "")) {
-				body.options = optionsText
-					.split("\n")
-					.map(s => s.trim())
-					.filter(Boolean);
+				options,
+				sortOrder: form.sortOrder ?? 0,
+			});
+
+			if (isEdit) {
+				return api.patch(
+					`${path}/${field!.id}`,
+					customFieldDefinitionUpdateSchema.parse({
+						...body,
+						isActive: form.isActive ?? true,
+					}),
+				);
 			}
-			return isEdit ? api.patch(`${path}/${field!.id}`, body) : api.post(path, body);
+			return api.post(path, body);
 		},
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["custom-fields", conference.slug, entity] });
@@ -262,13 +282,9 @@ function FieldDefDrawer({
 	const upd = (p: Partial<FieldDef>) => setForm(f => ({ ...f, ...p }));
 
 	const onLabelChange = (label: string) => {
-		const patch: Partial<FieldDef> = { label };
-		if (!isEdit) {
-			patch.fieldKey = label
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, "_")
-				.replace(/^_+|_+$/g, "");
-		}
+		const patch: Partial<FieldDef> = { fieldLabel: label };
+		if (!isEdit && !fieldKeyTouched) patch.fieldKey = slugify(label);
+
 		upd(patch);
 	};
 
@@ -276,7 +292,7 @@ function FieldDefDrawer({
 		<EntityDrawer
 			open
 			onOpenChange={v => !v && onClose()}
-			title={isEdit ? field!.label : "New custom field"}
+			title={isEdit ? field!.fieldLabel : "New custom field"}
 			subtitle={`On ${humanise(entity)}`}
 			width="md"
 			footer={
@@ -297,7 +313,7 @@ function FieldDefDrawer({
 			<div className="space-y-4">
 				<FieldRow label="Label" required>
 					<Input
-						value={form.label ?? ""}
+						value={form.fieldLabel ?? ""}
 						onChange={e => onLabelChange(e.target.value)}
 						placeholder="e.g. T-shirt size"
 					/>
@@ -305,11 +321,14 @@ function FieldDefDrawer({
 				<FieldRow
 					label="Field key"
 					required
-					hint="Stable identifier used in the JSONB store. Avoid changing after data exists."
+					hint="Cannot be changed later. Use lowercase letters, numbers, and underscores only."
 				>
 					<Input
 						value={form.fieldKey ?? ""}
-						onChange={e => upd({ fieldKey: e.target.value })}
+						onChange={e => {
+							setFieldKeyTouched(true);
+							upd({ fieldKey: e.target.value });
+						}}
 						disabled={isEdit}
 						className="font-mono text-[13px]"
 					/>
@@ -317,11 +336,11 @@ function FieldDefDrawer({
 				<FieldRow label="Type">
 					<Select
 						value={form.fieldType ?? "text"}
-						onChange={e => upd({ fieldType: e.target.value })}
+						onChange={e => upd({ fieldType: e.target.value as CustomFieldType })}
 					>
 						{FIELD_TYPES.map(t => (
 							<option key={t} value={t}>
-								{humanise(t)}
+								{FIELD_TYPES_HUMAN[t]}
 							</option>
 						))}
 					</Select>
@@ -336,7 +355,7 @@ function FieldDefDrawer({
 						/>
 					</FieldRow>
 				)}
-				<FieldRow label="Help text">
+				<FieldRow label="Help text" hint="Displayed to users as a hint for this field.">
 					<Input
 						value={form.helpText ?? ""}
 						onChange={e => upd({ helpText: e.target.value })}

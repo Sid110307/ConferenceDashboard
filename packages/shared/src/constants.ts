@@ -156,19 +156,3 @@ export const LIMITS = {
 	PAGE_SIZE_MAX: 200,
 } as const;
 
-export type Paginated<T> = {
-	data: T[];
-	pagination: {
-		page: number;
-		pageSize: number;
-		total: number;
-		totalPages: number;
-		hasNextPage: boolean;
-	};
-};
-
-export type ApiError = {
-	error: string;
-	message: string;
-	details?: Record<string, unknown>;
-};

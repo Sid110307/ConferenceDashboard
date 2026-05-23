@@ -9,13 +9,12 @@ import {
 	committeeAssignmentCreateSchema,
 	committeeCreateSchema,
 	committeeUpdateSchema,
-	paginationQuerySchema,
 	staffCreateSchema,
-	staffListQuerySchema,
 	staffUpdateSchema,
+	staffWithCommitteesQuerySchema,
 } from "@conference/shared";
 import { zValidator } from "@hono/zod-validator";
-import { and, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import { and, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -81,15 +80,15 @@ export const staffRouter = makeCrudRouter({
 		router.get(
 			"/_with-committees",
 			requireRole("viewer"),
-			zValidator("query", paginationQuerySchema.merge(staffListQuerySchema)),
+			zValidator("query", staffWithCommitteesQuerySchema),
 			async c => {
 				const conf = c.get("conference")!;
 				const q = c.req.valid("query");
-				const whereParts = [eq(staff.conferenceId, conf.id), isNull(staff.deletedAt)];
+				const baseWhere = [eq(staff.conferenceId, conf.id), isNull(staff.deletedAt)];
 
 				if (q.q) {
 					const pattern = `%${q.q}%`;
-					whereParts.push(
+					baseWhere.push(
 						or(
 							ilike(staff.name, pattern),
 							ilike(staff.email, pattern),
@@ -98,80 +97,99 @@ export const staffRouter = makeCrudRouter({
 						) as any,
 					);
 				}
+				if (q.committeeSlug) {
+					baseWhere.push(sql`exists (
+						select 1
+						from ${committeeAssignments} ca
+						join ${committees} c on c.id = ca.committee_id
+						where ca.staff_id = ${staff.id}
+						  and ca.conference_id = ${conf.id}
+						  and ca.deleted_at is null
+						  and c.deleted_at is null
+						  and c.slug = ${q.committeeSlug}
+					)`);
+				}
+				if (q.gender) baseWhere.push(eq(staff.gender, q.gender));
+				if (q.status) baseWhere.push(eq(staff.status, q.status));
 
 				const offset = (q.page - 1) * q.pageSize;
-
 				const result = await withTenant(conf.id, async tx => {
-					const data = await tx
+					const staffRows = await tx
 						.select({
-							staffId: staff.id,
-							staffName: staff.name,
-							staffPhone: staff.phone,
-							staffEmail: staff.email,
-							staffGender: staff.gender,
-							staffStatus: staff.status,
-							staffPrantha: staff.prantha,
-							committeeId: committees.id,
-							committeeSlug: committees.slug,
-							committeeName: committees.name,
-							role: committeeAssignments.roleInCommittee,
-							isLead: committeeAssignments.isLead,
+							id: staff.id,
+							name: staff.name,
+							phone: staff.phone,
+							email: staff.email,
+							gender: staff.gender,
+							status: staff.status,
+							prantha: staff.prantha,
 						})
 						.from(staff)
-						.leftJoin(
-							committeeAssignments,
-							and(
-								eq(committeeAssignments.staffId, staff.id),
-								isNull(committeeAssignments.deletedAt),
-							),
-						)
-						.leftJoin(
-							committees,
-							and(
-								eq(committees.id, committeeAssignments.committeeId),
-								isNull(committees.deletedAt),
-							),
-						)
-						.where(and(...whereParts))
+						.where(and(...baseWhere))
 						.limit(q.pageSize)
 						.offset(offset);
 
 					const totals = await tx
 						.select({ count: sql<number>`count(*)::int` })
 						.from(staff)
-						.where(and(...whereParts));
+						.where(and(...baseWhere));
 
-					return { data, total: totals[0]?.count ?? 0 };
+					const staffIds = staffRows.map(s => s.id);
+					const committeeRows =
+						staffIds.length === 0
+							? []
+							: await tx
+									.select({
+										staffId: committeeAssignments.staffId,
+										id: committees.id,
+										slug: committees.slug,
+										name: committees.name,
+										role: committeeAssignments.roleInCommittee,
+										isLead: committeeAssignments.isLead,
+									})
+									.from(committeeAssignments)
+									.innerJoin(
+										committees,
+										and(
+											eq(committees.id, committeeAssignments.committeeId),
+											isNull(committees.deletedAt),
+										),
+									)
+									.where(
+										and(
+											eq(committeeAssignments.conferenceId, conf.id),
+											isNull(committeeAssignments.deletedAt),
+											inArray(committeeAssignments.staffId, staffIds),
+										),
+									);
+
+					return { staffRows, committeeRows, total: totals[0]?.count ?? 0 };
 				});
 
-				const byStaff = new Map<string, any>();
-				for (const r of result.data) {
-					const k = r.staffId;
-					if (!byStaff.has(k)) {
-						byStaff.set(k, {
-							id: r.staffId,
-							name: r.staffName,
-							phone: r.staffPhone,
-							email: r.staffEmail,
-							gender: r.staffGender,
-							status: r.staffStatus,
-							prantha: r.staffPrantha,
-							committees: [],
-						});
-					}
-					if (r.committeeId) {
-						byStaff.get(k).committees.push({
-							id: r.committeeId,
-							slug: r.committeeSlug,
-							name: r.committeeName,
-							role: r.role,
-							isLead: r.isLead,
-						});
-					}
+				const committeesByStaff = new Map<string, any[]>();
+				for (const r of result.committeeRows) {
+					if (!committeesByStaff.has(r.staffId)) committeesByStaff.set(r.staffId, []);
+					committeesByStaff.get(r.staffId)!.push({
+						id: r.id,
+						slug: r.slug,
+						name: r.name,
+						role: r.role,
+						isLead: r.isLead,
+					});
 				}
 
+				const data = result.staffRows.map(s => ({
+					id: s.id,
+					name: s.name,
+					phone: s.phone,
+					email: s.email,
+					gender: s.gender,
+					status: s.status,
+					prantha: s.prantha,
+					committees: committeesByStaff.get(s.id) ?? [],
+				}));
 				return c.json({
-					data: Array.from(byStaff.values()),
+					data,
 					pagination: {
 						page: q.page,
 						pageSize: q.pageSize,
@@ -223,6 +241,97 @@ assignmentsRouter.get("/", requireRole("viewer"), async c => {
 	return c.json({ data: rows });
 });
 
+assignmentsRouter.patch(
+	"/:id",
+	requireRole("editor"),
+	zValidator("param", z.object({ id: z.string().uuid() })),
+	zValidator("json", committeeAssignmentCreateSchema.partial()),
+	async c => {
+		const conf = c.get("conference")!;
+		const user = c.get("user")!;
+		const { id } = c.req.valid("param");
+		const input = c.req.valid("json");
+
+		const updated = await withTenant(conf.id, async tx => {
+			const [before] = await tx
+				.select()
+				.from(committeeAssignments)
+				.where(
+					and(
+						eq(committeeAssignments.id, id),
+						eq(committeeAssignments.conferenceId, conf.id),
+					),
+				)
+				.limit(1);
+			if (!before) throw new NotFoundError("assignment");
+
+			if (input.committeeId) {
+				const [com] = await tx
+					.select({ id: committees.id })
+					.from(committees)
+					.where(
+						and(
+							eq(committees.id, input.committeeId),
+							eq(committees.conferenceId, conf.id),
+							isNull(committees.deletedAt),
+						),
+					)
+					.limit(1);
+				if (!com) throw new NotFoundError("committee");
+			}
+			if (input.staffId) {
+				const [s] = await tx
+					.select({ id: staff.id })
+					.from(staff)
+					.where(
+						and(
+							eq(staff.id, input.staffId),
+							eq(staff.conferenceId, conf.id),
+							isNull(staff.deletedAt),
+						),
+					)
+					.limit(1);
+				if (!s) throw new NotFoundError("staff");
+			}
+
+			const updateValues = {
+				...input,
+				...(input.shiftStart !== undefined && {
+					shiftStart: input.shiftStart ? new Date(input.shiftStart) : null,
+				}),
+				...(input.shiftEnd !== undefined && {
+					shiftEnd: input.shiftEnd ? new Date(input.shiftEnd) : null,
+				}),
+				updatedBy: user.id,
+				updatedAt: new Date(),
+			};
+
+			const [row] = await tx
+				.update(committeeAssignments)
+				.set(updateValues)
+				.where(eq(committeeAssignments.id, id))
+				.returning();
+
+			await recordAudit(tx, {
+				conferenceId: conf.id,
+				userId: user.id,
+				action: "update",
+				entity: "committee_assignment",
+				entityId: id,
+				before,
+				after: row,
+				ip: c.req.header("x-forwarded-for")?.split(",")[0] ?? null,
+				userAgent: c.req.header("user-agent") ?? null,
+				requestId: c.get("requestId"),
+			});
+
+			return row;
+		});
+
+		return c.json({ data: updated });
+	},
+);
+
 assignmentsRouter.post(
 	"/",
 	requireRole("editor"),
@@ -262,6 +371,8 @@ assignmentsRouter.post(
 				.insert(committeeAssignments)
 				.values({
 					...input,
+					shiftStart: input.shiftStart ? new Date(input.shiftStart) : null,
+					shiftEnd: input.shiftEnd ? new Date(input.shiftEnd) : null,
 					conferenceId: conf.id,
 					createdBy: user.id,
 					updatedBy: user.id,

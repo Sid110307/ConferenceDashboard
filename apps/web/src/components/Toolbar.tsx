@@ -46,8 +46,8 @@ export function Toolbar({
 }) {
 	return (
 		<div className={cx("flex flex-wrap items-center justify-between gap-2 mb-3", className)}>
-			<div className="flex flex-wrap items-center gap-2">{left}</div>
-			<div className="flex flex-wrap items-center gap-2">{right}</div>
+			{left && <div className="flex flex-wrap items-center gap-2">{left}</div>}
+			{right && <div className="flex flex-wrap items-center gap-2">{right}</div>}
 		</div>
 	);
 }

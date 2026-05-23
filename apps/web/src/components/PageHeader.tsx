@@ -18,7 +18,7 @@ export function PageHeader({
 			<div className="min-w-0">
 				<h1 className={pageH1}>{title}</h1>
 				{description && (
-					<div className="mt-1 text-sm text-ink-2 max-w-2xl">{description}</div>
+					<div className="mt-1 text-sm text-ink-2 max-w-3xl">{description}</div>
 				)}
 			</div>
 			{actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}

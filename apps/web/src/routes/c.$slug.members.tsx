@@ -4,6 +4,12 @@ import { api } from "@/lib/api";
 import { hasRole, useConference } from "@/lib/ConferenceContext";
 import { fmtRelative, humanise, initials } from "@/lib/format";
 import type { BadgeVariant } from "@/lib/uiStyles";
+import {
+	inviteUserSchema,
+	USER_ROLES,
+	type InviteUserInput,
+	type UserRole,
+} from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Mail, ShieldCheck, UserPlus, X } from "lucide-react";
@@ -41,13 +47,13 @@ type Invite = {
 	expiresAt?: string | null;
 };
 
-const ROLE_VARIANT: Record<string, BadgeVariant> = {
-	super_admin: "danger",
+const ROLE_VARIANT: Record<UserRole, BadgeVariant> = {
+	super_admin: "success",
 	admin: "accent",
 	editor: "info",
 	viewer: "neutral",
 };
-const ASSIGNABLE_ROLES = ["admin", "editor", "viewer"];
+const ASSIGNABLE_ROLES: UserRole[] = USER_ROLES.filter(r => r !== "super_admin");
 
 function MembersPage() {
 	const { conference, membership } = useConference();
@@ -165,7 +171,12 @@ function MembersPage() {
 									))}
 								</Select>
 							) : (
-								<Badge variant={ROLE_VARIANT[m.role] ?? "neutral"}>
+								<Badge
+									variant={
+										ROLE_VARIANT[m.role as keyof typeof ROLE_VARIANT] ??
+										"neutral"
+									}
+								>
 									{humanise(m.role)}
 								</Badge>
 							)}
@@ -198,7 +209,7 @@ function MembersPage() {
 				<div className="mt-4">
 					<Card title="Pending invitations" pad="sm">
 						{invites.isLoading && <CenterSpinner />}
-						{!invites.isLoading && invites.data?.data.length === 0 && (
+						{!invites.isLoading && invites.data?.data?.length === 0 && (
 							<EmptyState title="No pending invitations" />
 						)}
 						<div className="divide-y divide-line">
@@ -236,15 +247,19 @@ function MembersPage() {
 	);
 }
 
-function InviteDrawer({ roleOptions, onClose }: { roleOptions: string[]; onClose: () => void }) {
+function InviteDrawer({ roleOptions, onClose }: { roleOptions: UserRole[]; onClose: () => void }) {
 	const { conference } = useConference();
 	const qc = useQueryClient();
 	const toast = useToast();
 	const [email, setEmail] = useState("");
-	const [role, setRole] = useState("viewer");
+	const [role, setRole] = useState<UserRole>("viewer");
 
 	const invite = useMutation({
-		mutationFn: () => api.post(`/api/v1/c/${conference.slug}/members/invite`, { email, role }),
+		mutationFn: () =>
+			api.post(
+				`/api/v1/c/${conference.slug}/members/invite`,
+				inviteUserSchema.parse({ email, role }) as InviteUserInput,
+			),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["invites", conference.slug] });
 			toast.success("Invitation sent", `${email} will receive an email shortly.`);
@@ -286,7 +301,7 @@ function InviteDrawer({ roleOptions, onClose }: { roleOptions: string[]; onClose
 					/>
 				</FieldRow>
 				<FieldRow label="Role">
-					<Select value={role} onChange={e => setRole(e.target.value)}>
+					<Select value={role} onChange={e => setRole(e.target.value as UserRole)}>
 						{roleOptions.map(r => (
 							<option key={r} value={r}>
 								{humanise(r)}

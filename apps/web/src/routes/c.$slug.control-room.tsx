@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import CountUp from "react-countup";
 
 import { api } from "@/lib/api";
 import { useConference } from "@/lib/ConferenceContext";
@@ -13,6 +12,7 @@ import { Activity, BedDouble, LifeBuoy, Plane, UserCheck, Utensils } from "lucid
 
 import { Card } from "@/components/Card";
 import { PageHeader } from "@/components/PageHeader";
+import { StatCard } from "@/components/StatCard";
 
 export const Route = createFileRoute("/c/$slug/control-room")({
 	component: ControlRoomPage,
@@ -68,9 +68,9 @@ function ControlRoomPage() {
 	const [feed, setFeed] = useState<FeedEvent[]>([]);
 	const seq = useRef(0);
 
-	const counters = useQuery<Dashboard>({
+	const counters = useQuery<{ data: Dashboard }>({
 		queryKey: ["dashboard", conference.slug],
-		queryFn: () => api.get<Dashboard>(`/api/v1/c/${conference.slug}/dashboard`),
+		queryFn: () => api.get<{ data: Dashboard }>(`/api/v1/c/${conference.slug}/dashboard`),
 		refetchInterval: 30000,
 	});
 
@@ -98,45 +98,45 @@ function ControlRoomPage() {
 		}
 	});
 
-	const c = counters.data;
+	const c = counters.data?.data;
 	const meals = c?.mealsToday?.reduce((sum, m) => sum + m.count, 0) ?? 0;
 
 	return (
 		<div className="p-6">
 			<PageHeader title="Control Room" description="Live operational board." />
 			<div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
-				<BigCounter
+				<StatCard
 					icon={<UserCheck size={20} />}
 					label="Checked in"
 					value={c?.attendees.checkedIn ?? 0}
-					sub={`of ${fmtNumber(c?.attendees.total ?? 0)}`}
+					hint={`of ${fmtNumber(c?.attendees.total ?? 0)}`}
 					tone="success"
 				/>
-				<BigCounter
+				<StatCard
 					icon={<Plane size={20} />}
 					label="Arrived"
 					value={c?.travel.arrivalsCompleted ?? 0}
-					sub={`${c?.travel.arrivalsPending ?? 0} en route`}
-					tone="info"
+					hint={`${c?.travel.arrivalsPending ?? 0} en route`}
+					tone="neutral"
 				/>
-				<BigCounter
+				<StatCard
 					icon={<BedDouble size={20} />}
 					label="Rooms occupied"
 					value={c?.accommodation.occupied ?? 0}
-					sub={`of ${fmtNumber(c?.accommodation.capacity ?? 0)}`}
+					hint={`of ${fmtNumber(c?.accommodation.capacity ?? 0)}`}
 					tone="accent"
 				/>
-				<BigCounter
+				<StatCard
 					icon={<Utensils size={20} />}
 					label="Meal scans today"
 					value={meals}
 					tone="neutral"
 				/>
-				<BigCounter
+				<StatCard
 					icon={<LifeBuoy size={20} />}
 					label="Open issues"
 					value={(c?.helpdesk.open ?? 0) + (c?.helpdesk.inProgress ?? 0)}
-					sub={c?.helpdesk.urgent ? `${c.helpdesk.urgent} urgent` : "none urgent"}
+					hint={c?.helpdesk.urgent ? `${c.helpdesk.urgent} urgent` : "none urgent"}
 					tone={c?.helpdesk.urgent ? "danger" : "neutral"}
 				/>
 			</div>
@@ -170,41 +170,6 @@ function ControlRoomPage() {
 					))}
 				</div>
 			</Card>
-		</div>
-	);
-}
-
-function BigCounter({
-	icon,
-	label,
-	value,
-	sub,
-	tone,
-}: {
-	icon: React.ReactNode;
-	label: string;
-	value: number;
-	sub?: string;
-	tone: "neutral" | "accent" | "success" | "warn" | "danger" | "info";
-}) {
-	const toneCls = {
-		neutral: "text-ink",
-		accent: "text-accent-soft-fg",
-		success: "text-success-soft-fg",
-		warn: "text-warn-soft-fg",
-		danger: "text-danger-soft-fg",
-		info: "text-info-soft-fg",
-	}[tone];
-	return (
-		<div className="bg-surface border border-line rounded-xl p-4">
-			<div className="flex items-center gap-2 text-ink-3">
-				{icon}
-				<span className="text-[11px] font-semibold uppercase tracking-wider">{label}</span>
-			</div>
-			<div className={cx("mt-2 text-4xl font-bold tabular-nums", toneCls)}>
-				<CountUp end={value} duration={1} separator="," />
-			</div>
-			{sub && <div className="mt-0.5 text-xs text-ink-3">{sub}</div>}
 		</div>
 	);
 }

@@ -17,7 +17,7 @@ export const paginationQuerySchema = z.object({
 });
 
 export type PaginationQuery = z.infer<typeof paginationQuerySchema>;
-export const customFieldsSchema = z.record(z.string(), z.any()).default({});
+export const customFieldsSchema = z.record(z.string(), z.unknown());
 
 export const phoneSchema = z
 	.string()

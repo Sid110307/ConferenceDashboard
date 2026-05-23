@@ -1,15 +1,17 @@
 import { api } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 
+export interface PaginationType {
+	page: number;
+	pageSize: number;
+	total: number;
+	totalPages: number;
+	hasNextPage: boolean;
+}
+
 export type ListEnvelope<T> = {
 	data: T[];
-	pagination: {
-		page: number;
-		pageSize: number;
-		total: number;
-		totalPages: number;
-		hasNextPage: boolean;
-	};
+	pagination: PaginationType;
 };
 
 export function useListQuery<T>(opts: {

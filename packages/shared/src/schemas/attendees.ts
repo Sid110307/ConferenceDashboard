@@ -59,7 +59,7 @@ export const attendeeCreateSchema = z.object({
 	notes: z.string().max(2000).optional(),
 	tags: z.array(z.string().trim().min(1).max(40)).optional(),
 
-	customFields: customFieldsSchema,
+	customFields: customFieldsSchema.default({}),
 });
 
 export const attendeeUpdateSchema = attendeeCreateSchema.partial();

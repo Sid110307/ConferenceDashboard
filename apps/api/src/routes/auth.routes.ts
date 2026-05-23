@@ -30,6 +30,12 @@ authRouter.get("/me", async c => {
 			name: usersTable.name,
 			image: usersTable.image,
 			isPlatformAdmin: usersTable.isPlatformAdmin,
+			lastSeenAt: usersTable.lastSeenAt,
+			preferences: usersTable.preferences,
+			createdAt: usersTable.createdAt,
+			updatedAt: usersTable.updatedAt,
+			isActive: usersTable.isActive,
+			emailVerified: usersTable.emailVerified,
 		})
 		.from(usersTable)
 		.where(eq(usersTable.id, session.user.id))

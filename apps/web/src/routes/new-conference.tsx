@@ -1,6 +1,8 @@
 import { useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
+import { slugify } from "@/lib/format";
+import { conferenceCreateSchema, type ConferenceCreateInput } from "@conference/shared";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Building2 } from "lucide-react";
@@ -48,29 +50,25 @@ function NewConferencePage() {
 		slug: "",
 		startDate: "",
 		endDate: "",
-		venue: "",
+		venueName: "",
 		description: "",
 	});
 	const [slugTouched, setSlugTouched] = useState(false);
 
-	const slugify = (s: string) =>
-		s
-			.toLowerCase()
-			.trim()
-			.replace(/[^a-z0-9]+/g, "-")
-			.replace(/^-+|-+$/g, "");
-
 	const create = useMutation({
 		mutationFn: () =>
-			api.post<{ data: { slug: string } }>("/api/v1/conferences", {
-				name: form.name,
-				shortName: form.shortName || undefined,
-				slug: form.slug,
-				startDate: form.startDate || undefined,
-				endDate: form.endDate || undefined,
-				venue: form.venue || undefined,
-				description: form.description || undefined,
-			}),
+			api.post<{ data: { slug: string } }>(
+				"/api/v1/conferences",
+				conferenceCreateSchema.parse({
+					name: form.name,
+					shortName: form.shortName || undefined,
+					slug: form.slug,
+					startDate: form.startDate || undefined,
+					endDate: form.endDate || undefined,
+					venueName: form.venueName || undefined,
+					description: form.description || undefined,
+				}) as ConferenceCreateInput,
+			),
 		onSuccess: res => {
 			toast.success("Conference created", "Default committees have been seeded.");
 			navigate({ to: "/c/$slug", params: { slug: res.data.slug } }).catch(console.error);
@@ -157,8 +155,8 @@ function NewConferencePage() {
 						</div>
 						<FieldRow label="Venue">
 							<Input
-								value={form.venue}
-								onChange={e => upd({ venue: e.target.value })}
+								value={form.venueName}
+								onChange={e => upd({ venueName: e.target.value })}
 								placeholder="Convention Center"
 							/>
 						</FieldRow>

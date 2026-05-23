@@ -2,9 +2,23 @@ import { useState } from "react";
 
 import { api } from "@/lib/api";
 import { hasRole, useConference } from "@/lib/ConferenceContext";
-import { humanise } from "@/lib/format";
+import { humanise, slugify } from "@/lib/format";
 import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
+import {
+	committeeAssignmentCreateSchema,
+	committeeCreateSchema,
+	committeeUpdateSchema,
+	GENDERS,
+	staffCreateSchema,
+	staffUpdateSchema,
+	type CommitteeAssignmentInput,
+	type CommitteeCreateInput,
+	type CommitteeUpdateInput,
+	type StaffCreateInput,
+	type StaffUpdateInput,
+	type StaffWithCommitteesItem,
+} from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -38,11 +52,12 @@ import { z } from "zod";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { DataTable, Pagination, type Column } from "@/components/DataTable";
 import { CenterSpinner, EmptyState } from "@/components/EmptyState";
 import { EntityDrawer } from "@/components/EntityDrawer";
 import { FieldRow } from "@/components/FieldRow";
-import { Input, Select } from "@/components/Input";
+import { Input, Select, Textarea } from "@/components/Input";
 import { PageHeader } from "@/components/PageHeader";
 import { SearchField } from "@/components/SearchField";
 import { Tabs } from "@/components/Tabs";
@@ -66,9 +81,9 @@ type Committee = {
 	slug: string;
 	description?: string | null;
 	memberCount?: number;
-	leadStaffId?: string | null;
+	leadCount?: number;
 };
-type Staff = {
+type Staff = StaffWithCommitteesItem & {
 	id: string;
 	name: string;
 	email?: string | null;
@@ -84,6 +99,7 @@ type Assignment = {
 	staffName: string;
 	committeeId: string;
 	role?: string | null;
+	isLead?: boolean;
 };
 
 const PAGE_SIZE = 25;
@@ -155,12 +171,26 @@ function CommitteesTab({ canEdit }: { canEdit: boolean }) {
 				pageSize: 100,
 			}),
 	});
+
+	const [creating, setCreating] = useState(false);
 	const [open, setOpen] = useState<Committee | null>(null);
 
 	return committees.isLoading ? (
 		<CenterSpinner />
 	) : (
 		<>
+			{canEdit && (
+				<div className="flex justify-end mb-3">
+					<Button
+						variant="primary"
+						size="sm"
+						leadingIcon={<Plus size={13} />}
+						onClick={() => setCreating(true)}
+					>
+						New committee
+					</Button>
+				</div>
+			)}
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 				{(committees.data?.data ?? []).map(c => (
 					<Card
@@ -170,7 +200,7 @@ function CommitteesTab({ canEdit }: { canEdit: boolean }) {
 						className="text-start"
 						actions={
 							<div className="flex items-center gap-1">
-								{c.leadStaffId && (
+								{c.leadCount && (
 									<Badge variant="accent" size="xs">
 										<Star size={10} className="mr-0.5" />
 										Lead
@@ -193,7 +223,20 @@ function CommitteesTab({ canEdit }: { canEdit: boolean }) {
 				))}
 			</div>
 			{open && (
-				<CommitteeDrawer committee={open} canEdit={canEdit} onClose={() => setOpen(null)} />
+				<CommitteeDrawer
+					committee={open}
+					mode="view"
+					canEdit={canEdit}
+					onClose={() => setOpen(null)}
+				/>
+			)}
+			{creating && (
+				<CommitteeDrawer
+					committee={null}
+					mode="create"
+					canEdit={canEdit}
+					onClose={() => setCreating(false)}
+				/>
 			)}
 		</>
 	);
@@ -202,24 +245,40 @@ function CommitteesTab({ canEdit }: { canEdit: boolean }) {
 function CommitteeDrawer({
 	committee,
 	canEdit,
+	mode = "view",
 	onClose,
 }: {
-	committee: Committee;
+	committee: Committee | null;
 	canEdit: boolean;
+	mode?: "view" | "create" | "edit";
 	onClose: () => void;
 }) {
 	const { conference } = useConference();
 	const qc = useQueryClient();
+	const confirm = useConfirm();
 	const toast = useToast();
+
+	const isCreate = mode === "create";
+	const [drawerMode, setDrawerMode] = useState<"view" | "edit" | "create">(mode);
+	const isEditing = drawerMode === "edit" || drawerMode === "create";
+
 	const [adding, setAdding] = useState(false);
+	const [form, setForm] = useState<Partial<Committee>>(committee ?? {});
+
+	const upd = (p: Partial<Committee>) => setForm(f => ({ ...f, ...p }));
 
 	const assignments = useQuery<{ data: Assignment[] }>({
-		queryKey: ["assignments", conference.slug, committee.id],
+		queryKey: ["assignments", conference.slug, committee?.id],
 		queryFn: () =>
 			api.get<{ data: Assignment[] }>(`/api/v1/c/${conference.slug}/assignments`, {
-				committeeId: committee.id,
+				committeeId: committee!.id,
 			}),
+		enabled: !!committee,
 	});
+
+	const assigned = assignments.data?.data ?? [];
+	const assignedIds = new Set(assigned.map(a => a.staffId));
+
 	const allStaff = useQuery<{ data: Staff[] }>({
 		queryKey: ["staff-all", conference.slug],
 		queryFn: () =>
@@ -229,15 +288,63 @@ function CommitteeDrawer({
 		enabled: adding,
 	});
 
+	const saveCommitteeMut = useMutation({
+		mutationFn: () => {
+			const path = `/api/v1/c/${conference.slug}/committees`;
+			if (isCreate) {
+				const body: CommitteeCreateInput = committeeCreateSchema.parse({
+					name: form.name?.trim(),
+					slug: slugify(form.name ?? ""),
+					description: form.description?.trim() || undefined,
+				});
+				return api.post(path, body);
+			}
+			const body: CommitteeUpdateInput = committeeUpdateSchema.parse({
+				name: form.name?.trim(),
+				slug: slugify(form.name ?? ""),
+				description: form.description?.trim() || undefined,
+			});
+			return api.patch(`${path}/${committee!.id}`, body);
+		},
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["committees", conference.slug] }).catch(
+				console.error,
+			);
+			qc.invalidateQueries({ queryKey: ["staff", conference.slug] }).catch(console.error);
+
+			if (committee) {
+				qc.invalidateQueries({
+					queryKey: ["assignments", conference.slug, committee.id],
+				}).catch(console.error);
+			}
+
+			toast.success(isCreate ? "Committee created" : "Committee updated");
+
+			if (isCreate) {
+				onClose();
+			} else {
+				setDrawerMode("view");
+			}
+		},
+		onError: (e: any) =>
+			toast.error(
+				isCreate ? "Could not create committee" : "Could not update committee",
+				e.message,
+			),
+	});
+
 	const addMut = useMutation({
 		mutationFn: (staffId: string) =>
-			api.post(`/api/v1/c/${conference.slug}/assignments`, {
-				committeeId: committee.id,
-				staffId,
-			}),
+			api.post(
+				`/api/v1/c/${conference.slug}/assignments`,
+				committeeAssignmentCreateSchema.parse({
+					committeeId: committee!.id,
+					staffId,
+				}) as CommitteeAssignmentInput,
+			),
 		onSuccess: () => {
 			qc.invalidateQueries({
-				queryKey: ["assignments", conference.slug, committee.id],
+				queryKey: ["assignments", conference.slug, committee!.id],
 			}).catch(console.error);
 			qc.invalidateQueries({ queryKey: ["committees", conference.slug] }).catch(
 				console.error,
@@ -245,15 +352,18 @@ function CommitteeDrawer({
 			qc.invalidateQueries({ queryKey: ["staff", conference.slug] }).catch(console.error);
 			qc.invalidateQueries({ queryKey: ["staff-all", conference.slug] }).catch(console.error);
 
+			// close the "add member" drawer that is controlled by `adding`
+			setAdding(false);
 			toast.success("Member added");
 		},
 		onError: (e: any) => toast.error("Could not add", e.message),
 	});
+
 	const removeMut = useMutation({
 		mutationFn: (id: string) => api.del(`/api/v1/c/${conference.slug}/assignments/${id}`),
 		onSuccess: () => {
 			qc.invalidateQueries({
-				queryKey: ["assignments", conference.slug, committee.id],
+				queryKey: ["assignments", conference.slug, committee!.id],
 			}).catch(console.error);
 			qc.invalidateQueries({ queryKey: ["committees", conference.slug] }).catch(
 				console.error,
@@ -266,82 +376,196 @@ function CommitteeDrawer({
 		onError: (e: any) => toast.error("Could not remove", e.message),
 	});
 
-	const assigned = assignments.data?.data ?? [];
-	const assignedIds = new Set(assigned.map(a => a.staffId));
+	const makeLeadMut = useMutation({
+		mutationFn: ({ assignmentId, isLead }: { assignmentId: string; isLead: boolean }) =>
+			api.patch(`/api/v1/c/${conference.slug}/assignments/${assignmentId}`, {
+				isLead,
+			}),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["committees", conference.slug] }).catch(
+				console.error,
+			);
+			qc.invalidateQueries({ queryKey: ["staff", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({
+				queryKey: ["assignments", conference.slug, committee!.id],
+			}).catch(console.error);
+
+			toast.success("Committee lead updated");
+		},
+		onError: (e: any) => toast.error("Could not update lead", e.message),
+	});
 
 	return (
 		<EntityDrawer
 			open
 			onOpenChange={v => !v && onClose()}
-			title={committee.name}
-			subtitle={`${assigned.length} member(s)`}
+			title={isCreate ? "New committee" : isEditing ? "Edit committee" : committee!.name}
+			subtitle={!isCreate && !isEditing ? `${assigned.length} member(s)` : undefined}
 			width="md"
 			footer={
 				canEdit && (
-					<Button
-						variant="primary"
-						leadingIcon={<Plus size={13} />}
-						onClick={() => setAdding(true)}
-					>
-						Add member
-					</Button>
+					<div className="flex items-center justify-between w-full gap-2">
+						<div>
+							{!isCreate &&
+								(isEditing ? (
+									<Button
+										variant="ghost"
+										onClick={() => {
+											setForm(committee ?? {});
+											setDrawerMode("view");
+										}}
+									>
+										Cancel edit
+									</Button>
+								) : (
+									<Button variant="ghost" onClick={() => setDrawerMode("edit")}>
+										Edit committee
+									</Button>
+								))}
+						</div>
+						<div className="flex items-center gap-2">
+							{isEditing ? (
+								<Button
+									variant="primary"
+									loading={saveCommitteeMut.isPending}
+									onClick={() => saveCommitteeMut.mutate()}
+								>
+									{isCreate ? "Create" : "Save committee"}
+								</Button>
+							) : (
+								<Button
+									variant="primary"
+									leadingIcon={<Plus size={13} />}
+									onClick={() => setAdding(true)}
+								>
+									Add member
+								</Button>
+							)}
+						</div>
+					</div>
 				)
 			}
 		>
-			{committee.description && (
-				<p className="text-sm text-ink-2 mb-4">{committee.description}</p>
-			)}
-			<div className="space-y-2">
-				{assignments.isLoading && <CenterSpinner />}
-				{!assignments.isLoading && assigned.length === 0 && (
-					<EmptyState
-						title="No members assigned"
-						hint="Add staff members to this committee."
-					/>
-				)}
-				{assigned.map(a => (
-					<div
-						key={a.id}
-						className="flex items-center justify-between gap-2 rounded-md border border-line p-2.5"
-					>
-						<div className="text-sm text-ink">{a.staffName}</div>
-						{canEdit && (
-							<Button
-								variant="ghost"
-								size="xs"
-								leadingIcon={<UserMinus size={12} />}
-								onClick={() => removeMut.mutate(a.id)}
-							>
-								Remove
-							</Button>
-						)}
-					</div>
-				))}
-			</div>
-			<EntityDrawer
-				open={adding}
-				onOpenChange={setAdding}
-				title="Add committee member"
-				width="sm"
-			>
-				<div className="space-y-1.5">
-					{allStaff.isLoading && <CenterSpinner />}
-					{(allStaff.data?.data ?? [])
-						.filter(s => !assignedIds.has(s.id))
-						.map(s => (
-							<button
-								key={s.id}
-								onClick={() => addMut.mutate(s.id)}
-								className="w-full text-left px-3 h-9 rounded-md border border-line hover:bg-surface-2 text-sm flex items-center justify-between"
-							>
-								<span className="text-ink">{s.name}</span>
-								{s.prantha && (
-									<span className="text-xs text-ink-3">{s.prantha}</span>
-								)}
-							</button>
-						))}
+			{isEditing ? (
+				<div className="flex flex-col gap-4 mb-5 rounded-lg border border-line bg-surface-1 p-4">
+					<FieldRow label="Committee name" required>
+						<Input
+							value={form.name ?? ""}
+							onChange={e => upd({ name: e.target.value })}
+						/>
+					</FieldRow>
+					<FieldRow label="Description">
+						<Textarea
+							value={form.description ?? ""}
+							onChange={e => upd({ description: e.target.value })}
+						/>
+					</FieldRow>
 				</div>
-			</EntityDrawer>
+			) : (
+				<>
+					{committee?.description && (
+						<p className="text-sm text-ink-2 mb-3">{committee.description}</p>
+					)}
+					<div className="space-y-2">
+						{assignments.isLoading && <CenterSpinner />}
+						{!assignments.isLoading && assigned.length === 0 && (
+							<EmptyState
+								title="No members assigned"
+								hint="Add staff members to this committee."
+							/>
+						)}
+						{assigned.map(a => (
+							<div
+								key={a.id}
+								className="flex items-center justify-between gap-2 rounded-md border border-line p-2.5"
+							>
+								<div className="min-w-0">
+									<div className="text-sm text-ink font-medium truncate">
+										{a.staffName}
+									</div>
+									{a.isLead && (
+										<div className="text-xs text-ink-3 flex items-center gap-1">
+											<Star size={10} />
+											Committee lead
+										</div>
+									)}
+								</div>
+								{canEdit && (
+									<div className="flex items-center gap-1">
+										{a.isLead ? (
+											<Button
+												variant="ghost"
+												size="xs"
+												onClick={() =>
+													makeLeadMut.mutate({
+														assignmentId: a.id,
+														isLead: false,
+													})
+												}
+											>
+												Remove lead
+											</Button>
+										) : (
+											<Button
+												variant="ghost"
+												size="xs"
+												leadingIcon={<Star size={12} />}
+												onClick={() =>
+													makeLeadMut.mutate({
+														assignmentId: a.id,
+														isLead: true,
+													})
+												}
+											>
+												Make lead
+											</Button>
+										)}
+										<Button
+											variant="ghost"
+											size="xs"
+											leadingIcon={<UserMinus size={12} />}
+											onClick={async () => {
+												const ok = await confirm({
+													title: `Remove ${a.staffName} from ${committee?.name}?`,
+													tone: "danger",
+													confirmLabel: "Delete",
+												});
+												if (ok) removeMut.mutate(a.id);
+											}}
+										>
+											Remove
+										</Button>
+									</div>
+								)}
+							</div>
+						))}
+					</div>
+					<EntityDrawer
+						open={adding}
+						onOpenChange={setAdding}
+						title="Add committee member"
+						width="sm"
+					>
+						<div className="space-y-1.5">
+							{allStaff.isLoading && <CenterSpinner />}
+							{(allStaff.data?.data ?? [])
+								.filter(s => !assignedIds.has(s.id))
+								.map(s => (
+									<button
+										key={s.id}
+										onClick={() => addMut.mutate(s.id)}
+										className="w-full text-left px-3 h-9 rounded-md border border-line hover:bg-surface-2 text-sm flex items-center justify-between"
+									>
+										<span className="text-ink">{s.name}</span>
+										{s.prantha && (
+											<span className="text-xs text-ink-3">{s.prantha}</span>
+										)}
+									</button>
+								))}
+						</div>
+					</EntityDrawer>
+				</>
+			)}
 		</EntityDrawer>
 	);
 }
@@ -358,7 +582,7 @@ function StaffTab({
 	const { conference } = useConference();
 	const qc = useQueryClient();
 
-	const list = useListQuery<Staff>({
+	const list = useListQuery<{ data: Staff[] }>({
 		key: ["staff", conference.slug],
 		path: `/api/v1/c/${conference.slug}/staff/_with-committees`,
 		params: { page: search.page ?? 1, pageSize: PAGE_SIZE, q: search.q },
@@ -502,15 +726,25 @@ function StaffDrawer({
 	const save = useMutation({
 		mutationFn: () => {
 			const path = `/api/v1/c/${conference.slug}/staff`;
-			const body = {
+			if (isEdit) {
+				const body: StaffUpdateInput = staffUpdateSchema.parse({
+					name: form.name?.trim(),
+					email: form.email?.trim() || undefined,
+					phone: form.phone?.trim() || undefined,
+					prantha: form.prantha?.trim() || undefined,
+					gender: form.gender || undefined,
+				});
+				return api.patch(`${path}/${staff!.id}`, body);
+			}
+			const body: StaffCreateInput = staffCreateSchema.parse({
 				name: form.name?.trim(),
 				email: form.email?.trim() || undefined,
 				phone: form.phone?.trim() || undefined,
 				prantha: form.prantha?.trim() || undefined,
 				gender: form.gender || undefined,
-				status: form.status || undefined,
-			};
-			return isEdit ? api.patch(`${path}/${staff!.id}`, body) : api.post(path, body);
+				customFields: {},
+			});
+			return api.post(path, body);
 		},
 		onSuccess: () => {
 			onSaved();
@@ -572,10 +806,11 @@ function StaffDrawer({
 						onChange={e => upd({ gender: e.target.value || null })}
 					>
 						<option value="">—</option>
-						<option value="male">Male</option>
-						<option value="female">Female</option>
-						<option value="other">Other</option>
-						<option value="prefer_not_to_say">Prefer not to say</option>
+						{GENDERS.map(g => (
+							<option key={g} value={g}>
+								{humanise(g)}
+							</option>
+						))}
 					</Select>
 				</FieldRow>
 				<FieldRow label="Status">

@@ -13,6 +13,7 @@ export function StatCard({
 	trend,
 	delta,
 	tone = "neutral",
+	prefix,
 	className,
 	onClick,
 	children,
@@ -24,6 +25,7 @@ export function StatCard({
 	trend?: Trend;
 	delta?: ReactNode;
 	tone?: "neutral" | "accent" | "success" | "warn" | "danger";
+	prefix?: string;
 	className?: string;
 	onClick?: () => void;
 	children?: ReactNode;
@@ -67,14 +69,15 @@ export function StatCard({
 				<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">
 					{label}
 				</div>
-				<div
-					className={cx(
-						"mt-0.5 text-2xl font-semibold text-ink leading-tight tabular-nums",
-						{ "animate-pulse": typeof value === "number" },
-					)}
-				>
+				<div className="mt-0.5 text-2xl font-semibold text-ink leading-tight tabular-nums">
 					{typeof value === "number" ? (
-						<CountUp end={value} duration={1.5} separator="," />
+						<CountUp
+							end={value}
+							duration={1.5}
+							separator=","
+							useIndianSeparators
+							prefix={prefix}
+						/>
 					) : (
 						value
 					)}

@@ -100,7 +100,7 @@ export async function api<T = unknown>(req: ApiRequest): Promise<T> {
 			requestId: errBody?.requestId ?? requestId,
 		});
 	}
-	return shouldUnwrapData(payload) ? (payload.data as T) : (payload as T);
+	return payload as T;
 }
 
 api.get = <T = unknown>(path: string, query?: ApiRequest["query"]) =>

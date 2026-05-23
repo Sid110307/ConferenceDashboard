@@ -66,7 +66,10 @@ export const staffCreateSchema = z.object({
 	customFields: customFieldsSchema,
 });
 
-export const staffUpdateSchema = staffCreateSchema.partial();
+export const staffUpdateSchema = staffCreateSchema
+	.omit({ customFields: true })
+	.partial()
+	.extend({ customFields: customFieldsSchema.optional() });
 
 export const committeeAssignmentCreateSchema = z.object({
 	committeeId: uuidSchema,

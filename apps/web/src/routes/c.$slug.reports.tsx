@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { useConference } from "@/lib/ConferenceContext";
 import { fmtNumber, fmtRelative, humanise } from "@/lib/format";
 import { useRealtime } from "@/lib/useRealtime";
+import { reportJobCreateSchema, type ReportJobCreateInput } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Download, FileBarChart2, Plus } from "lucide-react";
@@ -34,11 +35,13 @@ type ReportJob = {
 };
 
 const REPORT_TYPES = [
-	{ value: "attendees_full", label: "Attendeees" },
-	{ value: "travel_manifest", label: "Travel manifest" },
-	{ value: "accommodation_roster", label: "Accommodation list" },
-	{ value: "food_meal_counts", label: "Food" },
-	{ value: "helpdesk_log", label: "Helpdesk log" },
+	{ value: "attendee_master", label: "Attendees" },
+	{ value: "attendee_by_category", label: "Attendees by category" },
+	{ value: "travel_manifest_arrivals", label: "Travel manifest (arrivals)" },
+	{ value: "travel_manifest_departures", label: "Travel manifest (departures)" },
+	{ value: "accommodation_plan", label: "Accommodation plan" },
+	{ value: "food_counts", label: "Food counts" },
+	{ value: "helpdesk_report", label: "Helpdesk report" },
 	{ value: "finance_summary", label: "Finance summary" },
 ];
 
@@ -144,11 +147,16 @@ function GenerateDrawer({ onClose }: { onClose: () => void }) {
 	const { conference } = useConference();
 	const qc = useQueryClient();
 	const toast = useToast();
-	const [reportType, setReportType] = useState("attendees_full");
-	const [format, setFormat] = useState("xlsx");
+	const [reportType, setReportType] =
+		useState<ReportJobCreateInput["reportType"]>("attendee_master");
+	const [format, setFormat] = useState<ReportJobCreateInput["format"]>("xlsx");
 
 	const gen = useMutation({
-		mutationFn: () => api.post(`/api/v1/c/${conference.slug}/reports`, { reportType, format }),
+		mutationFn: () =>
+			api.post(
+				`/api/v1/c/${conference.slug}/reports`,
+				reportJobCreateSchema.parse({ name: humanise(reportType), reportType, format }),
+			),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["reports", conference.slug] });
 			toast.success("Report queued", "It will appear in the list when ready.");

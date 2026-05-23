@@ -1,5 +1,12 @@
 import { format, formatDistanceToNowStrict, isValid, parseISO } from "date-fns";
 
+export const slugify = (s: string) =>
+	s
+		.toLowerCase()
+		.trim()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+
 export function fmtDate(input: string | Date | null | undefined, fmt = "d MMM yyyy"): string {
 	if (!input) return "—";
 	const d = typeof input === "string" ? parseISO(input) : input;
@@ -44,13 +51,8 @@ export function fmtNumber(value: number | null | undefined): string {
 	return new Intl.NumberFormat("en-IN").format(value);
 }
 
-export function fmtPercent(value: number | null | undefined, digits = 1): string {
-	if (value == null || !Number.isFinite(value)) return "—";
-	return `${value.toFixed(digits)}%`;
-}
-
 export function initials(name: string | null | undefined): string {
-	if (!name) return "?";
+	if (!name) return "";
 	return name
 		.split(/\s+/)
 		.filter(Boolean)
@@ -59,12 +61,12 @@ export function initials(name: string | null | undefined): string {
 		.join("");
 }
 
-export function truncate(s: string | null | undefined, n: number): string {
-	if (!s) return "";
-	return s.length > n ? s.slice(0, n - 1) + "..." : s;
-}
-
 export function humanise(s: string | null | undefined): string {
 	if (!s) return "";
-	return s.replace(/[_-]+/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+	return s
+		.replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+		.replace(/[_-]+/g, " ")
+		.replace(/\s+/g, " ")
+		.trim()
+		.replace(/\b\w/g, c => c.toUpperCase());
 }
