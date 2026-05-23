@@ -75,8 +75,6 @@ const ENTITY_FIELDS: Record<string, { key: string; label: string; required?: boo
 		{ key: "institution", label: "Institution" },
 		{ key: "designation", label: "Designation" },
 		{ key: "prantha", label: "Prantha" },
-		{ key: "city", label: "City" },
-		{ key: "state", label: "State" },
 		{ key: "dietaryPreference", label: "Dietary preference" },
 		{ key: "bloodGroup", label: "Blood group" },
 	],
@@ -531,7 +529,7 @@ function MappingCard({
 									<option value="">— skip —</option>
 									{sourceCols.map(c => (
 										<option key={c} value={c}>
-											{c}
+											{humanise(c)}
 										</option>
 									))}
 								</Select>

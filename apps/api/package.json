@@ -8,8 +8,8 @@
 		"dev": "dotenv -e ../../.env -- tsx watch src/index.ts",
 		"build": "tsc -p tsconfig.json",
 		"start": "node dist/index.js",
-		"rotate-encryption-key": "tsx src/scripts/rotate-encryption-key.ts",
-		"seed": "tsx src/scripts/seed.ts",
+		"rotate-encryption-key": "dotenv -e ../../.env -- tsx src/scripts/rotate-encryption-key.ts",
+		"seed": "dotenv -e ../../.env -- tsx src/scripts/seed.ts",
 		"lint": "eslint ."
 	},
 	"dependencies": {

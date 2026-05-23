@@ -1,7 +1,5 @@
 import CountUp from "react-countup";
 
-
-
 import { api } from "@/lib/api";
 import { useConference } from "@/lib/ConferenceContext";
 import { fmtDateTime, fmtINR, fmtNumber } from "@/lib/format";
@@ -9,9 +7,16 @@ import { cx } from "@/lib/uiStyles";
 import { useRealtime } from "@/lib/useRealtime";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Crown, ExternalLink, LifeBuoy, TrendingDown, TrendingUp, UserCheck, Users, Utensils } from "lucide-react";
-
-
+import {
+	Crown,
+	ExternalLink,
+	LifeBuoy,
+	TrendingDown,
+	TrendingUp,
+	UserCheck,
+	Users,
+	Utensils,
+} from "lucide-react";
 
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -20,10 +25,6 @@ import { CenterSpinner } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { ProgressBar } from "@/components/ProgressBar";
 import { StatCard } from "@/components/StatCard";
-
-
-
-
 
 export const Route = createFileRoute("/c/$slug/")({
 	component: DashboardPage,

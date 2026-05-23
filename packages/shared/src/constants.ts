@@ -155,4 +155,3 @@ export const LIMITS = {
 	PAGE_SIZE_DEFAULT: 25,
 	PAGE_SIZE_MAX: 200,
 } as const;
-

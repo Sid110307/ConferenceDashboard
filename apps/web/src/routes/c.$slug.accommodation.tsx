@@ -1,19 +1,19 @@
 import { useState } from "react";
 
-
-
 import { api } from "@/lib/api";
 import { hasRole, useConference } from "@/lib/ConferenceContext";
 import { fmtRelative, slugify } from "@/lib/format";
 import { cx } from "@/lib/uiStyles";
 import { useUrlState } from "@/lib/useUrlState";
-import { accommodationBlockCreateSchema, allocationCheckActionSchema, type AccommodationBlockInput } from "@conference/shared";
+import {
+	accommodationBlockCreateSchema,
+	allocationCheckActionSchema,
+	type AccommodationBlockInput,
+} from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Building2, Plus, Users } from "lucide-react";
 import { z } from "zod";
-
-
 
 import { Badge, StatusBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -25,10 +25,6 @@ import { FieldRow } from "@/components/FieldRow";
 import { Input } from "@/components/Input";
 import { PageHeader } from "@/components/PageHeader";
 import { useToast } from "@/components/Toast";
-
-
-
-
 
 const Search = z.object({
 	blockId: z.string().optional(),

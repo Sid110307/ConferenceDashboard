@@ -1,17 +1,14 @@
 import { useState } from "react";
 
-
-
 import { api } from "@/lib/api";
 import { hasRole, useConference } from "@/lib/ConferenceContext";
+import { humanise } from "@/lib/format";
 import { useUrlState } from "@/lib/useUrlState";
 import { conferenceUpdateSchema, type ConferenceUpdateInput } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Building, Palette, Save, SlidersHorizontal } from "lucide-react";
 import { z } from "zod";
-
-
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -22,10 +19,6 @@ import { Input, Select, Textarea } from "@/components/Input";
 import { PageHeader } from "@/components/PageHeader";
 import { Tabs } from "@/components/Tabs";
 import { useToast } from "@/components/Toast";
-
-
-
-
 
 const Search = z.object({
 	tab: z.enum(["profile", "appearance", "advanced"]).default("profile").optional(),
@@ -78,8 +71,7 @@ type ConferenceProfile = {
 	endDate?: string | null;
 	venueName?: string | null;
 	venueAddress?: string | null;
-	conferenceStatus?: "draft" | "active" | "concluded" | "archived" | null;
-	timezone?: string | null;
+	publicStatus?: "draft" | "active" | "concluded" | "archived" | null;
 };
 
 function ProfileTab() {
@@ -87,12 +79,12 @@ function ProfileTab() {
 	const qc = useQueryClient();
 	const toast = useToast();
 
-	const profile = useQuery<{ data: ConferenceProfile }>({
+	const profile = useQuery<{ conference: ConferenceProfile }>({
 		queryKey: ["conf-profile", conference.slug],
-		queryFn: () => api.get<{ data: ConferenceProfile }>(`/api/v1/c/${conference.slug}`),
+		queryFn: () => api.get<{ conference: ConferenceProfile }>(`/api/v1/c/${conference.slug}`),
 	});
 	const [form, setForm] = useState<Partial<ConferenceProfile>>({});
-	const merged = { ...(profile.data?.data ?? {}), ...form };
+	const merged = { ...(profile.data?.conference ?? {}), ...form };
 
 	const save = useMutation({
 		mutationFn: () =>
@@ -136,11 +128,23 @@ function ProfileTab() {
 						onChange={e => upd({ name: e.target.value })}
 					/>
 				</FieldRow>
-				<FieldRow label="Tagline" className="sm:col-span-2">
+				<FieldRow label="Tagline / description">
 					<Input
 						value={merged.description ?? ""}
 						onChange={e => upd({ description: e.target.value })}
 					/>
+				</FieldRow>
+				<FieldRow label="Status">
+					<Select
+						value={merged.publicStatus ?? "draft"}
+						onChange={e => upd({ publicStatus: e.target.value as any })}
+					>
+						{["draft", "active", "concluded", "archived"].map(s => (
+							<option key={s} value={s}>
+								{humanise(s)}
+							</option>
+						))}
+					</Select>
 				</FieldRow>
 				<FieldRow label="Start date">
 					<DatePickerInput
@@ -152,24 +156,6 @@ function ProfileTab() {
 					<DatePickerInput
 						value={merged.endDate?.slice(0, 10) ?? ""}
 						onChange={e => upd({ endDate: e })}
-					/>
-				</FieldRow>
-				<FieldRow label="Status">
-					<Select
-						value={merged.conferenceStatus ?? "draft"}
-						onChange={e => upd({ conferenceStatus: e.target.value as any })}
-					>
-						{["draft", "active", "concluded", "archived"].map(s => (
-							<option key={s} value={s}>
-								{s}
-							</option>
-						))}
-					</Select>
-				</FieldRow>
-				<FieldRow label="Timezone">
-					<Input
-						value={merged.timezone ?? "Asia/Kolkata"}
-						onChange={e => upd({ timezone: e.target.value })}
 					/>
 				</FieldRow>
 				<FieldRow label="Venue name" className="sm:col-span-2">
@@ -297,9 +283,9 @@ function AdvancedTab() {
 	const qc = useQueryClient();
 	const toast = useToast();
 
-	const settings = useQuery<{ data: AppSetting[] }>({
+	const settings = useQuery<{ data: AppSetting }>({
 		queryKey: ["app-settings", conference.slug],
-		queryFn: () => api.get<{ data: AppSetting[] }>(`/api/v1/c/${conference.slug}/settings/app`),
+		queryFn: () => api.get<{ data: AppSetting }>(`/api/v1/c/${conference.slug}/settings/app`),
 	});
 
 	const [draft, setDraft] = useState<Record<string, string>>({});
@@ -319,31 +305,30 @@ function AdvancedTab() {
 	});
 
 	if (settings.isLoading) return <CenterSpinner />;
-
 	return (
 		<Card title="Advanced settings" icon={<SlidersHorizontal size={16} />}>
 			<div className="space-y-3">
 				<p className="text-xs text-ink-3">
-					Free-form key/value configuration consumed by integrations and feature flags.
-					Change these only if you know what they do.
+					Configuration consumed by integrations and feature flags. Change these only if
+					you know what they do.
 				</p>
 				<div className="divide-y divide-line">
-					{(settings.data?.data ?? []).map(s => (
-						<div key={s.key} className="flex items-center gap-3 py-2.5">
-							<span className="font-mono text-xs text-ink-2 w-56 truncate">
-								{s.key}
+					{(Object.entries(settings.data?.data || {}) ?? []).map(s => (
+						<div key={s[0]} className="flex items-center gap-3 py-2.5">
+							<span className="flex-1 font-mono text-xs text-ink-2 truncate">
+								{s[0]}
 							</span>
 							<Input
-								value={draft[s.key] ?? s.value}
-								onChange={e => setDraft(d => ({ ...d, [s.key]: e.target.value }))}
-								className="flex-1"
+								value={draft[s[0]] ?? s[1]}
+								onChange={e => setDraft(d => ({ ...d, [s[0]]: e.target.value }))}
+								className="w-full flex-1"
 							/>
 							<Button
 								variant="secondary"
 								size="sm"
-								disabled={(draft[s.key] ?? s.value) === s.value}
+								disabled={(draft[s[0]] ?? s[1]) === s[1]}
 								onClick={() =>
-									put.mutate({ key: s.key, value: draft[s.key] ?? s.value })
+									put.mutate({ key: s[0], value: draft[s[0]] ?? s[1] })
 								}
 							>
 								Save
@@ -357,7 +342,7 @@ function AdvancedTab() {
 						value={newKey}
 						onChange={e => setNewKey(e.target.value)}
 						placeholder="new.setting.key"
-						className="w-56 font-mono text-[13px]"
+						className="flex-1 w-56 font-mono text-[13px]"
 					/>
 					<Input
 						value={newValue}

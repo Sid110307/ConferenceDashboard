@@ -1,5 +1,9 @@
 import type { UserRole } from "@conference/shared";
 
+
+
+
+
 export type AuthUser = {
 	id: string;
 	email: string;

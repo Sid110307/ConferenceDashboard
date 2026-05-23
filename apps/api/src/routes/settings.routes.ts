@@ -20,7 +20,7 @@ settingsRouter.get("/app", requireRole("viewer"), async c => {
 		tx.select().from(appSettings).where(eq(appSettings.conferenceId, conf.id)),
 	);
 	const obj: Record<string, any> = {};
-	for (const r of rows) obj[r.key] = r.value;
+	for (const r of rows) obj[r.settingKey] = r.settingValue;
 	return c.json({ data: obj });
 });
 
@@ -39,14 +39,14 @@ settingsRouter.put(
 				.insert(appSettings)
 				.values({
 					conferenceId: conf.id,
-					key,
-					value,
+					settingKey: key,
+					settingValue: value,
 					createdBy: user.id,
 					updatedBy: user.id,
 				})
 				.onConflictDoUpdate({
-					target: [appSettings.conferenceId, appSettings.key],
-					set: { value, updatedBy: user.id, updatedAt: new Date() },
+					target: [appSettings.conferenceId, appSettings.settingKey],
+					set: { settingValue: value, updatedBy: user.id, updatedAt: new Date() },
 				})
 				.returning();
 			await recordAudit(tx, {

@@ -1,35 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 
+
+
 import { api, ApiError } from "@/lib/api";
 import { hasRole, useConference } from "@/lib/ConferenceContext";
-import { fmtRelative, humanise } from "@/lib/format";
+import { fmtDateTime, fmtRelative, humanise } from "@/lib/format";
 import { PaginationType, useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
-import {
-	ATTENDEE_CATEGORIES,
-	attendeeCreateSchema,
-	attendeeListQuerySchema,
-	attendeeUpdateSchema,
-	DIET_PREFERENCES,
-	GENDERS,
-	type AttendeeBulkActionInput,
-	type AttendeeCreateInput,
-	type AttendeeListQuery,
-	type AttendeeUpdateInput,
-} from "@conference/shared";
+import { ATTENDEE_CATEGORIES, attendeeCreateSchema, attendeeListQuerySchema, attendeeUpdateSchema, DIET_PREFERENCES, GENDERS, type AttendeeBulkActionInput, type AttendeeCreateInput, type AttendeeListQuery, type AttendeeUpdateInput } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import {
-	CheckCircle2,
-	CircleX,
-	Filter,
-	ListChecks,
-	Pencil,
-	Upload,
-	UserPlus,
-	X,
-} from "lucide-react";
+import { CheckCircle2, CircleX, Filter, ListChecks, Pencil, Upload, UserPlus, X } from "lucide-react";
 import { z } from "zod";
+
+
 
 import { Badge, StatusBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -43,6 +27,10 @@ import { PageHeader } from "@/components/PageHeader";
 import { SearchField } from "@/components/SearchField";
 import { useToast } from "@/components/Toast";
 import { FilterChip, Toolbar } from "@/components/Toolbar";
+
+
+
+
 
 const Search = z.object({
 	...attendeeListQuerySchema.shape,
@@ -65,8 +53,6 @@ type Attendee = {
 	institution?: string | null;
 	designation?: string | null;
 	prantha?: string | null;
-	city?: string | null;
-	state?: string | null;
 	registrationStatus?: string | null;
 	checkinStatus?: string | null;
 	checkedInAt?: string | null;
@@ -87,6 +73,32 @@ type Stats = {
 	vip: number;
 	male: number;
 	female: number;
+};
+
+type TravelManifestEntry = {
+	id: string;
+	attendeeId: string;
+	travelMode?: string | null;
+	originCity?: string | null;
+	destinationCity?: string | null;
+	scheduledTime?: string | null;
+	pickupStatus?: string | null;
+	vehicleCode?: string | null;
+	vehiclePlate?: string | null;
+	driverName?: string | null;
+};
+
+type AccommodationAllocation = {
+	id: string;
+	attendeeId: string;
+	roomId: string;
+	roomNumber?: string | null;
+	roomFloor?: string | null;
+	status: "pending" | "checked_in" | "checked_out" | "cancelled" | "no_show";
+	plannedCheckinDate?: string | null;
+	plannedCheckoutDate?: string | null;
+	checkinAt?: string | null;
+	checkoutAt?: string | null;
 };
 
 const PAGE_SIZE = 25;
@@ -111,14 +123,41 @@ function AttendeesPage() {
 		isVip: search.isVip,
 	};
 
-	const list = useListQuery<{ data: Attendee[] }>({
+	const list = useListQuery<Attendee>({
 		key: ["attendees", conference.slug],
 		path: `/api/v1/c/${conference.slug}/attendees`,
 		params,
 	});
-	const stats = useQuery<{ data: Stats[] }>({
+	const stats = useQuery<{ data: Stats }>({
 		queryKey: ["attendees-stats", conference.slug],
-		queryFn: () => api.get<{ data: Stats[] }>(`/api/v1/c/${conference.slug}/attendees/stats`),
+		queryFn: () => api.get<{ data: Stats }>(`/api/v1/c/${conference.slug}/attendees/stats`),
+	});
+	const arrivalManifest = useQuery<{ data: TravelManifestEntry[] }>({
+		queryKey: ["travel-manifest", conference.slug, "arrival"],
+		queryFn: () =>
+			api.get<{ data: TravelManifestEntry[] }>(
+				`/api/v1/c/${conference.slug}/travel/manifest`,
+				{
+					direction: "arrival",
+				},
+			),
+	});
+	const departureManifest = useQuery<{ data: TravelManifestEntry[] }>({
+		queryKey: ["travel-manifest", conference.slug, "departure"],
+		queryFn: () =>
+			api.get<{ data: TravelManifestEntry[] }>(
+				`/api/v1/c/${conference.slug}/travel/manifest`,
+				{
+					direction: "departure",
+				},
+			),
+	});
+	const accommodationAllocations = useQuery<{ data: AccommodationAllocation[] }>({
+		queryKey: ["accommodation-allocations", conference.slug],
+		queryFn: () =>
+			api.get<{ data: AccommodationAllocation[] }>(
+				`/api/v1/c/${conference.slug}/accommodation/allocations`,
+			),
 	});
 
 	const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -160,8 +199,50 @@ function AttendeesPage() {
 		onError: (e: any) => toast.error("Bulk action failed", e.message),
 	});
 
-	const rows = list.data?.data ?? [];
+	const rows: Attendee[] = (list.data?.data ?? []) as Attendee[];
 	const total = list.data?.pagination?.total ?? 0;
+
+	useEffect(() => {
+		setSelected(new Set());
+	}, [
+		search.q,
+		search.page,
+		search.category,
+		search.gender,
+		search.registrationStatus,
+		search.checkinStatus,
+		search.isVip,
+	]);
+
+	const arrivalByAttendee = useMemo(() => {
+		const out = new Map<string, TravelManifestEntry>();
+		for (const segment of arrivalManifest.data?.data ?? []) {
+			if (!out.has(segment.attendeeId)) out.set(segment.attendeeId, segment);
+		}
+		return out;
+	}, [arrivalManifest.data]);
+	const departureByAttendee = useMemo(() => {
+		const out = new Map<string, TravelManifestEntry>();
+		for (const segment of departureManifest.data?.data ?? []) {
+			if (!out.has(segment.attendeeId)) out.set(segment.attendeeId, segment);
+		}
+		return out;
+	}, [departureManifest.data]);
+	const accommodationByAttendee = useMemo(() => {
+		const out = new Map<string, AccommodationAllocation>();
+		const priority = (status: AccommodationAllocation["status"]) => {
+			if (status === "checked_in") return 0;
+			if (status === "pending") return 1;
+			return 2;
+		};
+		for (const allocation of accommodationAllocations.data?.data ?? []) {
+			const prev = out.get(allocation.attendeeId);
+			if (!prev || priority(allocation.status) < priority(prev.status)) {
+				out.set(allocation.attendeeId, allocation);
+			}
+		}
+		return out;
+	}, [accommodationAllocations.data]);
 
 	const allOnPageSelected = rows.every(r => selected.has(r.id)) && rows.length > 0;
 	const columns: Column<Attendee>[] = [
@@ -201,7 +282,7 @@ function AttendeesPage() {
 			key: "code",
 			header: "Code",
 			cell: r => <span className="font-mono text-[11px] text-ink-2">{r.attendeeCode}</span>,
-			width: "w-32",
+			width: "w-48",
 		},
 		{
 			key: "name",
@@ -239,7 +320,7 @@ function AttendeesPage() {
 					)}
 				</div>
 			),
-			width: "w-50",
+			width: "w-64",
 		},
 		{
 			key: "location",
@@ -250,6 +331,110 @@ function AttendeesPage() {
 				</div>
 			),
 			width: "w-58",
+		},
+		{
+			key: "accommodation",
+			header: "Accommodation",
+			cell: r => {
+				const attendeeCodes = new Set(rows.map(r => r.attendeeCode));
+
+				console.log(
+					accommodationAllocations.data?.data?.map(a => ({
+						allocCode: a.attendeeCode,
+						exists: attendeeCodes.has(a.attendeeCode),
+					})),
+				);
+				const allocation = accommodationByAttendee.get(r.id);
+				if (!allocation) return <span className="text-xs text-ink-3">-</span>;
+				return (
+					<div className="text-xs min-w-0">
+						<div className="flex items-center gap-2">
+							<StatusBadge status={allocation.status} />
+							<span className="text-ink truncate">
+								Room {allocation.roomNumber ?? "-"}
+							</span>
+						</div>
+						<div className="text-[11px] text-ink-3 truncate">
+							{allocation.roomFloor ? `Floor ${allocation.roomFloor}` : "Floor -"}
+							{allocation.checkinAt && ` · In ${fmtRelative(allocation.checkinAt)}`}
+						</div>
+					</div>
+				);
+			},
+			width: "w-64",
+		},
+		{
+			key: "arrival",
+			header: "Arrival Travel",
+			cell: r => {
+				const segment = arrivalByAttendee.get(r.id);
+				if (!segment) return <span className="text-xs text-ink-3">-</span>;
+				const details = [
+					segment.travelMode ? humanise(segment.travelMode) : null,
+					segment.originCity,
+					segment.pickupStatus ? humanise(segment.pickupStatus) : null,
+				]
+					.filter(Boolean)
+					.join(" · ");
+				return (
+					<div className="text-xs min-w-0">
+						<div className="text-ink">
+							{segment.scheduledTime
+								? fmtDateTime(segment.scheduledTime)
+								: "Time TBD"}
+						</div>
+						<div className="text-[11px] text-ink-3 truncate">{details || "-"}</div>
+					</div>
+				);
+			},
+			width: "w-72",
+		},
+		{
+			key: "departure",
+			header: "Departure Travel",
+			cell: r => {
+				const segment = departureByAttendee.get(r.id);
+				if (!segment) return <span className="text-xs text-ink-3">-</span>;
+				const details = [
+					segment.travelMode ? humanise(segment.travelMode) : null,
+					segment.destinationCity,
+					segment.pickupStatus ? humanise(segment.pickupStatus) : null,
+				]
+					.filter(Boolean)
+					.join(" · ");
+				return (
+					<div className="text-xs min-w-0">
+						<div className="text-ink">
+							{segment.scheduledTime
+								? fmtDateTime(segment.scheduledTime)
+								: "Time TBD"}
+						</div>
+						<div className="text-[11px] text-ink-3 truncate">{details || "-"}</div>
+					</div>
+				);
+			},
+			width: "w-72",
+		},
+		{
+			key: "vehicle",
+			header: "Vehicle",
+			cell: r => {
+				const segment = arrivalByAttendee.get(r.id) ?? departureByAttendee.get(r.id);
+				if (!segment) return <span className="text-xs text-ink-3">-</span>;
+				return (
+					<div className="text-xs min-w-0">
+						<div className="text-ink truncate">
+							{[segment.vehicleCode, segment.vehiclePlate]
+								.filter(Boolean)
+								.join(" · ") || "Unassigned"}
+						</div>
+						<div className="text-[11px] text-ink-3 truncate">
+							{segment.driverName || "-"}
+						</div>
+					</div>
+				);
+			},
+			width: "w-60",
 		},
 		{
 			key: "actions",
@@ -265,6 +450,8 @@ function AttendeesPage() {
 									e.stopPropagation();
 									checkOutMut.mutate(r.id);
 								}}
+								disabled={checkInMut.isPending || checkOutMut.isPending}
+								loading={checkOutMut.isPending}
 								leadingIcon={<CircleX size={12} />}
 							>
 								Check out
@@ -277,6 +464,8 @@ function AttendeesPage() {
 									e.stopPropagation();
 									checkInMut.mutate(r.id);
 								}}
+								disabled={checkInMut.isPending || checkOutMut.isPending}
+								loading={checkInMut.isPending}
 								leadingIcon={<CheckCircle2 size={12} />}
 							>
 								Check in
@@ -311,7 +500,7 @@ function AttendeesPage() {
 		<div className="p-6">
 			<PageHeader
 				title="Attendees"
-				description={`${stats.data?.data?.total ?? "—"} total · ${stats.data?.data?.confirmed ?? "—"} confirmed · ${stats.data?.checkedIn ?? "—"} checked in`}
+				description={`${stats.data?.data?.total ?? "—"} total · ${stats.data?.data?.confirmed ?? "—"} confirmed · ${stats.data?.data?.checkedIn ?? "—"} checked in`}
 				actions={
 					<>
 						{canEdit && (
@@ -397,6 +586,8 @@ function AttendeesPage() {
 					rows={rows}
 					loading={list.isLoading}
 					onRowClick={r => {
+						if (!canEdit) return;
+
 						setEditing(r);
 						setDrawerMode("edit");
 					}}
@@ -481,7 +672,7 @@ function FilterDropdown({
 							<option value="">Any</option>
 							{ATTENDEE_CATEGORIES.map(c => (
 								<option key={c} value={c}>
-									{c}
+									{humanise(c)}
 								</option>
 							))}
 						</Select>
@@ -519,7 +710,7 @@ function FilterDropdown({
 							{["registered", "confirmed", "cancelled", "waitlisted", "no_show"].map(
 								c => (
 									<option key={c} value={c}>
-										{c}
+										{humanise(c)}
 									</option>
 								),
 							)}
@@ -538,7 +729,7 @@ function FilterDropdown({
 							<option value="">Any</option>
 							{["not_checked_in", "checked_in", "checked_out"].map(c => (
 								<option key={c} value={c}>
-									{c.replace(/_/g, " ")}
+									{humanise(c)}
 								</option>
 							))}
 						</Select>
@@ -794,18 +985,6 @@ function AttendeeDrawer({
 					<Input
 						value={form.prantha ?? ""}
 						onChange={e => update({ prantha: e.target.value })}
-					/>
-				</FieldRow>
-				<FieldRow label="City">
-					<Input
-						value={form.city ?? ""}
-						onChange={e => update({ city: e.target.value })}
-					/>
-				</FieldRow>
-				<FieldRow label="State">
-					<Input
-						value={form.state ?? ""}
-						onChange={e => update({ state: e.target.value })}
 					/>
 				</FieldRow>
 				<FieldRow label="Dietary preference">

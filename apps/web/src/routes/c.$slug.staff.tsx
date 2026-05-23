@@ -352,7 +352,6 @@ function CommitteeDrawer({
 			qc.invalidateQueries({ queryKey: ["staff", conference.slug] }).catch(console.error);
 			qc.invalidateQueries({ queryKey: ["staff-all", conference.slug] }).catch(console.error);
 
-			// close the "add member" drawer that is controlled by `adding`
 			setAdding(false);
 			toast.success("Member added");
 		},

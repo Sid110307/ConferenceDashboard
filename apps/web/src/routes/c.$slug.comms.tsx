@@ -390,7 +390,7 @@ function TemplatesTab({ canEdit }: { canEdit: boolean }) {
 					<button
 						key={t.id}
 						onClick={() => setEditing(t)}
-						className="text-left bg-surface border border-line rounded-lg p-3.5 hover:border-accent transition-colors"
+						className="text-left hover:cursor-pointer bg-surface border border-line rounded-lg p-3.5 hover:border-accent transition-colors"
 					>
 						<div className="flex items-center justify-between">
 							<span className="text-sm font-semibold text-ink">{t.name}</span>
@@ -503,13 +503,46 @@ function TemplateDrawer({ template, onClose }: { template: Template | null; onCl
 				<FieldRow
 					label="Body"
 					required
-					hint="Use {{name}}, {{attendeeCode}}, {{conference.name}} etc. for personalisation."
+					hint={
+						<div className="text-xs text-ink-3 mt-2">
+							<p>
+								Use <code className="font-mono">{`{{placeholders}}`}</code> to
+								personalise your message. Available placeholders:
+							</p>
+							<ul className="list-disc pl-5 space-y-1 mt-1">
+								<li>
+									<code className="font-mono">{`{{name}}`}</code>: the recipient's
+									name
+								</li>
+								<li>
+									<code className="font-mono">{`{{conference_name}}`}</code>: the
+									conference name
+								</li>
+								<li>
+									<code className="font-mono">{`{{attendee_code}}`}</code>: the
+									recipient's unique attendee code
+								</li>
+								<li>
+									<code className="font-mono">{`{{venue}}`}</code>: the conference
+									venue
+								</li>
+								<li>
+									<code className="font-mono">{`{{start_date}}`}</code>: the
+									conference start date
+								</li>
+								<li>
+									<code className="font-mono">{`{{end_date}}`}</code>: the
+									conference end date
+								</li>
+							</ul>
+						</div>
+					}
 				>
 					<Textarea
 						value={form.body ?? ""}
 						onChange={e => upd({ body: e.target.value })}
 						className="min-h-[180px] font-mono text-[13px]"
-						placeholder={"Dear {{name}},\n\nWelcome to {{conference.name}}..."}
+						placeholder={"Dear {{name}},\n\nWelcome to {{conference_name}}..."}
 					/>
 				</FieldRow>
 			</div>
@@ -806,7 +839,7 @@ function CampaignBuilder({ onClose }: { onClose: () => void }) {
 									<option value="">Any</option>
 									{ATTENDEE_CATEGORIES.map(c => (
 										<option key={c} value={c}>
-											{c}
+											{humanise(c)}
 										</option>
 									))}
 								</Select>

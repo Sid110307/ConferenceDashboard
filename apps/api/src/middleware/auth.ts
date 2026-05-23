@@ -95,6 +95,12 @@ export const resolveConference = createMiddleware<AppContext>(async (c, next) =>
 			slug: conferences.slug,
 			name: conferences.name,
 			shortName: conferences.shortName,
+			description: conferences.description,
+			startDate: conferences.startDate,
+			endDate: conferences.endDate,
+			publicStatus: conferences.publicStatus,
+			venueName: conferences.venueName,
+			venueAddress: conferences.venueAddress,
 		})
 		.from(conferences)
 		.where(and(eq(conferences.slug, slug), isNull(conferences.deletedAt)))

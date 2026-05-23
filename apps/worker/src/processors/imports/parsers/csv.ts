@@ -1,9 +1,5 @@
 import Papa from "papaparse";
 
-
-
-
-
 export type ParsedTable = {
 	headers: string[];
 	rows: Record<string, string>[];
