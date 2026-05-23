@@ -1,18 +1,14 @@
 import { sql } from "drizzle-orm";
 
-import { jsonb, timestamp, uuid, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { jsonb, text, timestamp, uuid, type AnyPgColumn } from "drizzle-orm/pg-core";
 
 export const auditColumns = (userFK: () => AnyPgColumn) => ({
-	createdAt: timestamp("created_at", { withTimezone: true })
-		.notNull()
-		.default(sql`now()`),
-	createdBy: uuid("created_by").references(userFK, { onDelete: "set null" }),
-	updatedAt: timestamp("updated_at", { withTimezone: true })
-		.notNull()
-		.default(sql`now()`),
-	updatedBy: uuid("updated_by").references(userFK, { onDelete: "set null" }),
+	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+	createdBy: text("created_by").references(userFK, { onDelete: "set null" }),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+	updatedBy: text("updated_by").references(userFK, { onDelete: "set null" }),
 	deletedAt: timestamp("deleted_at", { withTimezone: true }),
-	deletedBy: uuid("deleted_by").references(userFK, { onDelete: "set null" }),
+	deletedBy: text("deleted_by").references(userFK, { onDelete: "set null" }),
 });
 
 export const customFieldsColumn = () => ({

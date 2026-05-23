@@ -56,6 +56,13 @@ function buildUrl(path: string, query?: ApiRequest["query"]) {
 	return `${API_BASE}${path}${sep}${qs}`;
 }
 
+function shouldUnwrapData(payload: unknown): payload is { data: unknown } {
+	if (typeof payload !== "object" || payload === null) return false;
+	if (!("data" in payload)) return false;
+
+	return Object.keys(payload).length === 1;
+}
+
 export async function api<T = unknown>(req: ApiRequest): Promise<T> {
 	const requestId = newRequestId();
 	const headers: Record<string, string> = {
@@ -84,6 +91,7 @@ export async function api<T = unknown>(req: ApiRequest): Promise<T> {
 		const errBody = (
 			payload && typeof payload === "object" ? payload : null
 		) as ErrorPayload | null;
+
 		throw new ApiError({
 			status: res.status,
 			message: errBody?.message ?? res.statusText ?? "Request failed",
@@ -92,7 +100,7 @@ export async function api<T = unknown>(req: ApiRequest): Promise<T> {
 			requestId: errBody?.requestId ?? requestId,
 		});
 	}
-	return payload as T;
+	return shouldUnwrapData(payload) ? (payload.data as T) : (payload as T);
 }
 
 api.get = <T = unknown>(path: string, query?: ApiRequest["query"]) =>

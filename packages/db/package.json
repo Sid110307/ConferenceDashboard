@@ -14,9 +14,7 @@
 		"generate": "drizzle-kit generate --config=drizzle.config.cjs",
 		"migrate": "tsx src/migrate.ts",
 		"push": "drizzle-kit push --config=drizzle.config.cjs",
-		"studio": "drizzle-kit studio --config=drizzle.config.cjs",
-		"seed": "tsx src/seed/index.ts",
-		"seed:demo": "tsx src/seed/demo.ts",
+		"seed": "tsx src/seed/demo.ts",
 		"lint": "eslint ."
 	},
 	"dependencies": {

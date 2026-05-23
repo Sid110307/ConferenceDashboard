@@ -17,19 +17,41 @@ export const auth = betterAuth({
 			session: schema.sessions,
 			verification: schema.verificationTokens,
 		},
-		usePlural: false,
 	}),
+	user: {
+		additionalFields: {
+			isPlatformAdmin: {
+				type: "boolean",
+				required: false,
+				defaultValue: false,
+				input: false,
+			},
+			isActive: {
+				type: "boolean",
+				required: false,
+				defaultValue: true,
+				input: false,
+			},
+			lastSeenAt: {
+				type: "date",
+				required: false,
+				input: false,
+			},
+		},
+	},
 	emailAndPassword: {
 		enabled: true,
-		requireEmailVerification: env.NODE_ENV === "production",
 		minPasswordLength: 8,
+		maxPasswordLength: 512,
 	},
 	socialProviders:
 		env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
 			? {
 					google: {
+						prompt: "select_account",
 						clientId: env.GOOGLE_CLIENT_ID,
 						clientSecret: env.GOOGLE_CLIENT_SECRET,
+						redirectUri: `${env.API_BASE_URL}/api/auth/callback/google`,
 					},
 				}
 			: undefined,
@@ -39,6 +61,13 @@ export const auth = betterAuth({
 		cookieCache: {
 			enabled: true,
 			maxAge: 60,
+		},
+		additionalFields: {
+			activeConferenceId: {
+				type: "string",
+				required: false,
+				input: false,
+			},
 		},
 	},
 	advanced: {

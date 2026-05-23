@@ -6,7 +6,19 @@ import { withTenant, type TenantTx } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import { LIMITS, paginationQuerySchema, type CustomFieldEntity } from "@conference/shared";
 import { zValidator } from "@hono/zod-validator";
-import { and, asc, desc, eq, ilike, isNull, or, sql, type AnyColumn, type SQL } from "drizzle-orm";
+import {
+	and,
+	asc,
+	desc,
+	eq,
+	getTableColumns,
+	ilike,
+	isNull,
+	or,
+	sql,
+	type AnyColumn,
+	type SQL,
+} from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -33,6 +45,8 @@ export type CrudConfig = {
 	defaultSort?: PgColumn<any>;
 	sortMap?: Record<string, PgColumn<any>>;
 	applyFilters?: (filters: Record<string, unknown>, table: CrudTable) => SQL[];
+	extras?: Record<string, SQL>;
+	beforeIdRoutes?: (router: Hono<AppContext>) => void;
 	customFieldEntity?: CustomFieldEntity;
 	readRole?: "viewer" | "editor" | "admin" | "super_admin";
 	writeRole?: "viewer" | "editor" | "admin" | "super_admin";
@@ -97,7 +111,7 @@ export function makeCrudRouter(cfg: CrudConfig) {
 
 			const result = await withTenant(conf.id, async tx => {
 				const data = await tx
-					.select()
+					.select({ ...getTableColumns(t), ...(cfg.extras ?? {}) })
 					.from(t)
 					.where(and(...whereParts))
 					.orderBy(orderFn(orderCol))
@@ -125,10 +139,13 @@ export function makeCrudRouter(cfg: CrudConfig) {
 		},
 	);
 
+	cfg.beforeIdRoutes?.(router);
 	router.get("/:id", requireRole(readRole), zValidator("param", idParamSchema), async c => {
 		const conf = c.get("conference")!;
 		const { id } = c.req.valid("param");
-		const row = await withTenant(conf.id, async tx => findOneById(tx, t, conf.id, id));
+		const row = await withTenant(conf.id, async tx =>
+			findOneById(tx, t, conf.id, id, cfg.extras),
+		);
 		if (!row) throw new NotFoundError(cfg.entity);
 		return c.json({ data: row });
 	});
@@ -386,6 +403,7 @@ async function findOneById(
 	conferenceId: string,
 	id: string,
 	opts: { includeDeleted?: boolean } = {},
+	extras?: Record<string, SQL>,
 ) {
 	const where = opts.includeDeleted
 		? and(eq(t.id as AnyColumn, id), eq(t.conferenceId as AnyColumn, conferenceId))
@@ -394,7 +412,11 @@ async function findOneById(
 				eq(t.conferenceId as AnyColumn, conferenceId),
 				isNull(t.deletedAt),
 			);
-	const rows = await tx.select().from(t).where(where).limit(1);
+	const rows = await tx
+		.select({ ...getTableColumns(t), ...extras })
+		.from(t)
+		.where(where)
+		.limit(1);
 	return rows[0] ?? null;
 }
 

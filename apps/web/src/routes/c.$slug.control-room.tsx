@@ -1,31 +1,22 @@
 import { useRef, useState } from "react";
+import CountUp from "react-countup";
 
 import { api } from "@/lib/api";
 import { useConference } from "@/lib/ConferenceContext";
 import { fmtNumber, fmtTime, humanise } from "@/lib/format";
 import { cx } from "@/lib/uiStyles";
 import { useRealtime } from "@/lib/useRealtime";
+import { Dashboard } from "@/routes/c.$slug.index";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Activity, BedDouble, LifeBuoy, Plane, UserCheck, Utensils } from "lucide-react";
 
-import { Badge } from "@/components/Badge";
 import { Card } from "@/components/Card";
 import { PageHeader } from "@/components/PageHeader";
 
 export const Route = createFileRoute("/c/$slug/control-room")({
 	component: ControlRoomPage,
 });
-
-type DashboardCounters = {
-	attendees: { total: number; checkedIn: number; vip: number };
-	travel: {
-		arrivals: { arrived: number; enRoute: number; scheduled: number };
-	};
-	accommodation: { occupied: number; capacity: number };
-	helpdesk: { open: number; inProgress: number; urgent: number };
-	mealsToday: { mealType: string; count: number }[];
-};
 
 type FeedEvent = {
 	id: string;
@@ -77,13 +68,13 @@ function ControlRoomPage() {
 	const [feed, setFeed] = useState<FeedEvent[]>([]);
 	const seq = useRef(0);
 
-	const counters = useQuery<DashboardCounters>({
+	const counters = useQuery<Dashboard>({
 		queryKey: ["dashboard", conference.slug],
-		queryFn: () => api.get<DashboardCounters>(`/api/v1/c/${conference.slug}/dashboard`),
+		queryFn: () => api.get<Dashboard>(`/api/v1/c/${conference.slug}/dashboard`),
 		refetchInterval: 30000,
 	});
 
-	const { connected } = useRealtime(conference.slug, ev => {
+	useRealtime(conference.slug, ev => {
 		setFeed(prev => {
 			const next: FeedEvent = {
 				id: `${Date.now()}-${seq.current++}`,
@@ -103,7 +94,7 @@ function ControlRoomPage() {
 			ev.type.startsWith("allocation.") ||
 			ev.type === "meal_scan.created"
 		) {
-			qc.invalidateQueries({ queryKey: ["dashboard", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["dashboard", conference.slug] }).catch(console.error);
 		}
 	});
 
@@ -112,21 +103,7 @@ function ControlRoomPage() {
 
 	return (
 		<div className="p-6">
-			<PageHeader
-				title="Control Room"
-				description="Live operational board."
-				actions={
-					<Badge variant={connected ? "success" : "neutral"}>
-						<span
-							className={cx(
-								"inline-block size-2 rounded-full mr-1.5",
-								connected ? "bg-success animate-pulse" : "bg-ink-4",
-							)}
-						/>
-						{connected ? "Live" : "Connecting..."}
-					</Badge>
-				}
-			/>
+			<PageHeader title="Control Room" description="Live operational board." />
 			<div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
 				<BigCounter
 					icon={<UserCheck size={20} />}
@@ -138,8 +115,8 @@ function ControlRoomPage() {
 				<BigCounter
 					icon={<Plane size={20} />}
 					label="Arrived"
-					value={c?.travel.arrivals.arrived ?? 0}
-					sub={`${c?.travel.arrivals.enRoute ?? 0} en route`}
+					value={c?.travel.arrivalsCompleted ?? 0}
+					sub={`${c?.travel.arrivalsPending ?? 0} en route`}
 					tone="info"
 				/>
 				<BigCounter
@@ -163,11 +140,7 @@ function ControlRoomPage() {
 					tone={c?.helpdesk.urgent ? "danger" : "neutral"}
 				/>
 			</div>
-			<Card
-				title="Live event feed"
-				subtitle="Realtime stream of every operational change"
-				pad="none"
-			>
+			<Card title="Live event feed" subtitle="Realtime stream of every operational change">
 				<div className="max-h-[55vh] overflow-y-auto divide-y divide-line">
 					{feed.length === 0 && (
 						<div className="px-4 py-10 text-center text-sm text-ink-3">
@@ -229,7 +202,7 @@ function BigCounter({
 				<span className="text-[11px] font-semibold uppercase tracking-wider">{label}</span>
 			</div>
 			<div className={cx("mt-2 text-4xl font-bold tabular-nums", toneCls)}>
-				{fmtNumber(value)}
+				<CountUp end={value} duration={1} separator="," />
 			</div>
 			{sub && <div className="mt-0.5 text-xs text-ink-3">{sub}</div>}
 		</div>

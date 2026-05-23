@@ -155,7 +155,7 @@ function AttendeesPage() {
 	});
 
 	const rows = list.data?.data ?? [];
-	const total = list.data?.total ?? 0;
+	const total = list.data?.pagination?.total ?? 0;
 
 	const allOnPageSelected = rows.length > 0 && rows.every(r => selected.has(r.id));
 
@@ -218,16 +218,6 @@ function AttendeesPage() {
 			),
 		},
 		{
-			key: "category",
-			header: "Category",
-			cell: r => (
-				<Badge variant="neutral" size="sm" className="capitalize">
-					{r.category ?? "—"}
-				</Badge>
-			),
-			width: "w-32",
-		},
-		{
 			key: "registration",
 			header: "Registration",
 			cell: r => <StatusBadge status={r.registrationStatus} />,
@@ -244,21 +234,21 @@ function AttendeesPage() {
 					)}
 				</div>
 			),
-			width: "w-44",
+			width: "w-50",
 		},
 		{
 			key: "location",
-			header: "From",
+			header: "Prantha",
 			cell: r => (
-				<div className="text-xs text-ink-2 truncate max-w-[160px]">
-					{[r.city, r.prantha].filter(Boolean).join(" · ") || "—"}
+				<div className="text-xs text-ink-2 truncate">
+					{[r.prantha].filter(Boolean).join(" · ") || "—"}
 				</div>
 			),
-			width: "w-44",
+			width: "w-58",
 		},
 		{
 			key: "actions",
-			header: "",
+			header: "Actions",
 			cell: r =>
 				canEdit && (
 					<div className="flex items-center justify-end gap-1">
@@ -276,7 +266,7 @@ function AttendeesPage() {
 							</Button>
 						) : (
 							<Button
-								variant="ghost"
+								variant="secondary"
 								size="xs"
 								onClick={e => {
 									e.stopPropagation();
@@ -359,7 +349,7 @@ function AttendeesPage() {
 								value={search.q ?? ""}
 								onChange={q => setSearch({ q, page: 1 })}
 								placeholder="Search by name, email, phone, code..."
-								className="min-w-[260px]"
+								className="min-w-90"
 							/>
 							<FilterDropdown search={search} setSearch={setSearch} />
 							{activeFilters.map(f => (

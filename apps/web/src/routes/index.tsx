@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 
 import { api } from "@/lib/api";
+import { humanise } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Plus } from "lucide-react";
@@ -83,14 +84,9 @@ function IndexPage() {
 			<main className="flex-1 overflow-y-auto px-6 py-8">
 				<div className="max-w-3xl mx-auto">
 					<div className="flex items-baseline justify-between mb-5">
-						<div>
-							<h1 className="text-2xl font-semibold text-ink leading-tight">
-								Your conferences
-							</h1>
-							<div className="mt-1 text-sm text-ink-2">
-								Pick a conference to enter its workspace.
-							</div>
-						</div>
+						<h1 className="text-2xl font-semibold text-ink leading-tight">
+							Your conferences
+						</h1>
 						{data?.user?.isPlatformAdmin && (
 							<Button
 								variant="primary"
@@ -121,12 +117,27 @@ function IndexPage() {
 											</div>
 											{(m.startDate || m.endDate) && (
 												<div className="mt-1 text-xs text-ink-3">
-													{m.startDate &&
-														new Date(
-															m.startDate,
-														).toLocaleDateString()}{" "}
-													{m.endDate &&
-														`- ${new Date(m.endDate).toLocaleDateString()}`}
+													{m.startDate
+														? new Date(m.startDate).toLocaleDateString(
+																undefined,
+																{
+																	day: "numeric",
+																	month: "short",
+																	year: "numeric",
+																},
+															)
+														: "Ongoing"}{" "}
+													-{" "}
+													{m.endDate
+														? new Date(m.endDate).toLocaleDateString(
+																undefined,
+																{
+																	day: "numeric",
+																	month: "short",
+																	year: "numeric",
+																},
+															)
+														: "Ongoing"}
 												</div>
 											)}
 										</div>
@@ -136,7 +147,7 @@ function IndexPage() {
 										/>
 									</div>
 									<div className="mt-3">
-										<Badge variant="accent">{m.role.replace("_", " ")}</Badge>
+										<Badge variant="accent">{humanise(m.role)}</Badge>
 									</div>
 								</Link>
 							))}
@@ -147,21 +158,8 @@ function IndexPage() {
 										title="You don't belong to any conference yet"
 										hint={
 											data?.user?.isPlatformAdmin
-												? "As a platform admin, create one to get started."
+												? "Create a conference to get started."
 												: "Ask an administrator to invite you."
-										}
-										action={
-											data?.user?.isPlatformAdmin && (
-												<Button
-													variant="primary"
-													leadingIcon={<Plus size={14} />}
-													onClick={() =>
-														navigate({ to: "/new-conference" })
-													}
-												>
-													Create conference
-												</Button>
-											)
 										}
 									/>
 								</Card>

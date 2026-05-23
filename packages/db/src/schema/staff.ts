@@ -54,7 +54,7 @@ export const staff = pgTable(
 		conferenceId: uuid("conference_id")
 			.notNull()
 			.references(() => conferences.id, { onDelete: "cascade" }),
-		userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+		userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
 
 		staffCode: varchar("staff_code", { length: 32 }),
 

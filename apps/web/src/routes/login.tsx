@@ -25,41 +25,47 @@ function LoginPage() {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [loading, setLoading] = useState<"none" | "email" | "google">("none");
-	const next = search.next?.startsWith("/") ? search.next : "/";
+	const next = search.next?.startsWith("/") && !search.next.startsWith("//") ? search.next : "/";
 
 	const onEmailSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
 		if (loading !== "none") return;
-		if (!email || !password) {
+		if (!email.trim() || !password) {
 			toast.error("Please enter your email and password.");
 			return;
 		}
 
 		setLoading("email");
 		try {
-			const r = await authClient.signIn.email({ email, password });
+			const r = await authClient.signIn.email({ email: email.trim(), password });
 			if (r.error) {
 				toast.error("Sign-in failed", r.error.message);
 				return;
 			}
-			navigate({ to: next }).catch(console.error);
+
+			await navigate({ to: next });
 		} catch (err: any) {
-			toast.error("Sign-in failed", err?.message ?? "Check your credentials and try again.");
+			toast.error(
+				"Sign-in failed",
+				err?.error?.message ?? "Check your credentials and try again.",
+			);
 		} finally {
 			setLoading("none");
 		}
 	};
 
 	const onGoogle = async () => {
+		if (loading !== "none") return;
+
 		setLoading("google");
 		try {
 			await authClient.signIn.social({
 				provider: "google",
-				callbackURL: next,
+				callbackURL: new URL(next, window.location.origin).toString(),
 			});
 		} catch (err: any) {
-			toast.error("Google sign-in failed", err?.message);
+			toast.error("Google sign-in failed", err?.error?.message ?? "Please try again.");
 			setLoading("none");
 		}
 	};
@@ -99,6 +105,7 @@ function LoginPage() {
 							variant="primary"
 							size="lg"
 							loading={loading === "email"}
+							disabled={loading !== "none"}
 						>
 							Sign in
 						</Button>
@@ -114,6 +121,7 @@ function LoginPage() {
 						className="w-full"
 						onClick={onGoogle}
 						loading={loading === "google"}
+						disabled={loading !== "none"}
 					>
 						{loading !== "google" && <Google className="inline" />}
 						Continue with Google

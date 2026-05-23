@@ -23,7 +23,7 @@ export function Tabs({
 						value={i.value}
 						className={cx(
 							"px-3 h-9 text-sm font-medium rounded-t-md -mb-px border-b-2 transition-colors",
-							"text-ink-2 border-transparent hover:text-ink",
+							"text-ink-2 border-transparent hover:text-ink hover:cursor-pointer",
 							"data-[state=active]:text-ink data-[state=active]:border-accent",
 							"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30",
 						)}

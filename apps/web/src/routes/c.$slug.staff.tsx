@@ -2,11 +2,37 @@ import { useState } from "react";
 
 import { api } from "@/lib/api";
 import { hasRole, useConference } from "@/lib/ConferenceContext";
+import { humanise } from "@/lib/format";
 import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, UserMinus, Users2 } from "lucide-react";
+import {
+	BedDouble,
+	BookOpen,
+	Building,
+	CalendarCheck,
+	Camera,
+	ClipboardList,
+	Coffee,
+	Cpu,
+	Drama,
+	Gauge,
+	HeartPulse,
+	Image,
+	IndianRupee,
+	Layers,
+	Megaphone,
+	Mic2,
+	MonitorSpeaker,
+	Plus,
+	Star,
+	Toolbox,
+	TowerControl,
+	Truck,
+	UserMinus,
+	Users2,
+} from "lucide-react";
 import { z } from "zod";
 
 import { Badge } from "@/components/Badge";
@@ -44,14 +70,13 @@ type Committee = {
 };
 type Staff = {
 	id: string;
-	staffCode?: string | null;
 	name: string;
 	email?: string | null;
 	phone?: string | null;
 	prantha?: string | null;
-	bloodGroup?: string | null;
-	role?: string | null;
-	committees?: { id: string; name: string }[];
+	gender?: string | null;
+	status?: string | null;
+	committees?: { id: string; name: string; isLead: boolean; slug: string }[];
 };
 type Assignment = {
 	id: string;
@@ -62,6 +87,30 @@ type Assignment = {
 };
 
 const PAGE_SIZE = 25;
+
+const ICONS: Record<string, React.ReactNode> = {
+	"control-room": <TowerControl size={18} />,
+	"daily-control-system": <Gauge size={18} />,
+	"finance-sponsorship": <IndianRupee size={18} />,
+	"audio-visual-it": <MonitorSpeaker size={18} />,
+	"venue-infrastructure": <Building size={18} />,
+	"photography-social-media": <Camera size={18} />,
+	"cultural-activities": <Drama size={18} />,
+	"keynote-program": <Mic2 size={18} />,
+	"banner-print": <Image size={18} />,
+	"publication": <BookOpen size={18} />,
+	"publicity": <Megaphone size={18} />,
+	"central-coordination": <Layers size={18} />,
+	"safety-medical": <HeartPulse size={18} />,
+	"vyavastha-resource-mobilization": <Toolbox size={18} />,
+	"program-coordinator": <CalendarCheck size={18} />,
+	"anchoring": <Star size={18} />,
+	"technical-stage": <Cpu size={18} />,
+	"food-dining": <Coffee size={18} />,
+	"registration": <ClipboardList size={18} />,
+	"accommodation": <BedDouble size={18} />,
+	"transportation": <Truck size={18} />,
+};
 
 function StaffPage() {
 	const { membership } = useConference();
@@ -86,7 +135,7 @@ function StaffPage() {
 					},
 					{
 						value: "staff",
-						label: "Staff roster",
+						label: "Staff",
 						content: (
 							<StaffTab canEdit={canEdit} search={search} setSearch={setSearch} />
 						),
@@ -108,32 +157,39 @@ function CommitteesTab({ canEdit }: { canEdit: boolean }) {
 	});
 	const [open, setOpen] = useState<Committee | null>(null);
 
-	if (committees.isLoading) return <CenterSpinner />;
-
-	return (
+	return committees.isLoading ? (
+		<CenterSpinner />
+	) : (
 		<>
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 				{(committees.data?.data ?? []).map(c => (
-					<button
+					<Card
 						key={c.id}
+						largeIcon
 						onClick={() => setOpen(c)}
-						className="text-left bg-surface border border-line rounded-lg p-4 hover:border-accent transition-colors"
-					>
-						<div className="flex items-start justify-between gap-2">
-							<div className="size-9 rounded-md bg-accent-soft text-accent-soft-fg flex items-center justify-center shrink-0">
-								<Users2 size={16} />
+						className="text-start"
+						actions={
+							<div className="flex items-center gap-1">
+								{c.leadStaffId && (
+									<Badge variant="accent" size="xs">
+										<Star size={10} className="mr-0.5" />
+										Lead
+									</Badge>
+								)}
+								<Badge
+									variant={(c.memberCount || 0) > 0 ? "accent" : "neutral"}
+									size="xs"
+								>
+									{c.memberCount ?? 0} members
+								</Badge>
 							</div>
-							<Badge variant="neutral">{c.memberCount ?? 0} members</Badge>
-						</div>
-						<div className="mt-3 text-sm font-semibold text-ink leading-tight">
-							{c.name}
-						</div>
-						{c.description && (
-							<div className="mt-1 text-xs text-ink-3 line-clamp-2">
-								{c.description}
-							</div>
-						)}
-					</button>
+						}
+						icon={ICONS[c.slug] ?? <Users2 size={18} />}
+						title={c.name}
+						subtitle={
+							c.description && <div className="line-clamp-2">{c.description}</div>
+						}
+					/>
 				))}
 			</div>
 			{open && (
@@ -186,6 +242,9 @@ function CommitteeDrawer({
 			qc.invalidateQueries({ queryKey: ["committees", conference.slug] }).catch(
 				console.error,
 			);
+			qc.invalidateQueries({ queryKey: ["staff", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: ["staff-all", conference.slug] }).catch(console.error);
+
 			toast.success("Member added");
 		},
 		onError: (e: any) => toast.error("Could not add", e.message),
@@ -199,6 +258,9 @@ function CommitteeDrawer({
 			qc.invalidateQueries({ queryKey: ["committees", conference.slug] }).catch(
 				console.error,
 			);
+			qc.invalidateQueries({ queryKey: ["staff", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: ["staff-all", conference.slug] }).catch(console.error);
+
 			toast.success("Member removed");
 		},
 		onError: (e: any) => toast.error("Could not remove", e.message),
@@ -232,7 +294,10 @@ function CommitteeDrawer({
 			<div className="space-y-2">
 				{assignments.isLoading && <CenterSpinner />}
 				{!assignments.isLoading && assigned.length === 0 && (
-					<EmptyState title="No members assigned" hint="Add staff from the roster." />
+					<EmptyState
+						title="No members assigned"
+						hint="Add staff members to this committee."
+					/>
 				)}
 				{assigned.map(a => (
 					<div
@@ -303,7 +368,7 @@ function StaffTab({
 	const [creating, setCreating] = useState(false);
 
 	const rows = list.data?.data ?? [];
-	const total = list.data?.total ?? 0;
+	const total = list.data?.pagination?.total ?? 0;
 
 	const cols: Column<Staff>[] = [
 		{
@@ -313,7 +378,7 @@ function StaffTab({
 				<div className="min-w-0">
 					<div className="text-ink font-medium truncate">{r.name}</div>
 					<div className="text-xs text-ink-3 truncate">
-						{[r.email, r.phone].filter(Boolean).join(" · ")}
+						{[r.email, r.phone].filter(Boolean).join(" · ") || "No contact info"}
 					</div>
 				</div>
 			),
@@ -325,13 +390,19 @@ function StaffTab({
 			width: "w-36",
 		},
 		{
-			key: "blood",
-			header: "Blood",
+			key: "status",
+			header: "Status",
 			cell: r => (
-				<span className="text-xs text-ink-2">
-					{r.bloodGroup ? r.bloodGroup.toUpperCase().replace("_", " ") : "—"}
-				</span>
+				<Badge size="xs" variant={r.status === "active" ? "accent" : "neutral"}>
+					{humanise(r.status)}
+				</Badge>
 			),
+			width: "w-28",
+		},
+		{
+			key: "gender",
+			header: "Gender",
+			cell: r => <span className="text-xs text-ink-2">{humanise(r.gender)}</span>,
 			width: "w-24",
 		},
 		{
@@ -339,11 +410,15 @@ function StaffTab({
 			header: "Committees",
 			cell: r => (
 				<div className="flex flex-wrap gap-1">
-					{(r.committees ?? []).slice(0, 3).map(c => (
-						<Badge key={c.id} size="xs" variant="accent">
-							{c.name}
-						</Badge>
-					))}
+					{[...(r.committees ?? [])]
+						.sort((a, b) => Number(b.isLead) - Number(a.isLead))
+						.slice(0, 3)
+						.map(c => (
+							<Badge key={c.id} size="xs" variant={c.isLead ? "accent" : "neutral"}>
+								{c.isLead ? <Star size={10} className="mr-0.5" /> : null}
+								{c.name}
+							</Badge>
+						))}
 					{(r.committees?.length ?? 0) > 3 && (
 						<Badge size="xs" variant="neutral">
 							+{(r.committees!.length ?? 0) - 3}
@@ -428,12 +503,12 @@ function StaffDrawer({
 		mutationFn: () => {
 			const path = `/api/v1/c/${conference.slug}/staff`;
 			const body = {
-				name: form.name,
-				email: form.email || undefined,
-				phone: form.phone || undefined,
-				prantha: form.prantha || undefined,
-				bloodGroup: form.bloodGroup || undefined,
-				role: form.role || undefined,
+				name: form.name?.trim(),
+				email: form.email?.trim() || undefined,
+				phone: form.phone?.trim() || undefined,
+				prantha: form.prantha?.trim() || undefined,
+				gender: form.gender || undefined,
+				status: form.status || undefined,
 			};
 			return isEdit ? api.patch(`${path}/${staff!.id}`, body) : api.post(path, body);
 		},
@@ -491,32 +566,55 @@ function StaffDrawer({
 						onChange={e => upd({ prantha: e.target.value })}
 					/>
 				</FieldRow>
-				<FieldRow label="Blood group">
+				<FieldRow label="Gender">
 					<Select
-						value={form.bloodGroup ?? ""}
-						onChange={e => upd({ bloodGroup: e.target.value || null })}
+						value={form.gender ?? ""}
+						onChange={e => upd({ gender: e.target.value || null })}
 					>
 						<option value="">—</option>
-						{[
-							"a_pos",
-							"a_neg",
-							"b_pos",
-							"b_neg",
-							"o_pos",
-							"o_neg",
-							"ab_pos",
-							"ab_neg",
-							"unknown",
-						].map(b => (
-							<option key={b} value={b}>
-								{b.toUpperCase().replace("_", " ")}
-							</option>
-						))}
+						<option value="male">Male</option>
+						<option value="female">Female</option>
+						<option value="other">Other</option>
+						<option value="prefer_not_to_say">Prefer not to say</option>
 					</Select>
 				</FieldRow>
-				<FieldRow label="Role / designation" className="sm:col-span-2">
-					<Input value={form.role ?? ""} onChange={e => upd({ role: e.target.value })} />
+				<FieldRow label="Status">
+					<Select
+						value={form.status ?? ""}
+						onChange={e => upd({ status: e.target.value || null })}
+					>
+						<option value="">—</option>
+						<option value="active">Active</option>
+						<option value="inactive">Inactive</option>
+						<option value="on_break">On break</option>
+						<option value="completed">Completed</option>
+					</Select>
 				</FieldRow>
+				{isEdit && (
+					<div className="mt-5">
+						<div className="text-xs font-medium text-ink-3 uppercase tracking-wide mb-2">
+							Committees
+						</div>
+						{staff!.committees?.length ? (
+							<div className="flex flex-wrap gap-1.5">
+								{[...staff!.committees]
+									.sort((a, b) => Number(b.isLead) - Number(a.isLead))
+									.map(c => (
+										<Badge
+											key={c.id}
+											size="xs"
+											variant={c.isLead ? "accent" : "neutral"}
+										>
+											{c.isLead ? "★ Lead · " : ""}
+											{c.name}
+										</Badge>
+									))}
+							</div>
+						) : (
+							<p className="text-sm text-ink-3">Not assigned to any committee.</p>
+						)}
+					</div>
+				)}
 			</div>
 		</EntityDrawer>
 	);

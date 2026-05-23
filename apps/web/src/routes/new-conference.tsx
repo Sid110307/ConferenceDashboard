@@ -2,12 +2,13 @@ import { useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
 import { useMutation } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Building2 } from "lucide-react";
 
 import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { DatePickerInput } from "@/components/DatePicker";
 import { FieldRow } from "@/components/FieldRow";
 import { Input, Textarea } from "@/components/Input";
 import { useToast } from "@/components/Toast";
@@ -84,13 +85,14 @@ function NewConferencePage() {
 		<div className="min-h-full">
 			<AppHeader />
 			<div className="max-w-2xl mx-auto px-6 py-8">
-				<Link
-					to="/"
-					className="inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink mb-4"
+				<Button
+					variant="ghost"
+					leadingIcon={<ArrowLeft size={14} />}
+					onClick={() => navigate({ to: ".." })}
+					className="mb-4"
 				>
-					<ArrowLeft size={14} /> Back to conferences
-				</Link>
-
+					Back
+				</Button>
 				<div className="flex items-center gap-3 mb-6">
 					<div className="size-10 rounded-lg bg-accent-soft text-accent-soft-fg flex items-center justify-center">
 						<Building2 size={20} />
@@ -98,7 +100,8 @@ function NewConferencePage() {
 					<div>
 						<h1 className="text-xl font-semibold text-ink">Create a conference</h1>
 						<p className="text-sm text-ink-3">
-							A fresh workspace with the 21 default committees pre-seeded.
+							Enter the basic details of your conference. You can always edit these
+							later.
 						</p>
 					</div>
 				</div>
@@ -109,20 +112,22 @@ function NewConferencePage() {
 							<Input
 								value={form.name}
 								onChange={e => {
-									upd({
-										name: e.target.value,
-										slug: slugTouched ? form.slug : slugify(e.target.value),
-									});
+									upd({ name: e.target.value });
 								}}
-								placeholder="National Developers Conclave 2026"
+								placeholder="My New Conference 2026"
 							/>
 						</FieldRow>
 						<div className="grid grid-cols-2 gap-3">
 							<FieldRow label="Short name" hint="Used in badges & codes.">
 								<Input
 									value={form.shortName}
-									onChange={e => upd({ shortName: e.target.value })}
-									placeholder="NDC26"
+									onChange={e => {
+										upd({
+											shortName: e.target.value,
+											slug: slugTouched ? form.slug : slugify(e.target.value),
+										});
+									}}
+									placeholder="e.g. XYZ26"
 								/>
 							</FieldRow>
 							<FieldRow label="URL slug" required>
@@ -132,23 +137,21 @@ function NewConferencePage() {
 										setSlugTouched(true);
 										upd({ slug: slugify(e.target.value) });
 									}}
-									placeholder="ndc-2026"
+									placeholder="e.g. xyz26"
 								/>
 							</FieldRow>
 						</div>
 						<div className="grid grid-cols-2 gap-3">
 							<FieldRow label="Start date">
-								<Input
-									type="date"
+								<DatePickerInput
 									value={form.startDate}
-									onChange={e => upd({ startDate: e.target.value })}
+									onChange={startDate => upd({ startDate })}
 								/>
 							</FieldRow>
 							<FieldRow label="End date">
-								<Input
-									type="date"
+								<DatePickerInput
 									value={form.endDate}
-									onChange={e => upd({ endDate: e.target.value })}
+									onChange={endDate => upd({ endDate })}
 								/>
 							</FieldRow>
 						</div>
@@ -156,13 +159,14 @@ function NewConferencePage() {
 							<Input
 								value={form.venue}
 								onChange={e => upd({ venue: e.target.value })}
-								placeholder="Bengaluru International Exhibition Centre"
+								placeholder="Convention Center"
 							/>
 						</FieldRow>
 						<FieldRow label="Description">
 							<Textarea
 								value={form.description}
 								onChange={e => upd({ description: e.target.value })}
+								placeholder="A brief description of the conference..."
 							/>
 						</FieldRow>
 					</div>

@@ -5,9 +5,15 @@ import { BadRequestError, NotFoundError } from "@/lib/errors";
 import { hashToken } from "@/lib/id";
 import { db } from "@/lib/tenancy";
 import { requireAuth } from "@/middleware/auth";
-import { conferences, invitations, userConferenceRoles, users as usersTable } from "@conference/db";
+import {
+	accounts,
+	conferences,
+	invitations,
+	userConferenceRoles,
+	users as usersTable,
+} from "@conference/db";
 import { zValidator } from "@hono/zod-validator";
-import { and, eq, gt, isNull, sql } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -28,7 +34,6 @@ authRouter.get("/me", async c => {
 		.from(usersTable)
 		.where(eq(usersTable.id, session.user.id))
 		.limit(1);
-
 	if (!user) return c.json({ user: null });
 
 	const memberships = await db
@@ -53,8 +58,32 @@ authRouter.get("/me", async c => {
 			),
 		);
 
-	return c.json({ user, memberships });
+	const [credentialAccount] = await db
+		.select({ id: accounts.id })
+		.from(accounts)
+		.where(
+			and(
+				eq(accounts.userId, user.id),
+				eq(accounts.providerId, "credential"),
+				isNotNull(accounts.password),
+			),
+		)
+		.limit(1);
+
+	return c.json({ user: { ...user, hasPassword: !!credentialAccount }, memberships });
 });
+
+authRouter.post(
+	"/password",
+	requireAuth,
+	zValidator("json", z.object({ newPassword: z.string().min(8).max(512) })),
+	async c => {
+		const { newPassword } = c.req.valid("json");
+		await auth.api.setPassword({ body: { newPassword }, headers: c.req.raw.headers });
+
+		return c.json({ ok: true });
+	},
+);
 
 authRouter.post(
 	"/invite/accept",

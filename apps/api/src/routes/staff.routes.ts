@@ -9,11 +9,13 @@ import {
 	committeeAssignmentCreateSchema,
 	committeeCreateSchema,
 	committeeUpdateSchema,
+	paginationQuerySchema,
 	staffCreateSchema,
+	staffListQuerySchema,
 	staffUpdateSchema,
 } from "@conference/shared";
 import { zValidator } from "@hono/zod-validator";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -38,6 +40,13 @@ export const committeesRouter = makeCrudRouter({
 			parts.push(eq(committees.isEnabled, filters.isEnabled));
 		}
 		return parts;
+	},
+	extras: {
+		memberCount: sql<number>`(select count(*) ::int
+		                          from ${committeeAssignments}
+		                          where ${committeeAssignments.committeeId} = ${sql.raw(`"committees"."id"`)}
+			                        and ${committeeAssignments.conferenceId} = ${sql.raw(`"committees"."conference_id"`)}
+			                        and ${committeeAssignments.deletedAt} is null)`,
 	},
 });
 
@@ -68,71 +77,112 @@ export const staffRouter = makeCrudRouter({
 		}
 		return parts;
 	},
-});
+	beforeIdRoutes: router => {
+		router.get(
+			"/_with-committees",
+			requireRole("viewer"),
+			zValidator("query", paginationQuerySchema.merge(staffListQuerySchema)),
+			async c => {
+				const conf = c.get("conference")!;
+				const q = c.req.valid("query");
+				const whereParts = [eq(staff.conferenceId, conf.id), isNull(staff.deletedAt)];
 
-staffRouter.get("/_with-committees", requireRole("viewer"), async c => {
-	const conf = c.get("conference")!;
-	const result = await withTenant(conf.id, async tx => {
-		const rows = await tx
-			.select({
-				staffId: staff.id,
-				staffName: staff.name,
-				staffPhone: staff.phone,
-				staffEmail: staff.email,
-				staffGender: staff.gender,
-				staffStatus: staff.status,
-				staffPrantha: staff.prantha,
-				committeeId: committees.id,
-				committeeSlug: committees.slug,
-				committeeName: committees.name,
-				role: committeeAssignments.roleInCommittee,
-				isLead: committeeAssignments.isLead,
-			})
-			.from(staff)
-			.leftJoin(
-				committeeAssignments,
-				and(
-					eq(committeeAssignments.staffId, staff.id),
-					isNull(committeeAssignments.deletedAt),
-				),
-			)
-			.leftJoin(
-				committees,
-				and(
-					eq(committees.id, committeeAssignments.committeeId),
-					isNull(committees.deletedAt),
-				),
-			)
-			.where(and(eq(staff.conferenceId, conf.id), isNull(staff.deletedAt)));
-		return rows;
-	});
+				if (q.q) {
+					const pattern = `%${q.q}%`;
+					whereParts.push(
+						or(
+							ilike(staff.name, pattern),
+							ilike(staff.email, pattern),
+							ilike(staff.phone, pattern),
+							ilike(staff.prantha, pattern),
+						) as any,
+					);
+				}
 
-	const byStaff = new Map<string, any>();
-	for (const r of result) {
-		const k = r.staffId;
-		if (!byStaff.has(k)) {
-			byStaff.set(k, {
-				id: r.staffId,
-				name: r.staffName,
-				phone: r.staffPhone,
-				email: r.staffEmail,
-				gender: r.staffGender,
-				status: r.staffStatus,
-				prantha: r.staffPrantha,
-				committees: [],
-			});
-		}
-		if (r.committeeId) {
-			byStaff.get(k).committees.push({
-				id: r.committeeId,
-				slug: r.committeeSlug,
-				name: r.committeeName,
-				role: r.role,
-				isLead: r.isLead,
-			});
-		}
-	}
-	return c.json({ data: Array.from(byStaff.values()) });
+				const offset = (q.page - 1) * q.pageSize;
+
+				const result = await withTenant(conf.id, async tx => {
+					const data = await tx
+						.select({
+							staffId: staff.id,
+							staffName: staff.name,
+							staffPhone: staff.phone,
+							staffEmail: staff.email,
+							staffGender: staff.gender,
+							staffStatus: staff.status,
+							staffPrantha: staff.prantha,
+							committeeId: committees.id,
+							committeeSlug: committees.slug,
+							committeeName: committees.name,
+							role: committeeAssignments.roleInCommittee,
+							isLead: committeeAssignments.isLead,
+						})
+						.from(staff)
+						.leftJoin(
+							committeeAssignments,
+							and(
+								eq(committeeAssignments.staffId, staff.id),
+								isNull(committeeAssignments.deletedAt),
+							),
+						)
+						.leftJoin(
+							committees,
+							and(
+								eq(committees.id, committeeAssignments.committeeId),
+								isNull(committees.deletedAt),
+							),
+						)
+						.where(and(...whereParts))
+						.limit(q.pageSize)
+						.offset(offset);
+
+					const totals = await tx
+						.select({ count: sql<number>`count(*)::int` })
+						.from(staff)
+						.where(and(...whereParts));
+
+					return { data, total: totals[0]?.count ?? 0 };
+				});
+
+				const byStaff = new Map<string, any>();
+				for (const r of result.data) {
+					const k = r.staffId;
+					if (!byStaff.has(k)) {
+						byStaff.set(k, {
+							id: r.staffId,
+							name: r.staffName,
+							phone: r.staffPhone,
+							email: r.staffEmail,
+							gender: r.staffGender,
+							status: r.staffStatus,
+							prantha: r.staffPrantha,
+							committees: [],
+						});
+					}
+					if (r.committeeId) {
+						byStaff.get(k).committees.push({
+							id: r.committeeId,
+							slug: r.committeeSlug,
+							name: r.committeeName,
+							role: r.role,
+							isLead: r.isLead,
+						});
+					}
+				}
+
+				return c.json({
+					data: Array.from(byStaff.values()),
+					pagination: {
+						page: q.page,
+						pageSize: q.pageSize,
+						total: result.total,
+						totalPages: Math.max(1, Math.ceil(result.total / q.pageSize)),
+						hasNextPage: q.page * q.pageSize < result.total,
+					},
+				});
+			},
+		);
+	},
 });
 
 export const assignmentsRouter = new Hono<AppContext>();

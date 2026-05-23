@@ -11,8 +11,8 @@
 		"db:generate": "pnpm --filter @conference/db generate",
 		"db:migrate": "pnpm --filter @conference/db migrate",
 		"db:push": "pnpm --filter @conference/db push",
-		"db:studio": "pnpm --filter @conference/db studio",
-		"fresh": "powershell scripts/reset-db.ps1 && pnpm --filter @conference/db migrate && pnpm --filter @conference/db seed && pnpm --filter @conference/db seed:demo"
+		"db:seed": "dotenv -e .env -- pnpm --filter @conference/api seed && pnpm --filter @conference/db seed",
+		"fresh": "powershell scripts/reset-db.ps1 && pnpm --filter @conference/db generate && pnpm --filter @conference/db migrate && pnpm --filter @conference/api seed && pnpm --filter @conference/db seed"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.39.4",

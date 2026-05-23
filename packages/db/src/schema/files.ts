@@ -1,5 +1,3 @@
-import { sql } from "drizzle-orm";
-
 import {
 	bigint,
 	index,
@@ -22,7 +20,7 @@ export const files = pgTable(
 		conferenceId: uuid("conference_id").references(() => conferences.id, {
 			onDelete: "cascade",
 		}),
-		uploadedByUserId: uuid("uploaded_by_user_id").references(() => users.id, {
+		uploadedByUserId: text("uploaded_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),
 		filename: text("filename").notNull(),
@@ -38,9 +36,7 @@ export const files = pgTable(
 
 		purpose: varchar("purpose", { length: 64 }),
 		checksum: varchar("checksum", { length: 128 }),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.notNull()
-			.default(sql`now()`),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 		deletedAt: timestamp("deleted_at", { withTimezone: true }),
 	},
 	t => ({

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import CountUp from "react-countup";
 
 import { card, cx } from "@/lib/uiStyles";
 
@@ -14,6 +15,7 @@ export function StatCard({
 	tone = "neutral",
 	className,
 	onClick,
+	children,
 }: {
 	label: ReactNode;
 	value: ReactNode;
@@ -24,6 +26,7 @@ export function StatCard({
 	tone?: "neutral" | "accent" | "success" | "warn" | "danger";
 	className?: string;
 	onClick?: () => void;
+	children?: ReactNode;
 }) {
 	const accentBg: Record<typeof tone, string> = {
 		neutral: "bg-neutral-soft text-neutral-soft-fg",
@@ -64,8 +67,17 @@ export function StatCard({
 				<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">
 					{label}
 				</div>
-				<div className="mt-0.5 text-2xl font-semibold text-ink leading-tight tabular-nums">
-					{value}
+				<div
+					className={cx(
+						"mt-0.5 text-2xl font-semibold text-ink leading-tight tabular-nums",
+						{ "animate-pulse": typeof value === "number" },
+					)}
+				>
+					{typeof value === "number" ? (
+						<CountUp end={value} duration={1.5} separator="," />
+					) : (
+						value
+					)}
 				</div>
 				{(hint || delta) && (
 					<div className={cx("mt-1 text-xs flex items-center gap-2", trendColor)}>
@@ -76,6 +88,7 @@ export function StatCard({
 					</div>
 				)}
 			</div>
+			{children}
 		</Wrapper>
 	);
 }

@@ -57,7 +57,7 @@ function ConferenceLayout() {
 		<div className="flex flex-col h-screen">
 			<AppHeader />
 			<div className="flex-1 flex items-center justify-center text-sm text-danger-soft-fg">
-				{error instanceof Error ? error.message : "Could not load conference"}{" "}
+				{error instanceof Error ? error.message : "Could not load conference data."}
 				<Link to="/" className="ml-2 underline">
 					Back to home
 				</Link>

@@ -118,7 +118,7 @@ function TravelPage() {
 	});
 
 	const rows = list.data?.data ?? [];
-	const total = list.data?.total ?? 0;
+	const total = list.data?.pagination?.total ?? 0;
 	const allOnPageSelected = rows.length > 0 && rows.every(r => selected.has(r.id));
 
 	const cols: Column<Segment>[] = [
@@ -285,7 +285,7 @@ function TravelPage() {
 								value={search.q ?? ""}
 								onChange={q => setSearch({ q, page: 1 })}
 								placeholder="Search by name, PNR, flight no..."
-								className="min-w-[260px]"
+								className="min-w-90"
 							/>
 							<FilterBar
 								search={search}
@@ -348,7 +348,7 @@ function TravelPage() {
 				<div className="space-y-3">
 					<p className="text-sm text-ink-2">
 						Pick a vehicle below. All selected segments will be assigned and the driver
-						roster updated automatically.
+						list updated automatically.
 					</p>
 					{(vehicles.data?.data ?? []).map(v => (
 						<button

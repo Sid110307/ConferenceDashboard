@@ -6,7 +6,7 @@ import "dotenv/config";
 import { dbAdmin } from "@/client";
 import { accommodationBlocks, accommodationRooms, roomAllocations } from "@/schema/accommodation";
 import { attendees } from "@/schema/attendees";
-import { users } from "@/schema/auth";
+import { userConferenceRoles, users } from "@/schema/auth";
 import { messageCampaigns, messageTemplates } from "@/schema/communications";
 import { conferences } from "@/schema/conferences";
 import { customFieldDefinitions } from "@/schema/custom_fields";
@@ -138,12 +138,20 @@ async function main() {
 		console.log("Existing demo conference data deleted. Reseeding fresh data...");
 	}
 
+	const superAdminEmail = process.env.SEED_SUPERADMIN_EMAIL?.toLowerCase();
+	if (!superAdminEmail) {
+		throw new Error("SEED_SUPERADMIN_EMAIL must be set");
+	}
+
 	const [adminRow] = await dbAdmin
 		.select({ id: users.id })
 		.from(users)
-		.where(eq(users.isPlatformAdmin, true))
+		.where(eq(users.email, superAdminEmail))
 		.limit(1);
-	if (!adminRow) throw new Error("Run `pnpm db:seed` first to create the platform super-admin.");
+	if (!adminRow)
+		throw new Error(
+			"Run `pnpm seed` under @conference/api first to create the platform super-admin.",
+		);
 	const adminId = adminRow.id;
 
 	console.log("Creating conference...");
@@ -174,6 +182,30 @@ async function main() {
 	if (!conf) throw new Error("Failed to create demo conference");
 	const conferenceId = conf.id;
 	console.log(`Conference created with ID: ${conferenceId}`);
+
+	console.log("Assigning super admin to conference...");
+	await dbAdmin
+		.insert(userConferenceRoles)
+		.values({
+			userId: adminId,
+			conferenceId,
+			role: "super_admin",
+			isActive: true,
+			invitedByUserId: adminId,
+			invitedAt: new Date(),
+			acceptedAt: new Date(),
+			permissions: {},
+		})
+		.onConflictDoUpdate({
+			target: [userConferenceRoles.userId, userConferenceRoles.conferenceId],
+			set: {
+				role: "admin",
+				isActive: true,
+				revokedAt: null,
+				acceptedAt: new Date(),
+				updatedAt: new Date(),
+			},
+		});
 
 	console.log("Creating committees...");
 	const committeeRows = await dbAdmin
@@ -214,7 +246,23 @@ async function main() {
 	}
 
 	console.log("Creating staff...");
+	const [adminStaff] = await dbAdmin
+		.insert(staff)
+		.values({
+			conferenceId,
+			userId: adminId,
+			staffCode: "ADMIN-001",
+			name: "Platform Super Admin",
+			designation: "Conference Admin",
+			email: superAdminEmail,
+			status: "active",
+			createdBy: adminId,
+		})
+		.returning({ id: staff.id });
+
 	const staffIds: string[] = [];
+	if (adminStaff) staffIds.push(adminStaff.id);
+
 	for (let i = 0; i < 20; i++) {
 		const gender: "male" | "female" = i % 3 === 0 ? "female" : "male";
 		const name = pickIndianName(gender);
@@ -851,7 +899,7 @@ async function main() {
 	]);
 
 	console.log(
-		"\nDemo conference seeded successfully: demo-2026 | ${attendeeIds.length} attendees, ${staffIds.length} staff, ${committeeRows.length} committees, ${roomIds.length} rooms.",
+		`\nDemo conference seeded successfully: demo-2026 | ${attendeeIds.length} attendees, ${staffIds.length} staff, ${committeeRows.length} committees, ${roomIds.length} rooms.`,
 	);
 	process.exit(0);
 }

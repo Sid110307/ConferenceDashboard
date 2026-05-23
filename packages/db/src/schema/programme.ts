@@ -150,9 +150,7 @@ export const sessionSpeakers = pgTable(
 			.references(() => speakers.id, { onDelete: "cascade" }),
 		role: varchar("role", { length: 32 }),
 		sortOrder: integer("sort_order").notNull().default(0),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.notNull()
-			.default(sql`now()`),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 	},
 	t => ({
 		uniquePair: uniqueIndex("session_speakers_unique").on(t.sessionId, t.speakerId),

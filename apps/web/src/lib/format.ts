@@ -11,14 +11,14 @@ export function fmtDateTime(input: string | Date | null | undefined): string {
 	if (!input) return "—";
 	const d = typeof input === "string" ? parseISO(input) : input;
 	if (!isValid(d)) return "—";
-	return format(d, "d MMM yyyy · HH:mm");
+	return format(d, "d MMM yyyy · hh:mm a");
 }
 
 export function fmtTime(input: string | Date | null | undefined): string {
 	if (!input) return "—";
 	const d = typeof input === "string" ? parseISO(input) : input;
 	if (!isValid(d)) return "—";
-	return format(d, "HH:mm");
+	return format(d, "hh:mm a");
 }
 
 export function fmtRelative(input: string | Date | null | undefined): string {

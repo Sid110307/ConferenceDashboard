@@ -91,7 +91,7 @@ function HelpdeskPage() {
 	const [createOpen, setCreateOpen] = useState(false);
 
 	const rows = list.data?.data ?? [];
-	const total = list.data?.total ?? 0;
+	const total = list.data?.pagination?.total ?? 0;
 
 	const cols: Column<Issue>[] = [
 		{

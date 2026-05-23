@@ -67,7 +67,7 @@ dashboardRouter.get("/", requireRole("viewer"), async c => {
 				resolvedToday: sql<number>`count(*) FILTER (WHERE status = 'resolved' AND resolved_at::date = ${today}::date)::int`,
 			})
 			.from(helpdeskIssues)
-			.where(eq(helpdeskIssues.conferenceId, conf.id));
+			.where(and(eq(helpdeskIssues.conferenceId, conf.id), isNull(helpdeskIssues.deletedAt)));
 
 		const todayMealScans = await tx
 			.select({
@@ -75,13 +75,21 @@ dashboardRouter.get("/", requireRole("viewer"), async c => {
 				count: sql<number>`count(*)::int`,
 			})
 			.from(mealScans)
-			.where(and(eq(mealScans.conferenceId, conf.id), eq(mealScans.mealDate, today)))
+			.where(
+				and(
+					eq(mealScans.conferenceId, conf.id),
+					eq(mealScans.mealDate, today),
+					isNull(mealScans.deletedAt),
+				),
+			)
 			.groupBy(mealScans.mealType);
 
 		const [finance] = await tx
 			.select({
 				incomeActual: sql<string>`COALESCE(SUM(actual_amount) FILTER (WHERE item_type = 'income'), 0)::text`,
+				incomePlanned: sql<string>`COALESCE(SUM(budget_amount) FILTER (WHERE item_type = 'income'), 0)::text`,
 				expenseActual: sql<string>`COALESCE(SUM(actual_amount) FILTER (WHERE item_type = 'expense'), 0)::text`,
+				expensePlanned: sql<string>`COALESCE(SUM(budget_amount) FILTER (WHERE item_type = 'expense'), 0)::text`,
 			})
 			.from(financeItems)
 			.where(and(eq(financeItems.conferenceId, conf.id), isNull(financeItems.deletedAt)));

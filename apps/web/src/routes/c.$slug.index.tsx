@@ -1,11 +1,15 @@
+import CountUp from "react-countup";
+
 import { api } from "@/lib/api";
 import { useConference } from "@/lib/ConferenceContext";
 import { fmtDateTime, fmtINR, fmtNumber } from "@/lib/format";
+import { cx } from "@/lib/uiStyles";
 import { useRealtime } from "@/lib/useRealtime";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
 	Crown,
+	ExternalLink,
 	LifeBuoy,
 	TrendingDown,
 	TrendingUp,
@@ -15,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/components/Badge";
+import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { CenterSpinner } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
@@ -25,40 +30,29 @@ export const Route = createFileRoute("/c/$slug/")({
 	component: DashboardPage,
 });
 
-type Dashboard = {
+export type Dashboard = {
 	attendees: {
 		total: number;
 		registered: number;
 		confirmed: number;
 		checkedIn: number;
 		vip: number;
+		badgePrinted: number;
+		kitCollected: number;
 		male: number;
 		female: number;
-		students: number;
-		faculty: number;
-		speakers: number;
 	};
 	travel: {
-		arrivals: {
-			scheduled: number;
-			assigned: number;
-			enRoute: number;
-			arrived: number;
-			missed: number;
-		};
-		departures: {
-			scheduled: number;
-			assigned: number;
-			enRoute: number;
-			completed: number;
-		};
+		arrivalsPending: number;
+		arrivalsCompleted: number;
+		arrivalsDelayed: number;
+		departuresPending: number;
+		departuresCompleted: number;
 	};
 	accommodation: {
 		rooms: number;
 		capacity: number;
 		occupied: number;
-		available: number;
-		blocked: number;
 	};
 	helpdesk: {
 		open: number;
@@ -80,6 +74,7 @@ type Dashboard = {
 
 function DashboardPage() {
 	const { conference } = useConference();
+	const navigate = useNavigate();
 	const qc = useQueryClient();
 
 	const { data, isLoading } = useQuery<Dashboard>({
@@ -108,8 +103,16 @@ function DashboardPage() {
 		);
 	}
 
-	const arrivals = data.travel.arrivals;
-	const departures = data.travel.departures;
+	const arrivals = {
+		scheduled: data.travel.arrivalsPending,
+		assigned: data.travel.arrivalsCompleted,
+		enRoute: data.travel.arrivalsDelayed,
+		arrived: data.travel.arrivalsCompleted,
+	};
+	const departures = {
+		scheduled: data.travel.departuresPending + data.travel.departuresCompleted,
+		completed: data.travel.departuresCompleted,
+	};
 	const totalArrivals =
 		arrivals.scheduled + arrivals.assigned + arrivals.enRoute + arrivals.arrived;
 	const arrivalsPct = totalArrivals === 0 ? 0 : (arrivals.arrived / totalArrivals) * 100;
@@ -122,6 +125,7 @@ function DashboardPage() {
 	const incomeActual = Number(data.finance.incomeActual);
 	const incomePlanned = Number(data.finance.incomePlanned) || 0;
 	const expenseActual = Number(data.finance.expenseActual);
+	const expensePlanned = Number(data.finance.expensePlanned) || 0;
 	const net = incomeActual - expenseActual;
 	const incomePct = incomePlanned === 0 ? 0 : (incomeActual / incomePlanned) * 100;
 
@@ -132,7 +136,7 @@ function DashboardPage() {
 		<div className="p-6 space-y-6">
 			<PageHeader
 				title={conference.name}
-				description="Live overview of every operational stream."
+				description={`${conference.venue} · ${fmtDateTime(conference.startDate)} - ${fmtDateTime(conference.endDate)}`}
 			/>
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 				<StatCard
@@ -141,7 +145,23 @@ function DashboardPage() {
 					icon={<Users size={18} />}
 					tone="accent"
 					hint={`${data.attendees.confirmed} confirmed`}
-				/>
+					onClick={() => navigate({ to: "attendees" })}
+				>
+					<div className="flex items-center gap-2 mt-2">
+						<MiniStat
+							label="Male"
+							value={data.attendees.male}
+							tone="info"
+							className="flex flex-col items-center"
+						/>
+						<MiniStat
+							label="Female"
+							value={data.attendees.female}
+							tone="warn"
+							className="flex flex-col items-center"
+						/>
+					</div>
+				</StatCard>
 				<StatCard
 					label="Checked in"
 					value={fmtNumber(data.attendees.checkedIn)}
@@ -149,12 +169,14 @@ function DashboardPage() {
 					tone="success"
 					hint={`${checkinPct.toFixed(1)}% of registered`}
 					trend={checkinPct > 50 ? "up" : "flat"}
+					onClick={() => navigate({ to: "accommodation" })}
 				/>
 				<StatCard
 					label="VIP guests"
 					value={fmtNumber(data.attendees.vip)}
 					icon={<Crown size={18} />}
 					tone="warn"
+					onClick={() => navigate({ to: "vip" })}
 				/>
 				<StatCard
 					label="Open issues"
@@ -162,10 +184,19 @@ function DashboardPage() {
 					icon={<LifeBuoy size={18} />}
 					tone={data.helpdesk.urgent > 0 ? "danger" : "neutral"}
 					hint={data.helpdesk.urgent > 0 ? `${data.helpdesk.urgent} urgent` : undefined}
+					onClick={() => navigate({ to: "helpdesk" })}
 				/>
 			</div>
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-				<Card title="Travel & arrivals" subtitle="Today's pickups by status">
+			<div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+				<Card
+					title="Travel & arrivals"
+					subtitle="Today's pickups by status"
+					actions={
+						<Button variant="icon" size="sm" onClick={() => navigate({ to: "travel" })}>
+							<ExternalLink size={14} />
+						</Button>
+					}
+				>
 					<div className="space-y-3">
 						<ProgressBar
 							value={arrivalsPct}
@@ -174,11 +205,10 @@ function DashboardPage() {
 							hint={`${arrivalsPct.toFixed(0)}%`}
 							tone="success"
 						/>
-						<div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+						<div className="grid grid-cols-3 gap-2">
 							<MiniStat label="Scheduled" value={arrivals.scheduled} tone="neutral" />
 							<MiniStat label="Assigned" value={arrivals.assigned} tone="info" />
 							<MiniStat label="En route" value={arrivals.enRoute} tone="warn" />
-							<MiniStat label="Missed" value={arrivals.missed} tone="danger" />
 						</div>
 						<div className="pt-2 mt-2 border-t border-line text-xs text-ink-3">
 							Departures: <span className="text-ink-2">{departures.scheduled}</span>{" "}
@@ -190,6 +220,15 @@ function DashboardPage() {
 				<Card
 					title="Accommodation"
 					subtitle={`${data.accommodation.rooms} rooms · ${fmtNumber(data.accommodation.capacity)} beds`}
+					actions={
+						<Button
+							variant="icon"
+							size="sm"
+							onClick={() => navigate({ to: "accommodation" })}
+						>
+							<ExternalLink size={14} />
+						</Button>
+					}
 				>
 					<div className="space-y-3">
 						<ProgressBar
@@ -197,23 +236,29 @@ function DashboardPage() {
 							max={100}
 							label={`${fmtNumber(data.accommodation.occupied)} occupied`}
 							hint={`${occupancyPct.toFixed(0)}%`}
-							tone={occupancyPct > 90 ? "warn" : "accent"}
+							tone={
+								occupancyPct > 90
+									? "danger"
+									: occupancyPct > 70
+										? "warn"
+										: "success"
+							}
 						/>
 						<div className="grid grid-cols-3 gap-2">
 							<MiniStat
 								label="Available"
-								value={data.accommodation.available}
+								value={data.accommodation.capacity - data.accommodation.occupied}
 								tone="success"
 							/>
 							<MiniStat
 								label="Occupied"
 								value={data.accommodation.occupied}
-								tone="info"
+								tone="accent"
 							/>
 							<MiniStat
-								label="Blocked"
-								value={data.accommodation.blocked}
-								tone="danger"
+								label="Rooms"
+								value={data.accommodation.rooms}
+								tone="neutral"
 							/>
 						</div>
 					</div>
@@ -221,7 +266,8 @@ function DashboardPage() {
 				<Card title="Meals today" subtitle="Scan counts by meal type">
 					{data.mealsToday.length === 0 ? (
 						<div className="text-sm text-ink-3 py-4 text-center">
-							No meal scans recorded today yet.
+							<Utensils size={22} className="mx-auto mb-2 text-ink-4" />
+							No meal scans recorded yet
 						</div>
 					) : (
 						<div className="space-y-2.5">
@@ -243,13 +289,15 @@ function DashboardPage() {
 							<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">
 								Net
 							</div>
-							<div
+							<CountUp
 								className={`text-xl font-semibold tabular-nums ${
 									net >= 0 ? "text-success-soft-fg" : "text-danger-soft-fg"
 								}`}
-							>
-								{fmtINR(net)}
-							</div>
+								end={net}
+								duration={1}
+								separator=","
+								prefix="₹"
+							/>
 						</div>
 						<div className="space-y-2">
 							<div className="flex items-center justify-between text-sm">
@@ -257,7 +305,12 @@ function DashboardPage() {
 									<TrendingUp size={13} className="text-success" /> Income
 								</span>
 								<span className="text-ink tabular-nums">
-									{fmtINR(incomeActual)}{" "}
+									<CountUp
+										end={incomeActual}
+										duration={1}
+										separator=","
+										prefix="₹"
+									/>
 									{incomePlanned > 0 && (
 										<span className="text-ink-3 text-xs">
 											/ {fmtINR(incomePlanned)} ({incomePct.toFixed(0)}%)
@@ -270,7 +323,17 @@ function DashboardPage() {
 									<TrendingDown size={13} className="text-danger" /> Expense
 								</span>
 								<span className="text-ink tabular-nums">
-									{fmtINR(expenseActual)}
+									<CountUp
+										end={expenseActual}
+										duration={1}
+										separator=","
+										prefix="₹"
+									/>
+									{expensePlanned > 0 && (
+										<span className="text-ink-3 text-xs">
+											/ {fmtINR(expensePlanned)} ({incomePct.toFixed(0)}%)
+										</span>
+									)}
 								</span>
 							</div>
 						</div>
@@ -278,28 +341,26 @@ function DashboardPage() {
 				</Card>
 			</div>
 			<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-				<MiniStat label="Confirmed" value={data.attendees.confirmed} />
-				<MiniStat label="Speakers" value={data.attendees.speakers} />
-				<MiniStat label="Students" value={data.attendees.students} />
-				<MiniStat label="Faculty" value={data.attendees.faculty} />
-				<MiniStat label="Male" value={data.attendees.male} />
-				<MiniStat label="Female" value={data.attendees.female} />
+				<MiniStat label="Badge printed" value={data.attendees.badgePrinted} tone="accent" />
+				<MiniStat label="Kit collected" value={data.attendees.kitCollected} tone="accent" />
 			</div>
 
 			<div className="text-xs text-ink-3 text-center pt-2">
-				Updated {fmtDateTime(new Date())} · refreshes every minute
+				Last updated: {fmtDateTime(new Date())}
 			</div>
 		</div>
 	);
 }
 
 function MiniStat({
-	label,
 	value,
+	label,
+	className,
 	tone = "neutral",
 }: {
 	label: string;
 	value: number;
+	className?: string;
 	tone?: "neutral" | "accent" | "success" | "warn" | "danger" | "info";
 }) {
 	const toneCls = {
@@ -311,13 +372,16 @@ function MiniStat({
 		info: "text-info-soft-fg",
 	}[tone];
 	return (
-		<div className="bg-surface border border-line rounded-md px-3 py-2.5">
+		<div className={cx("bg-surface border border-line rounded-md px-3 py-2.5", className)}>
 			<div className="text-[10px] font-semibold uppercase tracking-wider text-ink-3">
 				{label}
 			</div>
-			<div className={`mt-0.5 text-lg font-semibold tabular-nums ${toneCls}`}>
-				{fmtNumber(value)}
-			</div>
+			<CountUp
+				className={`mt-0.5 text-lg font-semibold tabular-nums ${toneCls}`}
+				end={value}
+				duration={1}
+				separator=","
+			/>
 		</div>
 	);
 }

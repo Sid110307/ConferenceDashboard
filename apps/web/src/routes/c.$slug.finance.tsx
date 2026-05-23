@@ -211,7 +211,7 @@ function LedgerTab({
 				<Pagination
 					page={search.page ?? 1}
 					pageSize={PAGE_SIZE}
-					total={list.data?.total ?? 0}
+					total={list.data?.pagination?.total ?? 0}
 					onChange={p => setSearch({ page: p })}
 				/>
 			</Card>
@@ -413,7 +413,7 @@ function SponsorsTab({
 				<Pagination
 					page={search.page ?? 1}
 					pageSize={PAGE_SIZE}
-					total={list.data?.total ?? 0}
+					total={list.data?.pagination?.total ?? 0}
 					onChange={p => setSearch({ page: p })}
 				/>
 			</Card>

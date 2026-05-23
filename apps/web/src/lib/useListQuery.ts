@@ -3,9 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 
 export type ListEnvelope<T> = {
 	data: T[];
-	page: number;
-	pageSize: number;
-	total: number;
+	pagination: {
+		page: number;
+		pageSize: number;
+		total: number;
+		totalPages: number;
+		hasNextPage: boolean;
+	};
 };
 
 export function useListQuery<T>(opts: {

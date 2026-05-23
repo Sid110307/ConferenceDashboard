@@ -157,9 +157,7 @@ export const feedback = pgTable(
 		}),
 		rating: integer("rating"),
 		comments: text("comments"),
-		submittedAt: timestamp("submitted_at", { withTimezone: true })
-			.notNull()
-			.default(sql`now()`),
+		submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
 		isPublic: boolean("is_public").notNull().default(false),
 		...auditColumns(() => users.id),
 	},

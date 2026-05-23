@@ -1,5 +1,3 @@
-import { sql } from "drizzle-orm";
-
 import {
 	date,
 	index,
@@ -67,10 +65,8 @@ export const mealScans = pgTable(
 
 		mealType: mealTypeEnum("meal_type").notNull(),
 		mealDate: date("meal_date").notNull(),
-		scannedAt: timestamp("scanned_at", { withTimezone: true })
-			.notNull()
-			.default(sql`now()`),
-		scannedByUserId: uuid("scanned_by_user_id").references(() => users.id, {
+		scannedAt: timestamp("scanned_at", { withTimezone: true }).notNull().defaultNow(),
+		scannedByUserId: text("scanned_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),
 		scannerLocation: text("scanner_location"),

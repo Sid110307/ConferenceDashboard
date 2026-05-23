@@ -36,7 +36,7 @@ type ReportJob = {
 const REPORT_TYPES = [
 	{ value: "attendees_full", label: "Attendeees" },
 	{ value: "travel_manifest", label: "Travel manifest" },
-	{ value: "accommodation_roster", label: "Accommodation roster" },
+	{ value: "accommodation_roster", label: "Accommodation list" },
 	{ value: "food_meal_counts", label: "Food" },
 	{ value: "helpdesk_log", label: "Helpdesk log" },
 	{ value: "finance_summary", label: "Finance summary" },

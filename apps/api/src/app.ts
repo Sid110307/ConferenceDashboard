@@ -63,22 +63,20 @@ export function buildApp() {
 	app.use("*", secureHeaders());
 	app.use("*", requestLogMiddleware);
 	app.get("/health", c => c.json({ ok: true, service: "@conference/api" }));
-	app.on(["GET", "POST"], "/api/auth/**", c => auth.handler(c.req.raw));
+	app.on(["GET", "POST"], "/api/auth/*", c => auth.handler(c.req.raw));
 
 	const api = new Hono<AppContext>();
 	api.route("/auth", authRouter);
 	api.route("/conferences", conferencesRouter);
 
+	const tenantIndex = (c: any) =>
+		c.json({ conference: c.get("conference"), membership: c.get("membership") });
+	api.get("/c/:conferenceSlug", loadAuthUser, resolveConference, tenantIndex);
+	api.get("/c/:conferenceSlug/", loadAuthUser, resolveConference, tenantIndex);
+
 	const tenant = new Hono<AppContext>();
 	tenant.use("*", loadAuthUser);
 	tenant.use("*", resolveConference);
-
-	tenant.get("/", c => {
-		return c.json({
-			conference: c.get("conference"),
-			membership: c.get("membership"),
-		});
-	});
 
 	tenant.route("/dashboard", dashboardRouter);
 	tenant.route("/members", membersRouter);

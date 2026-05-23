@@ -26,27 +26,23 @@ const citext = customType<{ data: string; driverData: string }>({
 export const users = pgTable(
 	"users",
 	{
-		id: uuidPk(),
+		id: text("id")
+			.primaryKey()
+			.notNull()
+			.default(sql`gen_random_uuid()::text`),
+		name: text("name").notNull(),
 		email: citext("email").notNull(),
-		emailVerified: timestamp("email_verified", { withTimezone: true }),
-		name: text("name"),
+		emailVerified: boolean("email_verified").default(false).notNull(),
 		image: text("image"),
-		hashedPassword: text("hashed_password"),
 		isPlatformAdmin: boolean("is_platform_admin").notNull().default(false),
 		isActive: boolean("is_active").notNull().default(true),
 		lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
-		twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
-		twoFactorSecret: text("two_factor_secret"),
 		preferences: jsonb("preferences")
 			.notNull()
 			.default(sql`'{}'::jsonb`)
 			.$type<Record<string, unknown>>(),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.notNull()
-			.default(sql`now()`),
-		updatedAt: timestamp("updated_at", { withTimezone: true })
-			.notNull()
-			.default(sql`now()`),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 	},
 	t => ({
 		emailUnique: uniqueIndex("users_email_unique").on(t.email),
@@ -57,52 +53,41 @@ export const users = pgTable(
 export const accounts = pgTable(
 	"accounts",
 	{
-		id: uuidPk(),
-		userId: uuid("user_id")
+		id: text("id").primaryKey().notNull(),
+		userId: text("user_id")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
-		provider: varchar("provider", { length: 32 }).notNull(),
-		providerAccountId: varchar("provider_account_id", { length: 191 }).notNull(),
+		accountId: text("account_id").notNull(),
+		providerId: text("provider_id").notNull(),
 		accessToken: text("access_token"),
 		refreshToken: text("refresh_token"),
-		idToken: text("id_token"),
-		tokenType: varchar("token_type", { length: 32 }),
+		accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
+		refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
 		scope: text("scope"),
-		expiresAt: timestamp("expires_at", { withTimezone: true }),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.notNull()
-			.default(sql`now()`),
-		updatedAt: timestamp("updated_at", { withTimezone: true })
-			.notNull()
-			.default(sql`now()`),
+		idToken: text("id_token"),
+		password: text("password"),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 	},
 	t => ({
-		providerAccountUnique: uniqueIndex("accounts_provider_account_unique").on(
-			t.provider,
-			t.providerAccountId,
-		),
-		userIdx: index("accounts_user_idx").on(t.userId),
+		userProviderIdx: index("accounts_user_provider_idx").on(t.userId, t.providerId),
 	}),
 );
 
 export const sessions = pgTable(
 	"sessions",
 	{
-		id: uuidPk(),
-		userId: uuid("user_id")
+		id: text("id").primaryKey().notNull(),
+		userId: text("user_id")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
-		tokenHash: varchar("token_hash", { length: 128 }).notNull().unique(),
+		token: text("token").notNull().unique(),
 		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-		ip: inet("ip"),
+		ipAddress: text("ip_address"),
 		userAgent: text("user_agent"),
 		activeConferenceId: uuid("active_conference_id"),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.notNull()
-			.default(sql`now()`),
-		lastUsedAt: timestamp("last_used_at", { withTimezone: true })
-			.notNull()
-			.default(sql`now()`),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 	},
 	t => ({
 		userIdx: index("sessions_user_idx").on(t.userId),
@@ -113,15 +98,12 @@ export const sessions = pgTable(
 export const verificationTokens = pgTable(
 	"verification_tokens",
 	{
-		id: uuidPk(),
+		id: text("id").primaryKey().notNull(),
 		identifier: text("identifier").notNull(),
-		tokenHash: varchar("token_hash", { length: 128 }).notNull().unique(),
-		purpose: varchar("purpose", { length: 32 }).notNull(),
+		value: text("value").notNull(),
 		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-		consumedAt: timestamp("consumed_at", { withTimezone: true }),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.notNull()
-			.default(sql`now()`),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 	},
 	t => ({
 		identifierIdx: index("verification_tokens_identifier_idx").on(t.identifier),
@@ -133,13 +115,13 @@ export const userConferenceRoles = pgTable(
 	"user_conference_roles",
 	{
 		id: uuidPk(),
-		userId: uuid("user_id")
+		userId: text("user_id")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
 		conferenceId: uuid("conference_id").notNull(),
 		role: userRoleEnum("role").notNull(),
 		isActive: boolean("is_active").notNull().default(true),
-		invitedByUserId: uuid("invited_by_user_id").references(() => users.id, {
+		invitedByUserId: text("invited_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),
 		invitedAt: timestamp("invited_at", { withTimezone: true }),
@@ -149,12 +131,8 @@ export const userConferenceRoles = pgTable(
 			.notNull()
 			.default(sql`'{}'::jsonb`)
 			.$type<Record<string, boolean>>(),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.notNull()
-			.default(sql`now()`),
-		updatedAt: timestamp("updated_at", { withTimezone: true })
-			.notNull()
-			.default(sql`now()`),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 	},
 	t => ({
 		uniqueUserConf: uniqueIndex("ucr_user_conference_unique").on(t.userId, t.conferenceId),
@@ -171,15 +149,13 @@ export const invitations = pgTable(
 		email: citext("email").notNull(),
 		role: userRoleEnum("role").notNull(),
 		tokenHash: varchar("token_hash", { length: 128 }).notNull().unique(),
-		invitedByUserId: uuid("invited_by_user_id").references(() => users.id, {
+		invitedByUserId: text("invited_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),
 		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 		acceptedAt: timestamp("accepted_at", { withTimezone: true }),
 		revokedAt: timestamp("revoked_at", { withTimezone: true }),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.notNull()
-			.default(sql`now()`),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 	},
 	t => ({
 		confEmailIdx: index("invitations_conf_email_idx").on(t.conferenceId, t.email),
@@ -191,7 +167,7 @@ export const auditLog = pgTable(
 	{
 		id: uuidPk(),
 		conferenceId: uuid("conference_id"),
-		userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+		userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
 		action: auditActionEnum("action").notNull(),
 		entity: varchar("entity", { length: 64 }).notNull(),
 		entityId: uuid("entity_id"),
@@ -202,9 +178,7 @@ export const auditLog = pgTable(
 		ip: inet("ip"),
 		userAgent: text("user_agent"),
 		requestId: varchar("request_id", { length: 64 }),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.notNull()
-			.default(sql`now()`),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 	},
 	t => ({
 		confIdx: index("audit_log_conf_idx").on(t.conferenceId, t.createdAt),

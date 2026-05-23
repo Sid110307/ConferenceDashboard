@@ -4,7 +4,7 @@ import { api, ApiError } from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
 import { initials } from "@/lib/format";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, KeyRound, LogOut } from "lucide-react";
 
 import { AppHeader } from "@/components/AppHeader";
@@ -77,6 +77,14 @@ function AccountPage() {
 		mutationFn: async () => {
 			if (pw.next !== pw.confirm) throw new Error("New passwords do not match");
 			if (pw.next.length < 8) throw new Error("New password must be at least 8 characters");
+
+			if (me.data?.user.hasPassword === false) {
+				await api.post("/api/v1/auth/password", {
+					newPassword: pw.next,
+				});
+				return;
+			}
+
 			await authClient.changePassword({
 				currentPassword: pw.current,
 				newPassword: pw.next,
@@ -84,53 +92,67 @@ function AccountPage() {
 		},
 		onSuccess: () => {
 			setPw({ current: "", next: "", confirm: "" });
-			toast.success("Password changed");
+			qc.invalidateQueries({ queryKey: ["me"] }).catch(console.error);
+			toast.success(
+				me.data?.user.hasPassword === false ? "Password added" : "Password changed",
+				"Your password has been successfully updated.",
+			);
 		},
-		onError: (e: any) => toast.error("Could not change password", e.message),
+		onError: (e: any) =>
+			toast.error(
+				me.data?.user.hasPassword === false
+					? "Could not add password"
+					: "Could not change password",
+				e.error?.message ?? e.message,
+			),
 	});
 
 	const signOut = async () => {
-		await authClient.signOut();
-		navigate({ to: "/login" });
+		try {
+			await authClient.signOut();
+			toast.success("Successfully logged out");
+
+			await navigate({ to: "/login" });
+		} catch (e: any) {
+			toast.error("Logout failed", e.error?.message ?? "Please try again.");
+		}
 	};
 
-	if (me.isLoading || !me.data) {
-		return (
-			<div className="min-h-full">
-				<AppHeader />
-				<div className="py-20">
-					<CenterSpinner label="Loading account..." />
-				</div>
+	return me.isLoading || !me.data ? (
+		<div className="min-h-full">
+			<AppHeader />
+			<div className="py-20">
+				<CenterSpinner label="Loading account..." />
 			</div>
-		);
-	}
-
-	const u = me.data.user;
-
-	return (
+		</div>
+	) : (
 		<div className="min-h-full">
 			<AppHeader />
 			<div className="max-w-2xl mx-auto px-6 py-8">
-				<Link
-					to="/"
-					className="inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink mb-4"
+				<Button
+					variant="ghost"
+					leadingIcon={<ArrowLeft size={14} />}
+					onClick={() => navigate({ to: ".." })}
+					className="mb-4"
 				>
-					<ArrowLeft size={14} /> Back to conferences
-				</Link>
+					Back
+				</Button>
 				<div className="flex items-center gap-4 mb-6">
-					{u.image ? (
-						<img src={u.image} alt="" className="size-14 rounded-full" />
+					{me.data.user.image ? (
+						<img src={me.data.user.image} alt="" className="size-14 rounded-full" />
 					) : (
 						<div className="size-14 rounded-full bg-accent-soft text-accent-soft-fg flex items-center justify-center text-lg font-semibold">
-							{initials(u.name)}
+							{initials(me.data.user.name)}
 						</div>
 					)}
 					<div>
 						<div className="flex items-center gap-2">
-							<h1 className="text-xl font-semibold text-ink">{u.name}</h1>
-							{u.isPlatformAdmin && <Badge variant="accent">Platform admin</Badge>}
+							<h1 className="text-xl font-semibold text-ink">{me.data.user.name}</h1>
+							{me.data.user.isPlatformAdmin && (
+								<Badge variant="accent">Platform admin</Badge>
+							)}
 						</div>
-						<p className="text-sm text-ink-3">{u.email}</p>
+						<p className="text-sm text-ink-3">{me.data.user.email}</p>
 					</div>
 				</div>
 				<Card title="Profile" subtitle="Your display name across all conferences">
@@ -138,14 +160,14 @@ function AccountPage() {
 						<FieldRow label="Display name">
 							<Input value={name} onChange={e => setName(e.target.value)} />
 						</FieldRow>
-						<FieldRow label="Email" hint="Email cannot be changed here.">
-							<Input value={u.email} disabled />
+						<FieldRow label="Email" hint="Email cannot be changed.">
+							<Input value={me.data.user.email} disabled />
 						</FieldRow>
 						<div className="flex justify-end">
 							<Button
 								variant="primary"
 								loading={saveProfile.isPending}
-								disabled={!name || name === u.name}
+								disabled={!name || name === me.data.user.name}
 								onClick={() => saveProfile.mutate()}
 							>
 								Save profile
@@ -153,10 +175,17 @@ function AccountPage() {
 						</div>
 					</div>
 				</Card>
-				{u.hasPassword !== false && (
-					<div className="mt-4">
-						<Card title="Password" subtitle="Change the password for email sign-in">
-							<div className="space-y-4">
+				<div className="mt-4">
+					<Card
+						title={me.data.user.hasPassword === false ? "Add password" : "Password"}
+						subtitle={
+							me.data.user.hasPassword === false
+								? "Create a password so you can also sign in with email and password"
+								: "Change the password for email sign-in"
+						}
+					>
+						<div className="space-y-4">
+							{me.data.user.hasPassword !== false && (
 								<FieldRow label="Current password">
 									<Input
 										type="password"
@@ -166,43 +195,50 @@ function AccountPage() {
 										}
 									/>
 								</FieldRow>
-								<div className="grid grid-cols-2 gap-3">
-									<FieldRow label="New password">
-										<Input
-											type="password"
-											value={pw.next}
-											onChange={e =>
-												setPw(p => ({ ...p, next: e.target.value }))
-											}
-										/>
-									</FieldRow>
-									<FieldRow label="Confirm new password">
-										<Input
-											type="password"
-											value={pw.confirm}
-											onChange={e =>
-												setPw(p => ({ ...p, confirm: e.target.value }))
-											}
-										/>
-									</FieldRow>
-								</div>
-								<div className="flex justify-end">
-									<Button
-										variant="secondary"
-										leadingIcon={<KeyRound size={13} />}
-										loading={changePassword.isPending}
-										disabled={!pw.current || !pw.next || !pw.confirm}
-										onClick={() => changePassword.mutate()}
-									>
-										Change password
-									</Button>
-								</div>
+							)}
+							<div className="grid grid-cols-2 gap-3">
+								<FieldRow label="New password">
+									<Input
+										type="password"
+										value={pw.next}
+										onChange={e => setPw(p => ({ ...p, next: e.target.value }))}
+									/>
+								</FieldRow>
+								<FieldRow label="Confirm new password">
+									<Input
+										type="password"
+										value={pw.confirm}
+										onChange={e =>
+											setPw(p => ({ ...p, confirm: e.target.value }))
+										}
+									/>
+								</FieldRow>
 							</div>
-						</Card>
-					</div>
-				)}
+							<div className="flex justify-end">
+								<Button
+									variant="secondary"
+									leadingIcon={<KeyRound size={13} />}
+									loading={changePassword.isPending}
+									disabled={
+										me.data.user.hasPassword === false
+											? !pw.next || !pw.confirm
+											: !pw.current || !pw.next || !pw.confirm
+									}
+									onClick={() => changePassword.mutate()}
+								>
+									{me.data.user.hasPassword === false
+										? "Add password"
+										: "Change password"}
+								</Button>
+							</div>
+						</div>
+					</Card>
+				</div>
 				<div className="mt-4">
-					<Card title="Conference access" subtitle="Where you have a role">
+					<Card
+						title="Conference access"
+						subtitle="List of conferences you have access to"
+					>
 						<div className="space-y-1.5">
 							{me.data.memberships.map((m, i) => (
 								<div
@@ -223,7 +259,9 @@ function AccountPage() {
 								</div>
 							))}
 							{me.data.memberships.length === 0 && (
-								<div className="text-sm text-ink-3">No conference access yet.</div>
+								<div className="text-sm text-ink-3">
+									You are not a member of any conferences yet.
+								</div>
 							)}
 						</div>
 					</Card>

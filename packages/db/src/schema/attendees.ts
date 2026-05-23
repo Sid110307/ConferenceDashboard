@@ -62,14 +62,14 @@ export const attendees = pgTable(
 			.default("registered"),
 		registrationDate: timestamp("registration_date", { withTimezone: true })
 			.notNull()
-			.default(sql`now()`),
+			.defaultNow(),
 		registrationSource: varchar("registration_source", { length: 32 })
 			.notNull()
 			.default("manual"),
 
 		checkinStatus: checkinStatusEnum("checkin_status").notNull().default("not_checked_in"),
 		checkedInAt: timestamp("checked_in_at", { withTimezone: true }),
-		checkedInByUserId: uuid("checked_in_by_user_id").references(() => users.id, {
+		checkedInByUserId: text("checked_in_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),
 		checkedOutAt: timestamp("checked_out_at", { withTimezone: true }),

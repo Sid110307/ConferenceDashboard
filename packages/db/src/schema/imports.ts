@@ -104,9 +104,7 @@ export const importRows = pgTable(
 		isUpdate: boolean("is_update").notNull().default(false),
 		dupeOfId: uuid("dupe_of_id"),
 
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.notNull()
-			.default(sql`now()`),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 	},
 	t => ({
 		jobRowUnique: uniqueIndex("import_rows_job_row_unique").on(t.jobId, t.rowNumber),

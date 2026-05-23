@@ -179,9 +179,7 @@ export const messageRecipients = pgTable(
 		clickedAt: timestamp("clicked_at", { withTimezone: true }),
 		failedAt: timestamp("failed_at", { withTimezone: true }),
 
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.notNull()
-			.default(sql`now()`),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 	},
 	t => ({
 		campaignIdx: index("msg_recipients_campaign_idx").on(t.campaignId),

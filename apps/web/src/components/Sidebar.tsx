@@ -128,11 +128,8 @@ export function Sidebar() {
 
 	return (
 		<aside className="w-60 shrink-0 border-r border-line bg-surface-2 flex flex-col h-full">
-			<div className="px-4 py-4 border-b border-line">
-				<div className="text-[10px] font-semibold uppercase tracking-wider text-ink-3">
-					Conference
-				</div>
-				<div className="mt-1 text-sm font-semibold text-ink leading-tight truncate">
+			<div className="px-4 py-2 border-b border-line">
+				<div className="mt-1 text-sm font-semibold text-ink leading-tight">
 					{conference.name}
 				</div>
 				<div className="mt-0.5 text-xs text-ink-3 truncate">{conference.shortName}</div>

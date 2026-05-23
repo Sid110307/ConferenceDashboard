@@ -114,10 +114,10 @@ export const roomAllocations = pgTable(
 
 		checkinAt: timestamp("checkin_at", { withTimezone: true }),
 		checkoutAt: timestamp("checkout_at", { withTimezone: true }),
-		checkinByUserId: uuid("checkin_by_user_id").references(() => users.id, {
+		checkinByUserId: text("checkin_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),
-		checkoutByUserId: uuid("checkout_by_user_id").references(() => users.id, {
+		checkoutByUserId: text("checkout_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),
 

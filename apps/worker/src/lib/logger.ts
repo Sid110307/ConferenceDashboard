@@ -7,7 +7,6 @@ export const logger = pino({
 	redact: {
 		paths: [
 			"*.password",
-			"*.hashedPassword",
 			"*.token",
 			"*.tokenHash",
 			"*.apiKey",
