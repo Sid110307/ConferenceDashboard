@@ -26,6 +26,8 @@
 		"@radix-ui/react-tooltip": "^1.1.6",
 		"@tanstack/react-query": "^5.62.7",
 		"@tanstack/react-router": "^1.85.7",
+		"@zxing/browser": "^0.2.0",
+		"@zxing/library": "^0.23.0",
 		"better-auth": "^1.1.6",
 		"clsx": "^2.1.1",
 		"date-fns": "^4.2.1",

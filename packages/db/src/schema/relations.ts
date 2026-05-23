@@ -51,7 +51,10 @@ import { vipChecklist, vipGuests } from "./vip";
 export const usersRelations = relations(users, ({ many }) => ({
 	accounts: many(accounts),
 	sessions: many(authSessions),
-	conferenceRoles: many(userConferenceRoles),
+	conferenceRoles: many(userConferenceRoles, { relationName: "user_conference_roles_user" }),
+	invitedConferenceRoles: many(userConferenceRoles, {
+		relationName: "user_conference_roles_invited_by",
+	}),
 	auditEntries: many(auditLog),
 }));
 
@@ -67,6 +70,7 @@ export const userConferenceRolesRelations = relations(userConferenceRoles, ({ on
 	user: one(users, {
 		fields: [userConferenceRoles.userId],
 		references: [users.id],
+		relationName: "user_conference_roles_user",
 	}),
 	conference: one(conferences, {
 		fields: [userConferenceRoles.conferenceId],
@@ -75,6 +79,7 @@ export const userConferenceRolesRelations = relations(userConferenceRoles, ({ on
 	invitedBy: one(users, {
 		fields: [userConferenceRoles.invitedByUserId],
 		references: [users.id],
+		relationName: "user_conference_roles_invited_by",
 	}),
 }));
 
@@ -232,6 +237,21 @@ export const roomAllocationsRelations = relations(roomAllocations, ({ one }) => 
 	}),
 	attendee: one(attendees, {
 		fields: [roomAllocations.attendeeId],
+		references: [attendees.id],
+	}),
+}));
+
+export const accommodationIssuesRelations = relations(accommodationIssues, ({ one }) => ({
+	conference: one(conferences, {
+		fields: [accommodationIssues.conferenceId],
+		references: [conferences.id],
+	}),
+	room: one(accommodationRooms, {
+		fields: [accommodationIssues.roomId],
+		references: [accommodationRooms.id],
+	}),
+	reportedBy: one(attendees, {
+		fields: [accommodationIssues.attendeeId],
 		references: [attendees.id],
 	}),
 }));
@@ -456,6 +476,60 @@ export const sponsorsRelations = relations(sponsors, ({ one }) => ({
 	logo: one(files, { fields: [sponsors.logoFileId], references: [files.id] }),
 }));
 
+export const logisticsItemsRelations = relations(logisticsItems, ({ one }) => ({
+	conference: one(conferences, {
+		fields: [logisticsItems.conferenceId],
+		references: [conferences.id],
+	}),
+}));
+
+export const announcementsRelations = relations(announcements, ({ one }) => ({
+	conference: one(conferences, {
+		fields: [announcements.conferenceId],
+		references: [conferences.id],
+	}),
+}));
+
+export const appSettingsRelations = relations(appSettings, ({ one }) => ({
+	conference: one(conferences, {
+		fields: [appSettings.conferenceId],
+		references: [conferences.id],
+	}),
+}));
+
+export const themeSettingsRelations = relations(themeSettings, ({ one }) => ({
+	conference: one(conferences, {
+		fields: [themeSettings.conferenceId],
+		references: [conferences.id],
+	}),
+}));
+
+export const feedbackRelations = relations(feedback, ({ one }) => ({
+	conference: one(conferences, {
+		fields: [feedback.conferenceId],
+		references: [conferences.id],
+	}),
+	session: one(programmeSessions, {
+		fields: [feedback.sessionId],
+		references: [programmeSessions.id],
+	}),
+	attendee: one(attendees, {
+		fields: [feedback.attendeeId],
+		references: [attendees.id],
+	}),
+}));
+
+export const dailyControlLogsRelations = relations(dailyControlLogs, ({ one }) => ({
+	conference: one(conferences, {
+		fields: [dailyControlLogs.conferenceId],
+		references: [conferences.id],
+	}),
+	staff: one(staff, {
+		fields: [dailyControlLogs.shiftHeadStaffId],
+		references: [staff.id],
+	}),
+}));
+
 export const certificatesRelations = relations(certificates, ({ one }) => ({
 	conference: one(conferences, {
 		fields: [certificates.conferenceId],
@@ -478,6 +552,13 @@ export const filesRelations = relations(files, ({ one }) => ({
 	}),
 	uploader: one(users, {
 		fields: [files.uploadedByUserId],
+		references: [users.id],
+	}),
+}));
+
+export const auditLogRelations = relations(auditLog, ({ one }) => ({
+	user: one(users, {
+		fields: [auditLog.userId],
 		references: [users.id],
 	}),
 }));

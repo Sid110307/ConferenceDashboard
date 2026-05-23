@@ -181,6 +181,7 @@ export const issueStatusEnum = pgEnum("issue_status", [
 	"in_progress",
 	"resolved",
 	"closed",
+	"wont_fix",
 ]);
 
 export const helpdeskCategoryEnum = pgEnum("helpdesk_category", [

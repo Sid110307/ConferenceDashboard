@@ -100,6 +100,9 @@ travelRouter.get(
 					ilike(travelSegments.serviceNumber, `%${q.q}%`),
 					ilike(travelSegments.pnr, `%${q.q}%`),
 					ilike(travelSegments.carrier, `%${q.q}%`),
+					ilike(attendees.name, `%${q.q}%`),
+					ilike(attendees.attendeeCode, `%${q.q}%`),
+					ilike(attendees.phone, `%${q.q}%`),
 				) as any,
 			);
 		}
@@ -107,19 +110,70 @@ travelRouter.get(
 		const result = await withTenant(conf.id, async tx => {
 			const baseQuery: any = tx
 				.select({
-					segment: travelSegments,
-					attendee: {
-						id: attendees.id,
-						name: attendees.name,
-						gender: attendees.gender,
-						attendeeCode: attendees.attendeeCode,
-						isVip: attendees.isVip,
-						protocolLevel: attendees.protocolLevel,
-						phone: attendees.phone,
-					},
+					id: travelSegments.id,
+					attendeeId: travelSegments.attendeeId,
+					direction: travelSegments.direction,
+					travelMode: travelSegments.travelMode,
+
+					carrier: travelSegments.carrier,
+					serviceNumber: travelSegments.serviceNumber,
+					pnr: travelSegments.pnr,
+					seatNumber: travelSegments.seatNumber,
+					coachNumber: travelSegments.coachNumber,
+					classOfTravel: travelSegments.classOfTravel,
+
+					originCity: travelSegments.originCity,
+					originLocation: travelSegments.originLocation,
+					originTerminal: travelSegments.originTerminal,
+					destinationCity: travelSegments.destinationCity,
+					destinationLocation: travelSegments.destinationLocation,
+					destinationTerminal: travelSegments.destinationTerminal,
+
+					scheduledTime: travelSegments.scheduledTime,
+					actualTime: travelSegments.actualTime,
+
+					pickupRequired: travelSegments.pickupRequired,
+					pickupStatus: travelSegments.pickupStatus,
+					pickupPoint: travelSegments.pickupPoint,
+					dropPoint: travelSegments.dropPoint,
+					pickupScheduledAt: travelSegments.pickupScheduledAt,
+					pickupCompletedAt: travelSegments.pickupCompletedAt,
+
+					vehicleId: travelSegments.vehicleId,
+					driverNameOverride: travelSegments.driverNameOverride,
+					driverPhoneOverride: travelSegments.driverPhoneOverride,
+					travelGroupCode: travelSegments.travelGroupCode,
+
+					ticketFileId: travelSegments.ticketFileId,
+					notes: travelSegments.notes,
+
+					attendeeName: attendees.name,
+					attendeeCode: attendees.attendeeCode,
+					gender: attendees.gender,
+					phone: attendees.phone,
+
+					vehicleCode: vehicles.vehicleCode,
+					vehicleType: vehicles.vehicleType,
+					plateNumber: vehicles.plateNumber,
+					driverName: sql<
+						string | null
+					>`coalesce(${travelSegments.driverNameOverride}, ${vehicles.driverName})`,
+					driverPhone: sql<
+						string | null
+					>`coalesce(${travelSegments.driverPhoneOverride}, ${vehicles.driverPhone})`,
+					vehicleLabel: sql<string | null>`
+						case
+							when ${vehicles.id} is null then null
+							when ${vehicles.vehicleType} is not null
+								then trim(${vehicles.vehicleType} || ' ' || coalesce(${vehicles.plateNumber}, ''))
+							when ${vehicles.vehicleCode} is not null then ${vehicles.vehicleCode}
+							else 'Vehicle'
+							end
+					`,
 				})
 				.from(travelSegments)
-				.innerJoin(attendees, eq(attendees.id, travelSegments.attendeeId));
+				.innerJoin(attendees, eq(attendees.id, travelSegments.attendeeId))
+				.leftJoin(vehicles, eq(vehicles.id, travelSegments.vehicleId));
 
 			let where = and(...whereParts);
 			if (q.gender) where = and(where, eq(attendees.gender, q.gender));
@@ -177,7 +231,7 @@ travelRouter.get(
 			let baseWhere = and(...whereParts);
 			if (q.gender) baseWhere = and(baseWhere, eq(attendees.gender, q.gender));
 
-			const rows = await tx
+			return tx
 				.select({
 					id: travelSegments.id,
 					direction: travelSegments.direction,
@@ -213,8 +267,6 @@ travelRouter.get(
 				.leftJoin(vehicles, eq(vehicles.id, travelSegments.vehicleId))
 				.where(baseWhere)
 				.orderBy(asc(travelSegments.scheduledTime));
-
-			return rows;
 		});
 
 		return c.json({

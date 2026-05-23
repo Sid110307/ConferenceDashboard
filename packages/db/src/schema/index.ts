@@ -32,6 +32,7 @@ export {
 	travelSegmentsRelations,
 	accommodationBlocksRelations,
 	accommodationRoomsRelations,
+	accommodationIssuesRelations,
 	roomAllocationsRelations,
 	foodPlansRelations,
 	mealScansRelations,
@@ -53,8 +54,15 @@ export {
 	vipChecklistRelations,
 	financeItemsRelations,
 	sponsorsRelations,
+	logisticsItemsRelations,
+	announcementsRelations,
+	appSettingsRelations,
+	themeSettingsRelations,
+	feedbackRelations,
+	dailyControlLogsRelations,
 	certificatesRelations,
 	filesRelations,
+	auditLogRelations,
 } from "./relations";
 
 export { applyRowLevelSecurity } from "./rls";

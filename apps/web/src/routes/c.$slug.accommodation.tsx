@@ -1,19 +1,19 @@
 import { useState } from "react";
 
+
+
 import { api } from "@/lib/api";
 import { hasRole, useConference } from "@/lib/ConferenceContext";
 import { fmtRelative, slugify } from "@/lib/format";
 import { cx } from "@/lib/uiStyles";
 import { useUrlState } from "@/lib/useUrlState";
-import {
-	accommodationBlockCreateSchema,
-	allocationCheckActionSchema,
-	type AccommodationBlockInput,
-} from "@conference/shared";
+import { accommodationBlockCreateSchema, allocationCheckActionSchema, type AccommodationBlockInput } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Building2, Plus, Users } from "lucide-react";
 import { z } from "zod";
+
+
 
 import { Badge, StatusBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -25,6 +25,10 @@ import { FieldRow } from "@/components/FieldRow";
 import { Input } from "@/components/Input";
 import { PageHeader } from "@/components/PageHeader";
 import { useToast } from "@/components/Toast";
+
+
+
+
 
 const Search = z.object({
 	blockId: z.string().optional(),
@@ -58,20 +62,28 @@ type Allocation = {
 	id: string;
 	roomId: string;
 	attendeeId: string;
-	attendeeName: string;
-	attendeeCode: string;
-	gender?: string | null;
-	allocatedAt?: string | null;
-	checkedInAt?: string | null;
-	checkedOutAt?: string | null;
-	status: string;
+	status: "pending" | "checked_in" | "checked_out" | "cancelled";
+	bedNumber?: string | null;
+	plannedCheckinDate?: string | null;
+	plannedCheckoutDate?: string | null;
+	checkinAt?: string | null;
+	checkoutAt?: string | null;
+	keyIssued: boolean;
+	keyReturned: boolean;
+	notes?: string | null;
+	attendee?: {
+		id: string;
+		name: string;
+		code: string;
+		gender?: string | null;
+	};
 };
 
 const ROOM_STATUS_BG: Record<string, string> = {
 	available: "bg-success-soft text-success-soft-fg border-success/20",
 	allocated: "bg-info-soft text-info-soft-fg border-info/20",
-	checked_in: "bg-warn-soft text-warn-soft-fg border-warn/20",
-	checked_out: "bg-neutral-soft text-neutral-soft-fg border-line-2",
+	reserved: "bg-warn-soft text-warn-soft-fg border-warn/20",
+	maintenance: "bg-neutral-soft text-neutral-soft-fg border-line-2",
 	blocked: "bg-danger-soft text-danger-soft-fg border-danger/20",
 };
 
@@ -120,7 +132,6 @@ function AccommodationPage() {
 					)
 				}
 			/>
-
 			<div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
 				<div className="lg:col-span-1 space-y-2">
 					{blocks.isLoading && <CenterSpinner />}
@@ -187,7 +198,7 @@ function AccommodationPage() {
 									key={r.id}
 									onClick={() => setOpenRoom(r)}
 									className={cx(
-										"text-left rounded-md border p-2.5 transition-all hover:shadow-card hover:-translate-y-px",
+										"hover:cursor-pointer text-left rounded-md border p-2.5 transition-all hover:shadow-card hover:-translate-y-px",
 										ROOM_STATUS_BG[r.status] ?? ROOM_STATUS_BG.available,
 									)}
 									title={`${r.roomNumber} · ${r.status}`}
@@ -223,8 +234,8 @@ function Legend() {
 			{[
 				["available", "Available"],
 				["allocated", "Allocated"],
-				["checked_in", "Checked in"],
-				["checked_out", "Checked out"],
+				["reserved", "Reserved"],
+				["maintenance", "Maintenance"],
 				["blocked", "Blocked"],
 			].map(([status, label]) => (
 				<span key={status} className="inline-flex items-center gap-1.5">
@@ -282,7 +293,6 @@ function RoomDrawer({
 	});
 
 	const rows = allocs.data?.data ?? [];
-
 	return (
 		<EntityDrawer
 			open={true}
@@ -306,24 +316,30 @@ function RoomDrawer({
 					>
 						<div className="min-w-0">
 							<div className="text-sm font-medium text-ink truncate">
-								{a.attendeeName}
+								{a.attendee?.name}
 							</div>
 							<div className="mt-0.5 text-xs text-ink-3">
-								<span className="font-mono">{a.attendeeCode}</span>
-								{a.gender && <> · {a.gender}</>}
+								<span className="font-mono">{a.attendee?.code}</span>
+								{a.attendee?.gender && <> · {a.attendee?.gender}</>}
 							</div>
 							<div className="mt-1 text-[11px] text-ink-3">
-								{a.checkedInAt && <>Checked in {fmtRelative(a.checkedInAt)} · </>}
-								{a.allocatedAt && <>Allocated {fmtRelative(a.allocatedAt)}</>}
+								{a.checkinAt && <>Checked in {fmtRelative(a.checkinAt)} · </>}
+								{a.checkoutAt && <>Checked out {fmtRelative(a.checkoutAt)} · </>}
+								{a.bedNumber && <>Bed: {a.bedNumber}</>}
+								{!a.checkinAt && !a.plannedCheckinDate && (
+									<span className="italic">No check-in info</span>
+								)}
 							</div>
 						</div>
 						<div className="flex flex-col gap-1">
-							<StatusBadge status={a.status} />
+							<div className="flex items-center gap-1">
+								<StatusBadge status={a.status} />
+							</div>
 							{canEdit && (
 								<div className="flex flex-wrap gap-1 justify-end">
-									{a.status === "allocated" && (
+									{a.status === "pending" && (
 										<Button
-											variant="ghost"
+											variant="secondary"
 											size="xs"
 											onClick={() =>
 												action.mutate({ allocId: a.id, action: "check_in" })
@@ -334,7 +350,7 @@ function RoomDrawer({
 									)}
 									{a.status === "checked_in" && (
 										<Button
-											variant="ghost"
+											variant="secondary"
 											size="xs"
 											onClick={() =>
 												action.mutate({
@@ -346,9 +362,9 @@ function RoomDrawer({
 											Check out
 										</Button>
 									)}
-									{a.status === "allocated" && (
+									{a.status === "pending" && (
 										<Button
-											variant="ghost"
+											variant="danger"
 											size="xs"
 											onClick={async () => {
 												const ok = await confirm({
@@ -364,6 +380,11 @@ function RoomDrawer({
 										>
 											Cancel
 										</Button>
+									)}
+									{a.status === "cancelled" && (
+										<Badge variant="warn" size="xs">
+											Cancelled
+										</Badge>
 									)}
 								</div>
 							)}

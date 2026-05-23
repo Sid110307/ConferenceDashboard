@@ -171,11 +171,6 @@ export function Sidebar() {
 					);
 				})}
 			</nav>
-
-			<div className="border-t border-line px-3 py-2.5 text-[11px] text-ink-3">
-				Role:{" "}
-				<span className="text-ink-2 font-medium">{membership.role.replace("_", " ")}</span>
-			</div>
 		</aside>
 	);
 }

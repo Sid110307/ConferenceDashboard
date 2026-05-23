@@ -16,7 +16,7 @@ import { DataTable, Pagination, type Column } from "@/components/DataTable";
 import { CenterSpinner } from "@/components/EmptyState";
 import { EntityDrawer } from "@/components/EntityDrawer";
 import { FieldRow } from "@/components/FieldRow";
-import { Input, Textarea } from "@/components/Input";
+import { Input, Select, Textarea } from "@/components/Input";
 import { PageHeader } from "@/components/PageHeader";
 import { SearchField } from "@/components/SearchField";
 import { useToast } from "@/components/Toast";
@@ -35,11 +35,16 @@ export const Route = createFileRoute("/c/$slug/vip")({
 type Vip = {
 	id: string;
 	name: string;
-	designation?: string | null;
-	organisation?: string | null;
-	protocolLevel?: string | null;
-	arrivalNotes?: string | null;
-	phone?: string | null;
+	designation: string;
+	institution: string;
+	protocolLevel: string;
+	arrivalTime: string;
+	departureTime: string;
+	vehicle: string;
+	securityRequired: boolean;
+	speechRequired: boolean;
+	greenRoom: string;
+	notes: string;
 };
 type ChecklistItem = {
 	id: string;
@@ -56,7 +61,7 @@ function VipPage() {
 	const canEdit = hasRole(membership, "editor");
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 
-	const list = useListQuery<{ data: Vip[] }>({
+	const list = useListQuery<{ data: Vip }>({
 		key: ["vip", conference.slug],
 		path: `/api/v1/c/${conference.slug}/vip`,
 		params: { page: search.page ?? 1, pageSize: PAGE_SIZE, q: search.q },
@@ -74,7 +79,7 @@ function VipPage() {
 				<div className="min-w-0">
 					<div className="text-ink font-medium truncate">{r.name}</div>
 					<div className="text-xs text-ink-3 truncate">
-						{[r.designation, r.organisation].filter(Boolean).join(" · ")}
+						{[r.designation, r.institution].filter(Boolean).join(" · ")}
 					</div>
 				</div>
 			),
@@ -83,17 +88,55 @@ function VipPage() {
 			key: "protocol",
 			header: "Protocol",
 			cell: r => (
-				<Badge variant="warn" className="capitalize">
-					{r.protocolLevel ?? "standard"}
+				<Badge
+					className="capitalize"
+					variant={r.protocolLevel === "a_plus" ? "success" : "neutral"}
+				>
+					{r.protocolLevel === "a_plus" ? "A+" : (r.protocolLevel ?? "standard")}
 				</Badge>
 			),
 			width: "w-32",
 		},
 		{
-			key: "phone",
-			header: "Phone",
-			cell: r => <span className="text-xs text-ink-2">{r.phone ?? "—"}</span>,
-			width: "w-40",
+			key: "arrival",
+			header: "Arrival",
+			cell: r => (r.arrivalTime ? new Date(r.arrivalTime).toLocaleString() : "-"),
+			width: "w-32",
+		},
+		{
+			key: "departure",
+			header: "Departure",
+			cell: r => (r.departureTime ? new Date(r.departureTime).toLocaleString() : "-"),
+			width: "w-32",
+		},
+		{
+			key: "vehicle",
+			header: "Vehicle",
+			cell: r => r.vehicle || "-",
+			width: "w-32",
+		},
+		{
+			key: "requirements",
+			header: "Requirements",
+			cell: r => (
+				<div className="flex flex-col gap-1">
+					{r.securityRequired && <Badge variant="danger">Security required</Badge>}
+					{r.speechRequired && <Badge variant="accent">Speech required</Badge>}
+					{r.greenRoom && <Badge variant="success">Green room: {r.greenRoom}</Badge>}
+					{!r.securityRequired && !r.speechRequired && !r.greenRoom && (
+						<span className="text-ink-3">None</span>
+					)}
+				</div>
+			),
+		},
+		{
+			key: "notes",
+			header: "Notes",
+			cell: r => (
+				<div className="text-sm text-ink-2 whitespace-pre-wrap max-h-20 overflow-hidden">
+					{r.notes || "-"}
+				</div>
+			),
 		},
 	];
 
@@ -189,7 +232,7 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 			open
 			onOpenChange={v => !v && onClose()}
 			title={vip.name}
-			subtitle={[vip.designation, vip.organisation].filter(Boolean).join(" · ")}
+			subtitle={[vip.designation, vip.institution].filter(Boolean).join(" · ")}
 			status={
 				<Badge variant="warn" className="capitalize">
 					{vip.protocolLevel ?? "standard"} protocol
@@ -198,15 +241,60 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 			width="md"
 		>
 			<div className="space-y-4">
-				{vip.arrivalNotes && (
+				{vip.arrivalTime && (
+					<div>
+						<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3 mb-1">
+							Arrival time
+						</div>
+						<p className="text-sm text-ink-2">
+							{new Date(vip.arrivalTime).toLocaleString()}
+						</p>
+					</div>
+				)}
+				{vip.departureTime && (
+					<div>
+						<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3 mb-1">
+							Departure time
+						</div>
+						<p className="text-sm text-ink-2">
+							{new Date(vip.departureTime).toLocaleString()}
+						</p>
+					</div>
+				)}
+				{vip.vehicle && (
+					<div>
+						<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3 mb-1">
+							Vehicle
+						</div>
+						<p className="text-sm text-ink-2">{vip.vehicle}</p>
+					</div>
+				)}
+				<div>
+					<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3 mb-1">
+						Requirements
+					</div>
+					{vip.securityRequired || vip.speechRequired || vip.greenRoom ? (
+						<div className="flex flex-col gap-1">
+							{vip.securityRequired && (
+								<Badge variant="danger">Security required</Badge>
+							)}
+							{vip.speechRequired && <Badge variant="accent">Speech required</Badge>}
+							{vip.greenRoom && (
+								<Badge variant="success">Green room: {vip.greenRoom}</Badge>
+							)}
+						</div>
+					) : (
+						<span className="text-sm text-ink-2">None</span>
+					)}
+				</div>
+				{vip.notes && (
 					<div>
 						<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3 mb-1">
 							Arrival notes
 						</div>
-						<p className="text-sm text-ink-2 whitespace-pre-wrap">{vip.arrivalNotes}</p>
+						<p className="text-sm text-ink-2 whitespace-pre-wrap">{vip.notes}</p>
 					</div>
 				)}
-
 				<div>
 					<div className="flex items-center justify-between mb-2">
 						<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">
@@ -333,10 +421,16 @@ function CreateVipDrawer({ onClose }: { onClose: () => void }) {
 					<Input value={form.phone} onChange={e => upd({ phone: e.target.value })} />
 				</FieldRow>
 				<FieldRow label="Protocol level">
-					<Input
+					<Select
 						value={form.protocolLevel}
 						onChange={e => upd({ protocolLevel: e.target.value })}
-					/>
+					>
+						<option value="a_plus">A+</option>
+						<option value="a">A</option>
+						<option value="b">B</option>
+						<option value="c">C</option>
+						<option value="none">None</option>
+					</Select>
 				</FieldRow>
 				<FieldRow label="Arrival notes" className="sm:col-span-2">
 					<Textarea

@@ -7,7 +7,7 @@ import { requireRole } from "@/middleware/auth";
 import { conferenceSessions, sessionSpeakers, speakers, tracks, venues } from "@conference/db";
 import { isoDatetimeSchema } from "@conference/shared";
 import { zValidator } from "@hono/zod-validator";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -193,6 +193,16 @@ export const sessionsRouter = makeCrudRouter({
 		if (typeof filters.sessionType === "string")
 			parts.push(eq(conferenceSessions.sessionType, filters.sessionType as any));
 		return parts;
+	},
+	extras: {
+		trackName: sql<string>`(select ${tracks.name}
+		                        from ${tracks}
+		                        where ${tracks.id} = ${conferenceSessions.trackId}
+		                        limit 1)`,
+		venueName: sql<string>`(select ${venues.name}
+		                        from ${venues}
+		                        where ${venues.id} = ${conferenceSessions.venueId}
+		                        limit 1)`,
 	},
 });
 

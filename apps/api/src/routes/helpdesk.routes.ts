@@ -149,8 +149,6 @@ helpdeskRouter.post(
 					status: to,
 					resolutionNotes: resolutionNotes ?? before.resolutionNotes,
 					resolvedAt: resolvedAt ?? before.resolvedAt,
-					resolvedByUserId:
-						resolvedAt && !before.resolvedByUserId ? user.id : before.resolvedByUserId,
 					updatedBy: user.id,
 					updatedAt: new Date(),
 				})
@@ -282,13 +280,13 @@ vipChecklistRouter.patch(
 				.update(vipChecklist)
 				.set({
 					...input,
-					doneAt:
+					completedAt:
 						input.isDone === true
 							? new Date()
 							: input.isDone === false
 								? null
 								: undefined,
-					doneByUserId: input.isDone === true ? user.id : null,
+					assignedStaffId: input.isDone === true ? user.id : null,
 					updatedAt: new Date(),
 				})
 				.where(

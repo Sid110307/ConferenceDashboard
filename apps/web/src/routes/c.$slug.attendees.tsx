@@ -155,7 +155,7 @@ function AttendeesPage() {
 		onSuccess: (_d, input) => {
 			invalidate();
 			setSelected(new Set());
-			toast.success(`${input.action.replace(/_/g, " ")} applied to ${input.ids.length}`);
+			toast.success(`${humanise(input.action)} applied to ${input.ids.length} attendee(s)`);
 		},
 		onError: (e: any) => toast.error("Bulk action failed", e.message),
 	});
@@ -591,7 +591,7 @@ function BulkActionsMenu({
 		{ value: "mark_badge_printed", label: "Mark badge printed" },
 		{ value: "mark_kit_collected", label: "Mark kit collected" },
 	];
-	if (canAdmin) actions.push({ value: "delete", label: "Delete (soft)", tone: "danger" });
+	if (canAdmin) actions.push({ value: "delete", label: "Delete", tone: "danger" });
 
 	return (
 		<>

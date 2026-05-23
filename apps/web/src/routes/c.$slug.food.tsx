@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
 import { hasRole, useConference } from "@/lib/ConferenceContext";
@@ -6,7 +6,9 @@ import { fmtDate } from "@/lib/format";
 import { useRealtime } from "@/lib/useRealtime";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, QrCode, Utensils } from "lucide-react";
+import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
+import { BarcodeFormat, DecodeHintType } from "@zxing/library";
+import { Camera, Plus, QrCode, Utensils, X } from "lucide-react";
 import { z } from "zod";
 
 import { Badge } from "@/components/Badge";
@@ -209,7 +211,7 @@ function PlanDrawer({ onClose }: { onClose: () => void }) {
 				<FieldRow label="Date" required>
 					<DatePickerInput
 						value={form.mealDate}
-						onChange={e => setForm(p => ({ ...p, mealDate: e }))}
+						onChange={e => setForm(p => ({ ...p, mealDate: e || p.mealDate }))}
 					/>
 				</FieldRow>
 				<FieldRow label="Expected headcount">
@@ -228,21 +230,35 @@ function ScanDrawer({ onClose }: { onClose: () => void }) {
 	const { conference } = useConference();
 	const qc = useQueryClient();
 	const toast = useToast();
+
+	const videoRef = useRef<HTMLVideoElement | null>(null);
+	const controlsRef = useRef<IScannerControls | null>(null);
+	const submittingRef = useRef(false);
+
+	const [cameraOpen, setCameraOpen] = useState(false);
+	const [cameraError, setCameraError] = useState<string | null>(null);
+
 	const [form, setForm] = useState({
 		attendeeCode: "",
 		mealDate: new Date().toISOString().slice(0, 10),
 		mealType: "lunch",
 	});
+
 	const scan = useMutation({
-		mutationFn: () =>
-			api.post(`/api/v1/c/${conference.slug}/food/scans`, {
-				attendeeCode: form.attendeeCode.trim(),
+		mutationFn: (overrideCode?: string) => {
+			const attendeeCode = (overrideCode ?? form.attendeeCode).trim();
+
+			return api.post(`/api/v1/c/${conference.slug}/food/scans`, {
+				attendeeCode,
 				mealDate: form.mealDate,
 				mealType: form.mealType,
-			}),
-		onSuccess: () => {
+			});
+		},
+		onSuccess: (_data, overrideCode) => {
+			const scannedCode = overrideCode ?? form.attendeeCode;
+
 			qc.invalidateQueries({ queryKey: ["meal-scan-stats", conference.slug] });
-			toast.success("Scan recorded", `${form.attendeeCode} · ${form.mealType}`);
+			toast.success("Scan recorded", `${scannedCode} · ${form.mealType}`);
 			setForm(p => ({ ...p, attendeeCode: "" }));
 		},
 		onError: (err: any) => {
@@ -250,25 +266,96 @@ function ScanDrawer({ onClose }: { onClose: () => void }) {
 				toast.warn("Already scanned", "This attendee was already scanned for this meal.");
 			} else {
 				toast.error("Scan failed", err.message);
+				return;
 			}
 		},
+		onSettled: () => {
+			submittingRef.current = false;
+		},
 	});
+
+	const stopCamera = () => {
+		controlsRef.current?.stop();
+		controlsRef.current = null;
+		setCameraOpen(false);
+	};
+
+	const submitCode = (code: string) => {
+		const attendeeCode = code.trim();
+		if (!attendeeCode || submittingRef.current) return;
+
+		submittingRef.current = true;
+		setForm(p => ({ ...p, attendeeCode }));
+
+		stopCamera();
+		scan.mutate(attendeeCode);
+	};
+
+	const startCamera = async () => {
+		setCameraError(null);
+		setCameraOpen(true);
+
+		try {
+			const hints = new Map();
+			hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+				BarcodeFormat.QR_CODE,
+				BarcodeFormat.CODE_128,
+				BarcodeFormat.CODE_39,
+				BarcodeFormat.EAN_13,
+			]);
+
+			const reader = new BrowserMultiFormatReader(hints);
+			await new Promise(requestAnimationFrame);
+			if (!videoRef.current) throw new Error("Scanner is not ready.");
+
+			controlsRef.current = await reader.decodeFromConstraints(
+				{ video: { facingMode: { ideal: "environment" } }, audio: false },
+				videoRef.current,
+				result => {
+					const code = result?.getText()?.trim();
+					if (code) submitCode(code);
+				},
+			);
+		} catch (err: any) {
+			setCameraError(err?.message ?? "Could not start camera scanner.");
+			stopCamera();
+		}
+	};
+
+	useEffect(() => {
+		return () => {
+			stopCamera();
+		};
+	}, []);
+
 	return (
 		<EntityDrawer
 			open
-			onOpenChange={v => !v && onClose()}
+			onOpenChange={v => {
+				if (!v) {
+					stopCamera();
+					onClose();
+				}
+			}}
 			title="Record meal scan"
 			subtitle="Scan or type the attendee code"
 			width="sm"
 			footer={
 				<>
-					<Button variant="ghost" onClick={onClose}>
+					<Button
+						variant="ghost"
+						onClick={() => {
+							stopCamera();
+							onClose();
+						}}
+					>
 						Close
 					</Button>
 					<Button
 						variant="primary"
 						loading={scan.isPending}
-						onClick={() => scan.mutate()}
+						disabled={!form.attendeeCode.trim()}
+						onClick={() => submitCode(form.attendeeCode)}
 						leadingIcon={<QrCode size={13} />}
 					>
 						Record
@@ -277,19 +364,58 @@ function ScanDrawer({ onClose }: { onClose: () => void }) {
 			}
 		>
 			<div className="space-y-4">
+				<FieldRow label="Camera">
+					<div className="space-y-3">
+						{cameraOpen && (
+							<div className="overflow-hidden rounded-xl border bg-black">
+								<video
+									ref={videoRef}
+									className="h-64 w-full object-cover"
+									muted
+									playsInline
+								/>
+							</div>
+						)}
+						<div className="flex gap-2">
+							{cameraOpen ? (
+								<Button
+									type="button"
+									variant="ghost"
+									onClick={stopCamera}
+									leadingIcon={<X size={13} />}
+								>
+									Stop camera
+								</Button>
+							) : (
+								<Button
+									type="button"
+									variant="secondary"
+									onClick={startCamera}
+									leadingIcon={<Camera size={13} />}
+								>
+									Open camera scanner
+								</Button>
+							)}
+						</div>
+						{cameraError && <p className="text-sm text-red-600">{cameraError}</p>}
+					</div>
+				</FieldRow>
 				<FieldRow label="Attendee code" required>
 					<Input
 						autoFocus
 						value={form.attendeeCode}
 						onChange={e => setForm(p => ({ ...p, attendeeCode: e.target.value }))}
-						onKeyDown={e => e.key === "Enter" && scan.mutate()}
+						onKeyDown={e => {
+							if (e.key === "Enter" && form.attendeeCode.trim())
+								submitCode(form.attendeeCode);
+						}}
 						placeholder="DNC26-00042"
 					/>
 				</FieldRow>
 				<FieldRow label="Date" required>
 					<DatePickerInput
 						value={form.mealDate}
-						onChange={e => setForm(p => ({ ...p, mealDate: e }))}
+						onChange={e => setForm(p => ({ ...p, mealDate: e || p.mealDate }))}
 					/>
 				</FieldRow>
 				<FieldRow label="Meal" required>

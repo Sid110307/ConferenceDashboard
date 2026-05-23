@@ -2,7 +2,7 @@ import React, { useState } from "react";
 
 import { api } from "@/lib/api";
 import { hasRole, useConference } from "@/lib/ConferenceContext";
-import { fmtDate, fmtTime } from "@/lib/format";
+import { fmtDate, fmtTime, humanise } from "@/lib/format";
 import { useUrlState } from "@/lib/useUrlState";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -12,6 +12,7 @@ import { z } from "zod";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { DatePickerInput } from "@/components/DatePicker";
 import { CenterSpinner, EmptyState } from "@/components/EmptyState";
 import { EntityDrawer } from "@/components/EntityDrawer";
 import { FieldRow } from "@/components/FieldRow";
@@ -33,23 +34,45 @@ type Session = {
 	id: string;
 	title: string;
 	description?: string | null;
-	startsAt?: string | null;
-	endsAt?: string | null;
-	venueId?: string | null;
-	venueName?: string | null;
-	trackId?: string | null;
-	trackName?: string | null;
 	sessionType?: string | null;
+	startTime?: string | null;
+	endTime?: string | null;
+	venueName?: string | null;
+	trackName?: string | null;
+	status: string;
+	isPublic: boolean;
 };
 type Speaker = {
 	id: string;
 	name: string;
-	bio?: string | null;
-	organisation?: string | null;
-	email?: string | null;
+	bio?: string;
+	email?: string;
+	phone?: string;
+	website?: string;
+	institution?: string;
+	designation?: string;
+	salutation?: string;
+	isVip: boolean;
+	isPublic: boolean;
 };
-type Venue = { id: string; name: string; capacity?: number | null; location?: string | null };
-type Track = { id: string; name: string; colorHex?: string | null };
+type Venue = {
+	id: string;
+	name: string;
+	description?: string;
+	hasProjector: boolean;
+	hasMic: boolean;
+	hasAc: boolean;
+	hasRecording: boolean;
+	capacity?: number | null;
+	location?: string | null;
+	isPublic: boolean;
+};
+type Track = {
+	id: string;
+	name: string;
+	description?: string;
+	isPublic?: boolean;
+};
 
 function ProgrammePage() {
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
@@ -99,7 +122,7 @@ function SessionsTab({ canEdit }: { canEdit: boolean }) {
 
 	const grouped = new Map<string, Session[]>();
 	for (const s of sessions.data?.data ?? []) {
-		const day = s.startsAt ? s.startsAt.slice(0, 10) : "Unscheduled";
+		const day = s.startTime ? s.startTime.slice(0, 10) : "Unscheduled";
 		if (!grouped.has(day)) grouped.set(day, []);
 		grouped.get(day)!.push(s);
 	}
@@ -139,25 +162,49 @@ function SessionsTab({ canEdit }: { canEdit: boolean }) {
 								<button
 									key={s.id}
 									onClick={() => setOpen(s)}
-									className="w-full text-left bg-surface border border-line rounded-lg p-3 hover:border-accent transition-colors flex items-start gap-3"
+									className="w-full hover:cursor-pointer text-left bg-surface border border-line rounded-lg p-3 hover:border-accent transition-colors flex items-start gap-3"
 								>
-									<div className="text-xs tabular-nums text-ink-2 w-28 shrink-0">
-										{s.startsAt ? fmtTime(s.startsAt) : "—"}
-										{s.endsAt && ` - ${fmtTime(s.endsAt)}`}
+									<div className="text-xs tabular-nums text-ink-2 w-32 shrink-0">
+										{s.startTime ? fmtTime(s.startTime) : "—"}
+										{s.endTime && ` - ${fmtTime(s.endTime)}`}
 									</div>
 									<div className="min-w-0 flex-1">
 										<div className="text-sm font-medium text-ink truncate">
 											{s.title}
 										</div>
-										<div className="mt-0.5 flex flex-wrap gap-2 text-xs text-ink-3">
+										<div className="mt-0.5 text-xs text-ink-3 flex items-center gap-1 flex-wrap">
+											{s.sessionType && (
+												<Badge size="xs">{humanise(s.sessionType)}</Badge>
+											)}
 											{s.venueName && (
-												<span className="inline-flex items-center gap-1">
-													<MapPin size={11} /> {s.venueName}
-												</span>
+												<Badge size="xs" variant="accent">
+													{humanise(s.venueName)}
+												</Badge>
 											)}
 											{s.trackName && (
 												<Badge size="xs" variant="accent">
-													{s.trackName}
+													{humanise(s.trackName)}
+												</Badge>
+											)}
+											{s.status && (
+												<Badge
+													size="xs"
+													variant={
+														s.status === "ongoing"
+															? "accent"
+															: s.status === "done"
+																? "success"
+																: s.status === "cancelled"
+																	? "warn"
+																	: "neutral"
+													}
+												>
+													{humanise(s.status)}
+												</Badge>
+											)}
+											{!s.isPublic && (
+												<Badge size="xs" variant="warn">
+													Private
 												</Badge>
 											)}
 										</div>
@@ -203,10 +250,13 @@ function SessionDrawer({ session, onClose }: { session: Session | null; onClose:
 			const body = {
 				title: form.title,
 				description: form.description || undefined,
-				startsAt: form.startsAt || undefined,
-				endsAt: form.endsAt || undefined,
-				venueId: form.venueId || undefined,
-				trackId: form.trackId || undefined,
+				startTime: form.startTime || undefined,
+				endTime: form.endTime || undefined,
+				venueName: form.venueName || undefined,
+				trackName: form.trackName || undefined,
+				sessionType: form.sessionType || undefined,
+				status: form.status || undefined,
+				isPublic: form.isPublic,
 			};
 			return isEdit ? api.patch(`${path}/${session!.id}`, body) : api.post(path, body);
 		},
@@ -254,24 +304,22 @@ function SessionDrawer({ session, onClose }: { session: Session | null; onClose:
 					/>
 				</FieldRow>
 				<div className="grid grid-cols-2 gap-3">
-					<FieldRow label="Starts at">
-						<Input
-							type="datetime-local"
-							value={form.startsAt?.slice(0, 16) ?? ""}
-							onChange={e => upd({ startsAt: e.target.value })}
+					<FieldRow label="Start time">
+						<DatePickerInput
+							value={form.startTime ?? ""}
+							onChange={e => upd({ startTime: e })}
 						/>
 					</FieldRow>
-					<FieldRow label="Ends at">
-						<Input
-							type="datetime-local"
-							value={form.endsAt?.slice(0, 16) ?? ""}
-							onChange={e => upd({ endsAt: e.target.value })}
+					<FieldRow label="End time">
+						<DatePickerInput
+							value={form.endTime ?? ""}
+							onChange={e => upd({ endTime: e })}
 						/>
 					</FieldRow>
 					<FieldRow label="Venue">
 						<Select
-							value={form.venueId ?? ""}
-							onChange={e => upd({ venueId: e.target.value || null })}
+							value={form.venueName ?? ""}
+							onChange={e => upd({ venueName: e.target.value || null })}
 						>
 							<option value="">—</option>
 							{(venues.data?.data ?? []).map(v => (
@@ -281,10 +329,45 @@ function SessionDrawer({ session, onClose }: { session: Session | null; onClose:
 							))}
 						</Select>
 					</FieldRow>
+					<FieldRow label="Session type">
+						<Select
+							value={form.sessionType ?? "invited"}
+							onChange={e => upd({ sessionType: e.target.value })}
+						>
+							{[
+								"keynote",
+								"plenary",
+								"invited",
+								"contributed",
+								"poster",
+								"panel",
+								"workshop",
+								"break",
+								"cultural",
+								"other",
+							].map(v => (
+								<option key={v} value={v}>
+									{humanise(v)}
+								</option>
+							))}
+						</Select>
+					</FieldRow>
+					<FieldRow label="Status">
+						<Select
+							value={form.status ?? "upcoming"}
+							onChange={e => upd({ status: e.target.value })}
+						>
+							{["upcoming", "ongoing", "done", "cancelled"].map(v => (
+								<option key={v} value={v}>
+									{humanise(v)}
+								</option>
+							))}
+						</Select>
+					</FieldRow>
 					<FieldRow label="Track">
 						<Select
-							value={form.trackId ?? ""}
-							onChange={e => upd({ trackId: e.target.value || null })}
+							value={form.trackName ?? ""}
+							onChange={e => upd({ trackName: e.target.value || null })}
 						>
 							<option value="">—</option>
 							{(tracks.data?.data ?? []).map(t => (
@@ -292,6 +375,15 @@ function SessionDrawer({ session, onClose }: { session: Session | null; onClose:
 									{t.name}
 								</option>
 							))}
+						</Select>
+					</FieldRow>
+					<FieldRow label="Publicly visible">
+						<Select
+							value={form.isPublic ? "yes" : "no"}
+							onChange={e => upd({ isPublic: e.target.value === "yes" })}
+						>
+							<option value="yes">Yes</option>
+							<option value="no">No</option>
 						</Select>
 					</FieldRow>
 				</div>
@@ -313,7 +405,14 @@ function SimpleCrudTab<T extends { id: string; name: string }>({
 	queryKey: string;
 	label: string;
 	icon: React.ReactNode;
-	fields: { key: string; label: string; required?: boolean; textarea?: boolean }[];
+	fields: {
+		key: string;
+		label: string;
+		required?: boolean;
+		number?: boolean;
+		textarea?: boolean;
+		dropdown?: boolean;
+	}[];
 }) {
 	const { conference } = useConference();
 	const qc = useQueryClient();
@@ -374,7 +473,7 @@ function SimpleCrudTab<T extends { id: string; name: string }>({
 					<button
 						key={item.id}
 						onClick={() => open(item)}
-						className="text-left bg-surface border border-line rounded-lg p-3.5 hover:border-accent transition-colors flex items-center gap-3"
+						className="text-left hover:cursor-pointer bg-surface border border-line rounded-lg p-3.5 hover:border-accent transition-colors flex items-center gap-3"
 					>
 						<div className="size-9 rounded-md bg-accent-soft text-accent-soft-fg flex items-center justify-center shrink-0">
 							{icon}
@@ -425,6 +524,33 @@ function SimpleCrudTab<T extends { id: string; name: string }>({
 											setForm(p => ({ ...p, [f.key]: e.target.value }))
 										}
 									/>
+								) : f.dropdown ? (
+									<Select
+										value={form[f.key] ? "yes" : "no"}
+										onChange={e =>
+											setForm(p => ({
+												...p,
+												[f.key]: e.target.value === "yes",
+											}))
+										}
+									>
+										<option value="">—</option>
+										<option value="yes">Yes</option>
+										<option value="no">No</option>
+									</Select>
+								) : f.number ? (
+									<Input
+										type="number"
+										value={form[f.key] ?? ""}
+										onChange={e =>
+											setForm(p => ({
+												...p,
+												[f.key]: e.target.value
+													? parseInt(e.target.value)
+													: null,
+											}))
+										}
+									/>
 								) : (
 									<Input
 										value={form[f.key] ?? ""}
@@ -452,9 +578,19 @@ function SpeakersTab({ canEdit }: { canEdit: boolean }) {
 			icon={<Mic2 size={16} />}
 			fields={[
 				{ key: "name", label: "Name", required: true },
-				{ key: "organisation", label: "Organisation" },
-				{ key: "email", label: "Email" },
 				{ key: "bio", label: "Bio", textarea: true },
+				{ key: "email", label: "Email" },
+				{ key: "phone", label: "Phone" },
+				{ key: "website", label: "Website" },
+				{ key: "institution", label: "Institution" },
+				{ key: "designation", label: "Designation" },
+				{ key: "salutation", label: "Salutation" },
+				{
+					key: "isVip",
+					label: "VIP speaker (highlighted in the programme)",
+					dropdown: true,
+				},
+				{ key: "isPublic", label: "Publicly visible", dropdown: true },
 			]}
 		/>
 	);
@@ -469,8 +605,14 @@ function VenuesTab({ canEdit }: { canEdit: boolean }) {
 			icon={<MapPin size={16} />}
 			fields={[
 				{ key: "name", label: "Name", required: true },
+				{ key: "description", label: "Description", textarea: true },
+				{ key: "capacity", label: "Capacity", number: true },
 				{ key: "location", label: "Location" },
-				{ key: "capacity", label: "Capacity" },
+				{ key: "hasProjector", label: "Has projector", dropdown: true },
+				{ key: "hasMic", label: "Has microphone", dropdown: true },
+				{ key: "hasAc", label: "Has air conditioning", dropdown: true },
+				{ key: "hasRecording", label: "Can be recorded", dropdown: true },
+				{ key: "isPublic", label: "Publicly visible", dropdown: true },
 			]}
 		/>
 	);
@@ -485,7 +627,8 @@ function TracksTab({ canEdit }: { canEdit: boolean }) {
 			icon={<Layers size={16} />}
 			fields={[
 				{ key: "name", label: "Name", required: true },
-				{ key: "colorHex", label: "Colour (hex)" },
+				{ key: "description", label: "Description", textarea: true },
+				{ key: "isPublic", label: "Publicly visible", dropdown: true },
 			]}
 		/>
 	);

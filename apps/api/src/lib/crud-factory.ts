@@ -144,7 +144,7 @@ export function makeCrudRouter(cfg: CrudConfig) {
 		const conf = c.get("conference")!;
 		const { id } = c.req.valid("param");
 		const row = await withTenant(conf.id, async tx =>
-			findOneById(tx, t, conf.id, id, cfg.extras),
+			findOneById(tx, t, conf.id, id, {}, cfg.extras),
 		);
 		if (!row) throw new NotFoundError(cfg.entity);
 		return c.json({ data: row });
