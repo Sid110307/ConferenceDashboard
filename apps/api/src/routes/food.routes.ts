@@ -2,6 +2,7 @@ import { recordAudit } from "@/lib/audit";
 import type { AppContext } from "@/lib/context";
 import { makeCrudRouter } from "@/lib/crud-factory";
 import { BadRequestError, NotFoundError } from "@/lib/errors";
+import { getClientIp } from "@/lib/http";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import { attendees, foodPlans, mealScans } from "@conference/db";
@@ -10,10 +11,6 @@ import { zValidator } from "@hono/zod-validator";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
-
-function clientIp(c: any) {
-	return c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-}
 
 export const foodPlansRouter = makeCrudRouter({
 	table: foodPlans as any,
@@ -108,7 +105,7 @@ mealScansRouter.post(
 					entity: "meal_scan",
 					entityId: row!.id,
 					after: row,
-					ip: clientIp(c),
+					ip: getClientIp(c),
 					userAgent: c.req.header("user-agent") ?? null,
 					requestId: c.get("requestId"),
 				});

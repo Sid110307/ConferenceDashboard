@@ -1,5 +1,4 @@
-import { decryptJSON } from "@/lib/crypto";
-import { logger } from "@/lib/logger";
+import { decryptJSON, logger } from "@/lib/infra";
 import { notifyConference } from "@/lib/notify";
 import { commsQueue, defaultJobOptions, JOB_NAMES } from "@/lib/queue";
 import { db, withTenant } from "@/lib/tenancy";
@@ -141,8 +140,7 @@ export async function processCampaignDispatchBatch(payload: {
 			const rendered = renderAll(
 				{
 					subject: template.subject,
-					bodyText: template.bodyText ?? "",
-					bodyHtml: template.bodyHtml,
+					body: template.body ?? "",
 				},
 				ctx,
 			);
@@ -152,10 +150,9 @@ export async function processCampaignDispatchBatch(payload: {
 					channel: campaign.channel,
 					to: r.address,
 					subject: rendered.subject,
-					bodyText: rendered.bodyText,
-					bodyHtml: rendered.bodyHtml,
-					fromAddress: configPublic?.fromAddress ?? null,
-					fromName: configPublic?.fromName ?? null,
+					body: rendered.body,
+					fromAddress: providerRow.fromAddress,
+					fromName: providerRow.fromName,
 					provider: providerRow.provider,
 					credentials,
 					configPublic,
@@ -167,7 +164,7 @@ export async function processCampaignDispatchBatch(payload: {
 						status: "sent",
 						providerMessageId: result.providerMessageId,
 						renderedSubject: rendered.subject,
-						renderedBody: rendered.bodyText,
+						renderedBody: rendered.body,
 						sentAt: new Date(),
 					})
 					.where(eq(messageRecipients.id, r.id));
@@ -179,7 +176,7 @@ export async function processCampaignDispatchBatch(payload: {
 						status: "failed",
 						errorMessage: String(err?.message ?? err).slice(0, 1000),
 						renderedSubject: rendered.subject,
-						renderedBody: rendered.bodyText,
+						renderedBody: rendered.body,
 						failedAt: new Date(),
 					})
 					.where(eq(messageRecipients.id, r.id));

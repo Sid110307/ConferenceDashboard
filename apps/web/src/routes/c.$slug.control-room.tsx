@@ -1,18 +1,27 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { api } from "@/lib/api";
 import { useConference } from "@/lib/ConferenceContext";
-import { fmtNumber, fmtTime, humanise } from "@/lib/format";
+import { fmtDateTime, fmtNumber, fmtTime, humanise } from "@/lib/format";
 import { cx } from "@/lib/uiStyles";
+import { useListQuery } from "@/lib/useListQuery";
 import { useRealtime } from "@/lib/useRealtime";
 import { Dashboard } from "@/routes/c.$slug.index";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { type Staff } from "@conference/shared";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, BedDouble, LifeBuoy, Plane, UserCheck, Utensils } from "lucide-react";
+import { Activity, BedDouble, LifeBuoy, Plane, Plus, UserCheck, Utensils } from "lucide-react";
 
+import { Badge } from "@/components/Badge";
+import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { DataTable, Pagination, type Column } from "@/components/DataTable";
+import { EntityDrawer } from "@/components/EntityDrawer";
+import { FieldRow } from "@/components/FieldRow";
+import { Input, Select, Textarea } from "@/components/Input";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
+import { useToast } from "@/components/Toast";
 
 export const Route = createFileRoute("/c/$slug/control-room")({
 	component: ControlRoomPage,
@@ -26,6 +35,21 @@ type FeedEvent = {
 	label: string;
 	tone: "neutral" | "success" | "warn" | "danger" | "info";
 };
+
+type DailyControlLog = {
+	id: string;
+	logDate: string;
+	dayLabel?: string | null;
+	shiftLabel?: string | null;
+	summary: string;
+	incidents?: string | null;
+	actionsTaken?: string | null;
+	pendingActions?: string | null;
+	stats?: Record<string, number> | null;
+	shiftHeadStaffId?: string | null;
+};
+
+const PAGE_SIZE = 25;
 
 const EVENT_TONE: Record<string, FeedEvent["tone"]> = {
 	"attendee.checked_in": "success",
@@ -67,12 +91,29 @@ function ControlRoomPage() {
 	const qc = useQueryClient();
 	const [feed, setFeed] = useState<FeedEvent[]>([]);
 	const seq = useRef(0);
+	const [logOpen, setLogOpen] = useState<DailyControlLog | null>(null);
+	const [createLog, setCreateLog] = useState(false);
+	const [logPage, setLogPage] = useState(1);
 
 	const counters = useQuery<{ data: Dashboard }>({
 		queryKey: ["dashboard", conference.slug],
 		queryFn: () => api.get<{ data: Dashboard }>(`/api/v1/c/${conference.slug}/dashboard`),
 		refetchInterval: 30000,
 	});
+	const logs = useListQuery<DailyControlLog>({
+		key: ["control-room-logs", conference.slug],
+		path: `/api/v1/c/${conference.slug}/control-room`,
+		params: { page: logPage, pageSize: PAGE_SIZE },
+	});
+	const staff = useListQuery<Staff>({
+		key: ["control-room-staff", conference.slug],
+		path: `/api/v1/c/${conference.slug}/staff`,
+		params: { pageSize: 200 },
+	});
+	const staffMap = useMemo(
+		() => new Map((staff.data?.data ?? []).map(s => [s.id, s.name] as const)),
+		[staff.data],
+	);
 
 	useRealtime(conference.slug, ev => {
 		setFeed(prev => {
@@ -92,14 +133,87 @@ function ControlRoomPage() {
 			ev.type.startsWith("travel.") ||
 			ev.type.startsWith("helpdesk.") ||
 			ev.type.startsWith("allocation.") ||
-			ev.type === "meal_scan.created"
+			ev.type === "meal_scan.created" ||
+			ev.type.startsWith("daily_control.")
 		) {
 			qc.invalidateQueries({ queryKey: ["dashboard", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: ["control-room-logs", conference.slug] })
+				.catch(console.error)
+				.catch(console.error);
 		}
 	});
 
 	const c = counters.data?.data;
 	const meals = c?.mealsToday?.reduce((sum, m) => sum + m.count, 0) ?? 0;
+	const logRows = logs.data?.data ?? [];
+	const logCols: Column<DailyControlLog>[] = [
+		{
+			key: "date",
+			header: "Log date",
+			cell: r => <span className="text-xs text-ink-2">{fmtDateTime(r.logDate)}</span>,
+			width: "w-44",
+		},
+		{
+			key: "labels",
+			header: "Shift",
+			cell: r => (
+				<div className="text-xs">
+					<div className="text-ink">{r.dayLabel ?? "—"}</div>
+					<div className="text-ink-3">{r.shiftLabel ?? "—"}</div>
+				</div>
+			),
+			width: "w-36",
+		},
+		{
+			key: "summary",
+			header: "Summary",
+			cell: r => (
+				<div className="min-w-0">
+					<div className="text-ink font-medium truncate">{r.summary}</div>
+					<div className="text-xs text-ink-3 truncate">{r.incidents ?? ""}</div>
+				</div>
+			),
+		},
+		{
+			key: "actions",
+			header: "Actions",
+			cell: r => (
+				<div className="min-w-0">
+					{r.actionsTaken && (
+						<div className="text-ink font-medium truncate">{r.actionsTaken}</div>
+					)}
+					{r.pendingActions && (
+						<div className="text-xs text-ink-3 truncate">
+							Pending: {r.pendingActions}
+						</div>
+					)}
+				</div>
+			),
+		},
+		{
+			key: "head",
+			header: "Shift head",
+			cell: r => (
+				<div className="text-xs text-ink-2">
+					{r.shiftHeadStaffId
+						? (staffMap.get(r.shiftHeadStaffId) ?? r.shiftHeadStaffId.slice(0, 8))
+						: "—"}
+				</div>
+			),
+			width: "w-44",
+		},
+		{
+			key: "stats",
+			header: "Statistics",
+			cell: r => (
+				<Badge variant="accent">
+					{Object.keys(r.stats ?? {}).length} metric
+					{Object.keys(r.stats ?? {}).length !== 1 && "s"}
+				</Badge>
+			),
+			width: "w-28",
+		},
+	];
 
 	return (
 		<div className="p-6">
@@ -140,7 +254,11 @@ function ControlRoomPage() {
 					tone={c?.helpdesk.urgent ? "danger" : "neutral"}
 				/>
 			</div>
-			<Card title="Live event feed" subtitle="Realtime stream of every operational change">
+			<Card
+				title="Live event feed"
+				subtitle="Realtime stream of every operational change"
+				className="mb-5"
+			>
 				<div className="max-h-[55vh] overflow-y-auto divide-y divide-line">
 					{feed.length === 0 && (
 						<div className="px-4 py-10 text-center text-sm text-ink-3">
@@ -170,6 +288,202 @@ function ControlRoomPage() {
 					))}
 				</div>
 			</Card>
+			<Card
+				title="Daily control logs"
+				subtitle="Day/shift summaries, incidents, and actions for the control room"
+				actions={
+					<Button
+						variant="primary"
+						size="sm"
+						leadingIcon={<Plus size={13} />}
+						onClick={() => setCreateLog(true)}
+					>
+						New log
+					</Button>
+				}
+			>
+				<DataTable
+					columns={logCols}
+					rows={logRows}
+					loading={logs.isLoading || staff.isLoading}
+					onRowClick={r => setLogOpen(r)}
+					selectedKey={logOpen?.id ?? null}
+					emptyTitle="No control logs yet"
+					emptyHint="Record the day’s operational summary here."
+				/>
+				<Pagination
+					page={logPage}
+					pageSize={PAGE_SIZE}
+					total={logs.data?.pagination?.total ?? 0}
+					onChange={setLogPage}
+				/>
+			</Card>
+			{(logOpen || createLog) && (
+				<ControlLogDrawer
+					log={logOpen}
+					staff={staff.data?.data ?? []}
+					onClose={() => {
+						setLogOpen(null);
+						setCreateLog(false);
+					}}
+				/>
+			)}
 		</div>
+	);
+}
+
+function ControlLogDrawer({
+	log,
+	staff,
+	onClose,
+}: {
+	log: DailyControlLog | null;
+	staff: Staff[];
+	onClose: () => void;
+}) {
+	const { conference } = useConference();
+	const qc = useQueryClient();
+	const toast = useToast();
+	const isEdit = !!log;
+	const [form, setForm] = useState<Partial<DailyControlLog> & { statsText: string }>(
+		log
+			? { ...log, statsText: JSON.stringify(log.stats ?? {}, null, 2) }
+			: { logDate: new Date().toISOString(), statsText: "{}" },
+	);
+
+	const save = useMutation({
+		mutationFn: () => {
+			const body = {
+				logDate: form.logDate,
+				dayLabel: form.dayLabel || undefined,
+				shiftLabel: form.shiftLabel || undefined,
+				summary: form.summary,
+				incidents: form.incidents || undefined,
+				actionsTaken: form.actionsTaken || undefined,
+				pendingActions: form.pendingActions || undefined,
+				stats: JSON.parse(form.statsText || "{}"),
+				shiftHeadStaffId: form.shiftHeadStaffId || undefined,
+			};
+			const path = `/api/v1/c/${conference.slug}/control-room`;
+			return isEdit ? api.patch(`${path}/${log!.id}`, body) : api.post(path, body);
+		},
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["control-room-logs", conference.slug] })
+				.catch(console.error)
+				.catch(console.error);
+			toast.success(isEdit ? "Log updated" : "Log created");
+			onClose();
+		},
+		onError: (e: any) => toast.error("Save failed", e.message),
+	});
+
+	const upd = (p: Partial<DailyControlLog> & { statsText?: string }) =>
+		setForm(f => ({ ...f, ...p }));
+
+	return (
+		<EntityDrawer
+			open
+			onOpenChange={v => !v && onClose()}
+			title={isEdit ? "Edit control log" : "New control log"}
+			width="lg"
+			footer={
+				<>
+					<Button variant="ghost" onClick={onClose}>
+						Cancel
+					</Button>
+					<Button
+						variant="primary"
+						loading={save.isPending}
+						onClick={() => save.mutate()}
+					>
+						Save
+					</Button>
+				</>
+			}
+		>
+			<div className="grid grid-cols-2 gap-3">
+				<FieldRow label="Log date" required>
+					<Input
+						type="datetime-local"
+						value={(form.logDate ?? new Date().toISOString()).slice(0, 16)}
+						onChange={e =>
+							upd({
+								logDate: e.target.value
+									? new Date(e.target.value).toISOString()
+									: undefined,
+							})
+						}
+					/>
+				</FieldRow>
+				<FieldRow label="Day label">
+					<Input
+						value={form.dayLabel ?? ""}
+						onChange={e => upd({ dayLabel: e.target.value })}
+					/>
+				</FieldRow>
+				<FieldRow label="Shift label">
+					<Input
+						value={form.shiftLabel ?? ""}
+						onChange={e => upd({ shiftLabel: e.target.value })}
+					/>
+				</FieldRow>
+				<FieldRow label="Shift head">
+					<Select
+						value={form.shiftHeadStaffId ?? ""}
+						onChange={e => upd({ shiftHeadStaffId: e.target.value || undefined })}
+					>
+						<option value="">—</option>
+						{staff.map(s => (
+							<option key={s.id} value={s.id}>
+								{s.name}
+							</option>
+						))}
+					</Select>
+				</FieldRow>
+				<FieldRow label="Summary" className="col-span-2">
+					<Textarea
+						value={form.summary ?? ""}
+						onChange={e => upd({ summary: e.target.value })}
+						className="min-h-28"
+					/>
+				</FieldRow>
+				<FieldRow label="Incidents" className="col-span-2">
+					<Textarea
+						value={form.incidents ?? ""}
+						onChange={e => upd({ incidents: e.target.value })}
+						className="min-h-24"
+					/>
+				</FieldRow>
+				<FieldRow label="Actions taken" className="col-span-2">
+					<Textarea
+						value={form.actionsTaken ?? ""}
+						onChange={e => upd({ actionsTaken: e.target.value })}
+						className="min-h-24"
+					/>
+				</FieldRow>
+				<FieldRow label="Pending actions" className="col-span-2">
+					<Textarea
+						value={form.pendingActions ?? ""}
+						onChange={e => upd({ pendingActions: e.target.value })}
+						className="min-h-24"
+					/>
+				</FieldRow>
+				<FieldRow
+					label="Stats JSON"
+					className="col-span-2"
+					hint={
+						<span className="text-xs text-ink-3">
+							Use a JSON object like {`{"attendees": 120, "vehicles": 3}`}
+						</span>
+					}
+				>
+					<Textarea
+						value={form.statsText}
+						onChange={e => upd({ statsText: e.target.value })}
+						className="min-h-28 font-mono text-[13px]"
+					/>
+				</FieldRow>
+			</div>
+		</EntityDrawer>
 	);
 }

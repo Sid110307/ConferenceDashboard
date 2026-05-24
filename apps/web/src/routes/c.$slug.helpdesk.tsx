@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { api } from "@/lib/api";
-import { hasRole, useConference } from "@/lib/ConferenceContext";
+import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtRelative, humanise } from "@/lib/format";
 import type { BadgeVariant } from "@/lib/uiStyles";
 import { useListQuery } from "@/lib/useListQuery";
@@ -63,11 +63,11 @@ const PRIORITY_VARIANT: Record<string, BadgeVariant> = {
 
 function HelpdeskPage() {
 	const { conference, membership } = useConference();
-	const canEdit = hasRole(membership, "editor");
+	const canEdit = hasAtLeastRole(membership, "editor");
 	const qc = useQueryClient();
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 
-	const list = useListQuery<{ data: Issue[] }>({
+	const list = useListQuery<Issue>({
 		key: ["helpdesk", conference.slug],
 		path: `/api/v1/c/${conference.slug}/helpdesk`,
 		params: {

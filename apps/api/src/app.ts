@@ -11,24 +11,23 @@ import {
 	blocksRouter,
 	roomsRouter,
 } from "@/routes/accommodation.routes";
+import { announcementsRouter } from "@/routes/announcements.routes";
 import { attendeesRouter } from "@/routes/attendees.routes";
 import { auditRouter } from "@/routes/audit.routes";
 import { authRouter } from "@/routes/auth.routes";
+import { certificatesRouter } from "@/routes/certificates.routes";
 import { campaignsRouter, providersRouter, templatesRouter } from "@/routes/communications.routes";
 import { conferencesRouter } from "@/routes/conferences.routes";
+import { controlRoomRouter } from "@/routes/control-room.routes";
 import { customFieldsRouter } from "@/routes/custom-fields.routes";
 import { dashboardRouter } from "@/routes/dashboard.routes";
+import { feedbackRouter } from "@/routes/feedback.routes";
 import { filesRouter } from "@/routes/files.routes";
+import { financeItemsRouter, financeSummaryRouter } from "@/routes/finance.routes";
 import { foodPlansRouter, mealScansRouter } from "@/routes/food.routes";
-import {
-	financeItemsRouter,
-	financeSummaryRouter,
-	helpdeskRouter,
-	sponsorsRouter,
-	vipChecklistRouter,
-	vipRouter,
-} from "@/routes/helpdesk.routes";
+import { helpdeskRouter } from "@/routes/helpdesk.routes";
 import { importsRouter } from "@/routes/imports.routes";
+import { logisticsRouter } from "@/routes/logistics.routes";
 import { membersRouter } from "@/routes/members.routes";
 import {
 	sessionSpeakersRouter,
@@ -40,8 +39,10 @@ import {
 import { realtimeRouter } from "@/routes/realtime.routes";
 import { reportsRouter } from "@/routes/reports.routes";
 import { settingsRouter } from "@/routes/settings.routes";
+import { sponsorsRouter } from "@/routes/sponsors.routes";
 import { assignmentsRouter, committeesRouter, staffRouter } from "@/routes/staff.routes";
 import { travelRouter, vehiclesRouter } from "@/routes/travel.routes";
+import { vipChecklistRouter, vipRouter } from "@/routes/vip.routes";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
@@ -62,6 +63,7 @@ export function buildApp() {
 	);
 	app.use("*", secureHeaders());
 	app.use("*", requestLogMiddleware);
+	app.get("/", c => c.redirect(env.WEB_BASE_URL));
 	app.get("/health", c => c.json({ ok: true, service: "@conference/api" }));
 	app.on(["GET", "POST"], "/api/auth/*", c => auth.handler(c.req.raw));
 
@@ -107,6 +109,13 @@ export function buildApp() {
 	tenant.route("/helpdesk", helpdeskRouter);
 	tenant.route("/vip", vipRouter);
 	tenant.route("/vip-checklist", vipChecklistRouter);
+
+	tenant.route("/certificates", certificatesRouter);
+	tenant.route("/feedback", feedbackRouter);
+	tenant.route("/announcements", announcementsRouter);
+	tenant.route("/logistics", logisticsRouter);
+	tenant.route("/control-room", controlRoomRouter);
+
 	tenant.route("/finance", financeSummaryRouter);
 	tenant.route("/finance", financeItemsRouter);
 	tenant.route("/sponsors", sponsorsRouter);

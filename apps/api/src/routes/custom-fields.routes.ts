@@ -2,6 +2,7 @@ import { recordAudit } from "@/lib/audit";
 import type { AppContext } from "@/lib/context";
 import { invalidateCustomFieldsCache } from "@/lib/custom-fields";
 import { ConflictError, NotFoundError } from "@/lib/errors";
+import { getClientIp } from "@/lib/http";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import { customFieldDefinitions } from "@conference/db";
@@ -15,10 +16,6 @@ import { zValidator } from "@hono/zod-validator";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
-
-function clientIp(c: any) {
-	return c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-}
 
 export const customFieldsRouter = new Hono<AppContext>();
 
@@ -99,7 +96,7 @@ customFieldsRouter.post(
 				entity: "custom_field_definition",
 				entityId: r!.id,
 				after: r,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
@@ -149,7 +146,7 @@ customFieldsRouter.patch(
 				entityId: id,
 				before,
 				after: r,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
@@ -192,7 +189,7 @@ customFieldsRouter.delete(
 				entity: "custom_field_definition",
 				entityId: id,
 				before,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});

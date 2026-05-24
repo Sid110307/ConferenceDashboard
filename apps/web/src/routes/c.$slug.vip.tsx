@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { api } from "@/lib/api";
-import { hasRole, useConference } from "@/lib/ConferenceContext";
+import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -58,10 +58,10 @@ const PAGE_SIZE = 25;
 
 function VipPage() {
 	const { conference, membership } = useConference();
-	const canEdit = hasRole(membership, "editor");
+	const canEdit = hasAtLeastRole(membership, "editor");
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 
-	const list = useListQuery<{ data: Vip }>({
+	const list = useListQuery<Vip>({
 		key: ["vip", conference.slug],
 		path: `/api/v1/c/${conference.slug}/vip`,
 		params: { page: search.page ?? 1, pageSize: PAGE_SIZE, q: search.q },
@@ -210,7 +210,9 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 				label: newItem,
 			}),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["vip-checklist", conference.slug, vip.id] });
+			qc.invalidateQueries({ queryKey: ["vip-checklist", conference.slug, vip.id] }).catch(
+				console.error,
+			);
 			setNewItem("");
 		},
 		onError: (e: any) => toast.error("Could not add item", e.message),
@@ -373,7 +375,7 @@ function CreateVipDrawer({ onClose }: { onClose: () => void }) {
 	const create = useMutation({
 		mutationFn: () => api.post(`/api/v1/c/${conference.slug}/vip`, form),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["vip", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["vip", conference.slug] }).catch(console.error);
 			toast.success("VIP guest added");
 			onClose();
 		},

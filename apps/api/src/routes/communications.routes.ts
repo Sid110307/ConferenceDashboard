@@ -1,8 +1,8 @@
 import { recordAudit } from "@/lib/audit";
 import type { AppContext } from "@/lib/context";
-import { encryptJSON } from "@/lib/crypto";
 import { env } from "@/lib/env";
 import { BadRequestError, NotFoundError } from "@/lib/errors";
+import { getClientIp } from "@/lib/http";
 import { commsQueue, defaultJobOptions, JOB_NAMES } from "@/lib/queue";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
@@ -13,6 +13,7 @@ import {
 	messageTemplates,
 	messagingProviders,
 } from "@conference/db";
+import { encryptJSON } from "@conference/infra";
 import {
 	audiencePreviewSchema,
 	messageCampaignActionSchema,
@@ -27,10 +28,6 @@ import { zValidator } from "@hono/zod-validator";
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
-
-function clientIp(c: any) {
-	return c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-}
 
 export const providersRouter = new Hono<AppContext>();
 
@@ -116,7 +113,7 @@ providersRouter.post(
 				entity: "messaging_provider",
 				entityId: row!.id,
 				after: { ...row, configEncrypted: "***" },
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
@@ -196,7 +193,7 @@ providersRouter.patch(
 				entity: "messaging_provider",
 				entityId: id,
 				meta: { configChanged: input.config !== undefined },
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
@@ -231,7 +228,7 @@ providersRouter.delete(
 				action: "delete",
 				entity: "messaging_provider",
 				entityId: id,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
@@ -352,7 +349,30 @@ campaignsRouter.get("/", requireRole("editor"), async c => {
 	const conf = c.get("conference")!;
 	const rows = await withTenant(conf.id, async tx =>
 		tx
-			.select()
+			.select({
+				id: messageCampaigns.id,
+				name: messageCampaigns.name,
+				channel: messageCampaigns.channel,
+				providerId: messageCampaigns.providerId,
+				templateId: messageCampaigns.templateId,
+				subject: messageCampaigns.subject,
+				body: messageCampaigns.body,
+				audienceFilter: messageCampaigns.audienceFilter,
+				status: messageCampaigns.status,
+				scheduledAt: messageCampaigns.scheduledAt,
+				startedAt: messageCampaigns.startedAt,
+				completedAt: messageCampaigns.completedAt,
+				cancelledAt: messageCampaigns.cancelledAt,
+				recipientCount: messageCampaigns.recipientCount,
+				sentCount: messageCampaigns.sentCount,
+				deliveredCount: messageCampaigns.deliveredCount,
+				openedCount: messageCampaigns.openedCount,
+				clickedCount: messageCampaigns.clickedCount,
+				failedCount: messageCampaigns.failedCount,
+				bouncedCount: messageCampaigns.bouncedCount,
+				ratePerSecond: messageCampaigns.ratePerSecond,
+				errorSummary: messageCampaigns.errorSummary,
+			})
 			.from(messageCampaigns)
 			.where(
 				and(eq(messageCampaigns.conferenceId, conf.id), isNull(messageCampaigns.deletedAt)),
@@ -565,7 +585,7 @@ campaignsRouter.post(
 				entity: "message_campaign",
 				entityId: id,
 				meta: { stage: "queued" },
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			} as any);

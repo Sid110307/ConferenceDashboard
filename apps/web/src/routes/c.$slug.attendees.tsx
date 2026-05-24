@@ -1,19 +1,37 @@
 import { useEffect, useMemo, useState } from "react";
 
-
-
 import { api, ApiError } from "@/lib/api";
-import { hasRole, useConference } from "@/lib/ConferenceContext";
+import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtDateTime, fmtRelative, humanise } from "@/lib/format";
 import { PaginationType, useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
-import { ATTENDEE_CATEGORIES, attendeeCreateSchema, attendeeListQuerySchema, attendeeUpdateSchema, DIET_PREFERENCES, GENDERS, type AttendeeBulkActionInput, type AttendeeCreateInput, type AttendeeListQuery, type AttendeeUpdateInput } from "@conference/shared";
+import { Allocation } from "@/routes/c.$slug.accommodation";
+import {
+	ATTENDEE_CATEGORIES,
+	attendeeCreateSchema,
+	attendeeListQuerySchema,
+	attendeeUpdateSchema,
+	DIET_PREFERENCES,
+	GENDERS,
+	type Attendee,
+	type AttendeeBulkActionInput,
+	type AttendeeCreateInput,
+	type AttendeeListQuery,
+	type AttendeeUpdateInput,
+} from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { CheckCircle2, CircleX, Filter, ListChecks, Pencil, Upload, UserPlus, X } from "lucide-react";
+import {
+	CheckCircle2,
+	CircleX,
+	Filter,
+	ListChecks,
+	Pencil,
+	Upload,
+	UserPlus,
+	X,
+} from "lucide-react";
 import { z } from "zod";
-
-
 
 import { Badge, StatusBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -25,12 +43,9 @@ import { FieldRow } from "@/components/FieldRow";
 import { Input, Select } from "@/components/Input";
 import { PageHeader } from "@/components/PageHeader";
 import { SearchField } from "@/components/SearchField";
+import { StatCard } from "@/components/StatCard";
 import { useToast } from "@/components/Toast";
 import { FilterChip, Toolbar } from "@/components/Toolbar";
-
-
-
-
 
 const Search = z.object({
 	...attendeeListQuerySchema.shape,
@@ -42,29 +57,6 @@ export const Route = createFileRoute("/c/$slug/attendees")({
 	component: AttendeesPage,
 });
 
-type Attendee = {
-	id: string;
-	attendeeCode: string;
-	name: string;
-	email?: string | null;
-	phone?: string | null;
-	gender?: string | null;
-	category?: string | null;
-	institution?: string | null;
-	designation?: string | null;
-	prantha?: string | null;
-	registrationStatus?: string | null;
-	checkinStatus?: string | null;
-	checkedInAt?: string | null;
-	isVip?: boolean;
-	dietaryPreference?: string | null;
-	bloodGroup?: string | null;
-	customFields?: Record<string, unknown> | null;
-	tags?: string[] | null;
-	createdAt: string;
-	updatedAt?: string | null;
-};
-
 type Stats = {
 	total: number;
 	registered: number;
@@ -73,6 +65,11 @@ type Stats = {
 	vip: number;
 	male: number;
 	female: number;
+	students: number;
+	faculty: number;
+	speakers: number;
+	badgePrinted: number;
+	kitCollected: number;
 };
 
 type TravelManifestEntry = {
@@ -109,8 +106,8 @@ function AttendeesPage() {
 	const toast = useToast();
 	const confirm = useConfirm();
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
-	const canEdit = hasRole(membership, "editor");
-	const canAdmin = hasRole(membership, "admin");
+	const canEdit = hasAtLeastRole(membership, "editor");
+	const canAdmin = hasAtLeastRole(membership, "admin");
 
 	const params: AttendeeListQuery & Partial<PaginationType> = {
 		q: search.q,
@@ -152,10 +149,10 @@ function AttendeesPage() {
 				},
 			),
 	});
-	const accommodationAllocations = useQuery<{ data: AccommodationAllocation[] }>({
+	const accommodationAllocations = useQuery<{ data: Allocation[] }>({
 		queryKey: ["accommodation-allocations", conference.slug],
 		queryFn: () =>
-			api.get<{ data: AccommodationAllocation[] }>(
+			api.get<{ data: Allocation[] }>(
 				`/api/v1/c/${conference.slug}/accommodation/allocations`,
 			),
 	});
@@ -165,9 +162,11 @@ function AttendeesPage() {
 	const [editing, setEditing] = useState<Attendee | null>(null);
 
 	const invalidate = () => {
-		qc.invalidateQueries({ queryKey: ["attendees", conference.slug] });
-		qc.invalidateQueries({ queryKey: ["attendees-stats", conference.slug] });
-		qc.invalidateQueries({ queryKey: ["dashboard", conference.slug] });
+		qc.invalidateQueries({ queryKey: ["attendees", conference.slug] }).catch(console.error);
+		qc.invalidateQueries({ queryKey: ["attendees-stats", conference.slug] }).catch(
+			console.error,
+		);
+		qc.invalidateQueries({ queryKey: ["dashboard", conference.slug] }).catch(console.error);
 	};
 
 	const checkInMut = useMutation({
@@ -341,7 +340,7 @@ function AttendeesPage() {
 				console.log(
 					accommodationAllocations.data?.data?.map(a => ({
 						allocCode: a.attendeeCode,
-						exists: attendeeCodes.has(a.attendeeCode),
+						exists: attendeeCodes.has(a.attendeeCode || ""),
 					})),
 				);
 				const allocation = accommodationByAttendee.get(r.id);
@@ -529,7 +528,21 @@ function AttendeesPage() {
 					</>
 				}
 			/>
-
+			<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+				<StatCard label="Students" value={stats.data?.data?.students ?? 0} tone="neutral" />
+				<StatCard label="Faculty" value={stats.data?.data?.faculty ?? 0} tone="neutral" />
+				<StatCard label="Speakers" value={stats.data?.data?.speakers ?? 0} tone="neutral" />
+				<StatCard
+					label="Badge printed"
+					value={stats.data?.data?.badgePrinted ?? 0}
+					tone="accent"
+				/>
+				<StatCard
+					label="Kit collected"
+					value={stats.data?.data?.kitCollected ?? 0}
+					tone="accent"
+				/>
+			</div>
 			<Card pad="sm">
 				<Toolbar
 					left={
@@ -877,7 +890,8 @@ function AttendeeDrawer({
 		},
 	});
 
-	const update = (patch: Partial<Attendee>) => setForm(p => ({ ...p, ...patch }));
+	const update = (patch: Partial<Attendee>) =>
+		setForm((p: Partial<Attendee>) => ({ ...p, ...patch }));
 
 	return (
 		<EntityDrawer
@@ -931,7 +945,9 @@ function AttendeeDrawer({
 				<FieldRow label="Gender">
 					<Select
 						value={form.gender ?? ""}
-						onChange={e => update({ gender: e.target.value || null })}
+						onChange={e =>
+							update({ gender: (e.target.value || null) as Attendee["gender"] })
+						}
 					>
 						<option value="">—</option>
 						{GENDERS.map(g => (
@@ -944,7 +960,9 @@ function AttendeeDrawer({
 				<FieldRow label="Category">
 					<Select
 						value={form.category ?? ""}
-						onChange={e => update({ category: e.target.value || null })}
+						onChange={e =>
+							update({ category: (e.target.value || null) as Attendee["category"] })
+						}
 					>
 						<option value="">—</option>
 						{ATTENDEE_CATEGORIES.map(c => (
@@ -957,7 +975,12 @@ function AttendeeDrawer({
 				<FieldRow label="Registration status">
 					<Select
 						value={form.registrationStatus ?? ""}
-						onChange={e => update({ registrationStatus: e.target.value || null })}
+						onChange={e =>
+							update({
+								registrationStatus: (e.target.value ||
+									null) as Attendee["registrationStatus"],
+							})
+						}
 					>
 						<option value="">—</option>
 						{["registered", "confirmed", "cancelled", "waitlisted", "no_show"].map(
@@ -990,7 +1013,12 @@ function AttendeeDrawer({
 				<FieldRow label="Dietary preference">
 					<Select
 						value={form.dietaryPreference ?? ""}
-						onChange={e => update({ dietaryPreference: e.target.value || null })}
+						onChange={e =>
+							update({
+								dietaryPreference: (e.target.value ||
+									null) as Attendee["dietaryPreference"],
+							})
+						}
 					>
 						<option value="">—</option>
 						{DIET_PREFERENCES.map(d => (

@@ -4,7 +4,19 @@ import "@/lib/env";
 
 import { app } from "@/app";
 import { env } from "@/lib/env";
-import { logger } from "@/lib/logger";
+import { createLogger } from "@conference/infra";
+
+const logger = createLogger({
+	level: env.LOG_LEVEL,
+	service: "@conference/api",
+	env: env.NODE_ENV,
+	redactPaths: [
+		"req.headers.authorization",
+		"req.headers.cookie",
+		'req.headers["x-api-key"]',
+		"req.body.password",
+	],
+});
 
 serve(
 	{

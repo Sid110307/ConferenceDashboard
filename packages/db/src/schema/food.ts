@@ -1,3 +1,5 @@
+import { sql } from "drizzle-orm";
+
 import {
 	date,
 	index,
@@ -75,7 +77,9 @@ export const mealScans = pgTable(
 		...auditColumns(() => users.id),
 	},
 	t => ({
-		uniqueScan: uniqueIndex("meal_scans_unique").on(t.attendeeId, t.mealDate, t.mealType),
+		uniqueScan: uniqueIndex("meal_scans_unique")
+			.on(t.attendeeId, t.mealDate, t.mealType)
+			.where(sql`${t.deletedAt} IS NULL`),
 		confIdx: index("meal_scans_conf_idx").on(t.conferenceId),
 		confDateMealIdx: index("meal_scans_conf_date_meal_idx").on(
 			t.conferenceId,

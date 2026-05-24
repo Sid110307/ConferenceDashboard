@@ -1,9 +1,15 @@
 import { env } from "@/lib/env";
-import { logger } from "@/lib/logger";
 import { notifyConference } from "@/lib/notify";
 import { db, withTenant } from "@/lib/tenancy";
 import { attendees, importJobs, importRows, staff } from "@conference/db";
+import { createLogger } from "@conference/infra";
 import { and, eq, sql } from "drizzle-orm";
+
+const logger = createLogger({
+	level: env.LOG_LEVEL,
+	service: "@conference/worker",
+	env: env.NODE_ENV,
+});
 
 type TargetEntity = "attendees" | "staff" | "travel_segments";
 

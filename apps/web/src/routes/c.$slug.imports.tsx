@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 
 import { api } from "@/lib/api";
-import { hasRole, useConference } from "@/lib/ConferenceContext";
+import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtRelative, humanise } from "@/lib/format";
 import { cx } from "@/lib/uiStyles";
 import { useRealtime } from "@/lib/useRealtime";
@@ -11,9 +11,11 @@ import {
 	importJobCreateSchema,
 	importJobMappingSchema,
 	type ImportEntity,
-	type ImportJobActionSchema,
+	type ImportJob,
+	type ImportJobActionInput,
 	type ImportJobCreateInput,
 	type ImportJobMappingInput,
+	type ImportRow,
 } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -33,37 +35,6 @@ import { useToast } from "@/components/Toast";
 export const Route = createFileRoute("/c/$slug/imports")({
 	component: ImportsPage,
 });
-
-type ImportJob = {
-	id: string;
-	targetEntity: string;
-	status: string;
-	sourceFilename?: string | null;
-	sourceColumns?: string[] | null;
-	columnMapping?: Record<string, string> | null;
-	options?: {
-		dedupe_by?: string;
-		on_duplicate?: string;
-		update_existing?: boolean;
-	} | null;
-	totalRowCount: number;
-	processedRowCount: number;
-	validRowCount: number;
-	invalidRowCount: number;
-	duplicateRowCount: number;
-	importedRowCount: number;
-	failedRowCount: number;
-	errorMessage?: string | null;
-	createdAt: string;
-};
-
-type ImportRow = {
-	id: string;
-	rowNumber: number;
-	status: string;
-	errors?: Record<string, string> | null;
-	rawData: Record<string, string>;
-};
 
 const ENTITY_FIELDS: Record<string, { key: string; label: string; required?: boolean }[]> = {
 	attendees: [
@@ -100,7 +71,7 @@ const ENTITY_FIELDS: Record<string, { key: string; label: string; required?: boo
 
 function ImportsPage() {
 	const { conference, membership } = useConference();
-	const canEdit = hasRole(membership, "editor");
+	const canEdit = hasAtLeastRole(membership, "editor");
 	const qc = useQueryClient();
 
 	const jobs = useQuery<{ data: ImportJob[] }>({
@@ -111,8 +82,13 @@ function ImportsPage() {
 
 	useRealtime(conference.slug, ev => {
 		if (ev.type.startsWith("import.")) {
-			qc.invalidateQueries({ queryKey: ["import-jobs", conference.slug] });
-			if (ev.id) qc.invalidateQueries({ queryKey: ["import-job", conference.slug, ev.id] });
+			qc.invalidateQueries({ queryKey: ["import-jobs", conference.slug] }).catch(
+				console.error,
+			);
+			if (ev.id)
+				qc.invalidateQueries({ queryKey: ["import-job", conference.slug, ev.id] }).catch(
+					console.error,
+				);
 		}
 	});
 
@@ -321,14 +297,18 @@ function JobWizard({ jobId, onReset }: { jobId: string; onReset: () => void }) {
 	const j = job.data?.data;
 
 	const action = useMutation({
-		mutationFn: (body: ImportJobActionSchema) =>
+		mutationFn: (body: ImportJobActionInput) =>
 			api.post(
 				`/api/v1/c/${conference.slug}/imports/${jobId}/action`,
 				importJobActionSchema.parse(body),
 			),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["import-job", conference.slug, jobId] });
-			qc.invalidateQueries({ queryKey: ["import-jobs", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["import-job", conference.slug, jobId] }).catch(
+				console.error,
+			);
+			qc.invalidateQueries({ queryKey: ["import-jobs", conference.slug] }).catch(
+				console.error,
+			);
 		},
 		onError: (e: any) => toast.error("Action failed", e.message),
 	});
@@ -527,7 +507,7 @@ function MappingCard({
 									onChange={e => setMap(m => ({ ...m, [f.key]: e.target.value }))}
 								>
 									<option value="">— skip —</option>
-									{sourceCols.map(c => (
+									{sourceCols.map((c: string) => (
 										<option key={c} value={c}>
 											{humanise(c)}
 										</option>
@@ -553,11 +533,13 @@ function MappingCard({
 							<Select
 								value={onDuplicate}
 								disabled={locked}
-								onChange={e => setOnDuplicate(e.target.value)}
+								onChange={e =>
+									setOnDuplicate(e.target.value as "skip" | "update" | "fail")
+								}
 							>
 								<option value="skip">Skip</option>
 								<option value="update">Update existing</option>
-								<option value="error">Fail the row</option>
+								<option value="fail">Fail the row</option>
 							</Select>
 						</FieldRow>
 					</div>
@@ -611,7 +593,9 @@ function PreviewCard({ job, jobId }: { job: ImportJob; jobId: string }) {
 				...importJobActionSchema.parse({ action: "start" }),
 			}),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["import-job", conference.slug, jobId] });
+			qc.invalidateQueries({ queryKey: ["import-job", conference.slug, jobId] }).catch(
+				console.error,
+			);
 			toast.success("Import started");
 		},
 		onError: (e: any) => toast.error("Could not start", e.message),
@@ -643,7 +627,8 @@ function PreviewCard({ job, jobId }: { job: ImportJob; jobId: string }) {
 									<div className="mt-1 space-y-0.5">
 										{Object.entries(r.errors ?? {}).map(([field, msg]) => (
 											<div key={field} className="text-danger-soft-fg">
-												<span className="font-mono">{field}</span>: {msg}
+												<span className="font-mono">{field}</span>:{" "}
+												{msg as string}
 											</div>
 										))}
 									</div>

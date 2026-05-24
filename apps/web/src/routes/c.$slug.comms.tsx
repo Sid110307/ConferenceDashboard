@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { api } from "@/lib/api";
-import { hasRole, useConference } from "@/lib/ConferenceContext";
+import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtRelative, humanise } from "@/lib/format";
 import { useRealtime } from "@/lib/useRealtime";
 import { useUrlState } from "@/lib/useUrlState";
@@ -16,8 +16,11 @@ import {
 	messagingProviderCreateSchema,
 	type AudienceFilter,
 	type CommsChannel,
+	type MessageCampaign,
 	type MessageCampaignInput,
+	type MessageTemplate,
 	type MessageTemplateInput,
+	type MessagingProvider,
 	type MessagingProviderInput,
 } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -47,42 +50,26 @@ export const Route = createFileRoute("/c/$slug/comms")({
 	component: CommsPage,
 });
 
-type Provider = {
-	id: string;
-	name: string;
-	channel: CommsChannel;
-	provider: string;
-	isDefault: boolean;
-	isActive: boolean;
+type Provider = MessagingProvider & {
 	configPublic?: Record<string, any> | null;
 };
-type Template = {
-	id: string;
-	name: string;
-	channel: CommsChannel;
+type Template = MessageTemplate & {
 	subject?: string | null;
 	body?: string | null;
 };
-type Campaign = {
-	id: string;
-	name: string;
-	channel: CommsChannel;
-	status: string;
-	templateId?: string | null;
-	providerId?: string | null;
+type Campaign = MessageCampaign & {
 	recipientCount: number;
 	sentCount: number;
 	failedCount: number;
 	audienceFilter?: Record<string, any> | null;
 	scheduledAt?: string | null;
-	createdAt: string;
 };
 
 function CommsPage() {
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 	const tab = search.tab ?? "campaigns";
 	const { membership } = useConference();
-	const canEdit = hasRole(membership, "editor");
+	const canEdit = hasAtLeastRole(membership, "editor");
 
 	return (
 		<div className="p-6">
@@ -243,7 +230,7 @@ function ProviderDrawer({ onClose }: { onClose: () => void }) {
 				}) as MessagingProviderInput,
 			),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["providers", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["providers", conference.slug] }).catch(console.error);
 			toast.success("Provider added");
 			onClose();
 		},
@@ -443,14 +430,14 @@ function TemplateDrawer({ template, onClose }: { template: Template | null; onCl
 			return api.post(path, body);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["templates", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["templates", conference.slug] }).catch(console.error);
 			toast.success(isEdit ? "Template updated" : "Template created");
 			onClose();
 		},
 		onError: (e: any) => toast.error("Save failed", e.message),
 	});
 
-	const upd = (p: Partial<Template>) => setForm(f => ({ ...f, ...p }));
+	const upd = (p: Partial<Template>) => setForm((f: Partial<Template>) => ({ ...f, ...p }));
 
 	return (
 		<EntityDrawer
@@ -511,8 +498,8 @@ function TemplateDrawer({ template, onClose }: { template: Template | null; onCl
 							</p>
 							<ul className="list-disc pl-5 space-y-1 mt-1">
 								<li>
-									<code className="font-mono">{`{{name}}`}</code>: the recipient's
-									name
+									<code className="font-mono">{`{{name}}`}</code>: the
+									recipient&apos;s name
 								</li>
 								<li>
 									<code className="font-mono">{`{{conference_name}}`}</code>: the
@@ -520,7 +507,7 @@ function TemplateDrawer({ template, onClose }: { template: Template | null; onCl
 								</li>
 								<li>
 									<code className="font-mono">{`{{attendee_code}}`}</code>: the
-									recipient's unique attendee code
+									recipient&apos;s unique attendee code
 								</li>
 								<li>
 									<code className="font-mono">{`{{venue}}`}</code>: the conference
@@ -541,7 +528,7 @@ function TemplateDrawer({ template, onClose }: { template: Template | null; onCl
 					<Textarea
 						value={form.body ?? ""}
 						onChange={e => upd({ body: e.target.value })}
-						className="min-h-[180px] font-mono text-[13px]"
+						className="min-h-45 font-mono text-[13px]"
 						placeholder={"Dear {{name}},\n\nWelcome to {{conference_name}}..."}
 					/>
 				</FieldRow>
@@ -562,7 +549,7 @@ function CampaignsTab({ canEdit }: { canEdit: boolean }) {
 
 	useRealtime(conference.slug, ev => {
 		if (ev.type.startsWith("campaign.")) {
-			qc.invalidateQueries({ queryKey: ["campaigns", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["campaigns", conference.slug] }).catch(console.error);
 		}
 	});
 
@@ -658,8 +645,8 @@ function CampaignSendButton({ campaign }: { campaign: Campaign }) {
 				messageCampaignActionSchema.parse({ action: "send_now" }),
 			),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["campaigns", conference.slug] });
-			toast.success("Campaign sending", "The worker is dispatching messages now.");
+			qc.invalidateQueries({ queryKey: ["campaigns", conference.slug] }).catch(console.error);
+			toast.success("Campaign sending", "The campaign is now being sent to recipients.");
 		},
 		onError: (e: any) => toast.error("Could not send", e.message),
 	});
@@ -733,7 +720,7 @@ function CampaignBuilder({ onClose }: { onClose: () => void }) {
 				}) as MessageCampaignInput,
 			),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["campaigns", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["campaigns", conference.slug] }).catch(console.error);
 			toast.success("Campaign created", "Saved as draft for review.");
 			onClose();
 		},

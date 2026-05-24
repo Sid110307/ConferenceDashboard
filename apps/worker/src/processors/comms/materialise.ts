@@ -1,4 +1,4 @@
-import { logger } from "@/lib/logger";
+import { logger } from "@/lib/infra";
 import { notifyConference } from "@/lib/notify";
 import { commsQueue, defaultJobOptions, JOB_NAMES } from "@/lib/queue";
 import { db, withTenant } from "@/lib/tenancy";

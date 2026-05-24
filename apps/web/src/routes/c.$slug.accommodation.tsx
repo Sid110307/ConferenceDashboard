@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { api } from "@/lib/api";
-import { hasRole, useConference } from "@/lib/ConferenceContext";
+import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtRelative, slugify } from "@/lib/format";
 import { cx } from "@/lib/uiStyles";
 import { useUrlState } from "@/lib/useUrlState";
@@ -11,7 +11,7 @@ import {
 	type AccommodationBlockInput,
 } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Building2, Plus, Users } from "lucide-react";
 import { z } from "zod";
 
@@ -54,7 +54,7 @@ type Room = {
 	status: string;
 	genderPreference?: string | null;
 };
-type Allocation = {
+export type Allocation = {
 	id: string;
 	roomId: string;
 	attendeeId: string;
@@ -67,12 +67,11 @@ type Allocation = {
 	keyIssued: boolean;
 	keyReturned: boolean;
 	notes?: string | null;
-	attendee?: {
-		id: string;
-		name: string;
-		code: string;
-		gender?: string | null;
-	};
+	attendeeName?: string | null;
+	attendeeCode?: string | null;
+	attendeeGender?: string | null;
+	attendeePhone?: string | null;
+	attendeeIsVip?: boolean | null;
 };
 
 const ROOM_STATUS_BG: Record<string, string> = {
@@ -85,7 +84,7 @@ const ROOM_STATUS_BG: Record<string, string> = {
 
 function AccommodationPage() {
 	const { conference, membership } = useConference();
-	const canEdit = hasRole(membership, "editor");
+	const canEdit = hasAtLeastRole(membership, "editor");
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 
 	const blocks = useQuery<{ data: Block[] }>({
@@ -280,9 +279,11 @@ function RoomDrawer({
 				allocationCheckActionSchema.parse({ action: input.action }),
 			),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["acc-allocs", conference.slug, room.id] });
-			qc.invalidateQueries({ queryKey: ["acc-rooms", conference.slug] });
-			qc.invalidateQueries({ queryKey: ["dashboard", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["acc-allocs", conference.slug, room.id] }).catch(
+				console.error,
+			);
+			qc.invalidateQueries({ queryKey: ["acc-rooms", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: ["dashboard", conference.slug] }).catch(console.error);
 			toast.success("Allocation updated");
 		},
 		onError: (e: any) => toast.error("Update failed", e.message),
@@ -312,11 +313,18 @@ function RoomDrawer({
 					>
 						<div className="min-w-0">
 							<div className="text-sm font-medium text-ink truncate">
-								{a.attendee?.name}
+								{a.attendeeName}
 							</div>
 							<div className="mt-0.5 text-xs text-ink-3">
-								<span className="font-mono">{a.attendee?.code}</span>
-								{a.attendee?.gender && <> · {a.attendee?.gender}</>}
+								<span className="font-mono text-ink-2">
+									{a.attendeeCode}{" "}
+									{a.attendeeIsVip && (
+										<Badge variant="accent" size="xs">
+											VIP
+										</Badge>
+									)}
+								</span>
+								{a.attendeeGender && <> · {a.attendeeGender}</>}
 							</div>
 							<div className="mt-1 text-[11px] text-ink-3">
 								{a.checkinAt && <>Checked in {fmtRelative(a.checkinAt)} · </>}
@@ -408,7 +416,9 @@ function BlockDrawer({ onClose }: { onClose: () => void }) {
 			return api.post(`/api/v1/c/${conference.slug}/accommodation/blocks`, payload);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["acc-blocks", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["acc-blocks", conference.slug] }).catch(
+				console.error,
+			);
 			toast.success("Block created");
 			onClose();
 		},

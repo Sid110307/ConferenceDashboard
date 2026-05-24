@@ -29,6 +29,7 @@ export const venues = pgTable(
 		location: text("location"),
 		capacity: integer("capacity"),
 		description: text("description"),
+		floor: varchar("floor", { length: 32 }),
 		hasProjector: boolean("has_projector").notNull().default(false),
 		hasMic: boolean("has_mic").notNull().default(false),
 		hasAc: boolean("has_ac").notNull().default(false),

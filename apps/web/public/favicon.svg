@@ -1,0 +1,17 @@
+<svg
+        width="64"
+        height="64"
+        viewBox="0 0 64 64"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        role="img"
+        aria-label="Conference dashboard icon"
+>
+    <rect x="8" y="10" width="48" height="42" rx="8" fill="oklch(0.95 0.04 160)" />
+    <rect x="14" y="18" width="36" height="6" rx="3" fill="oklch(0.62 0.13 160)" />
+    <circle cx="22" cy="34" r="5" fill="oklch(0.62 0.13 160)" />
+    <path d="M14 47c1.6-5 5.2-8 8-8s6.4 3 8 8" stroke="oklch(0.62 0.13 160)" stroke-width="3" stroke-linecap="round" />
+    <rect x="36" y="31" width="12" height="4" rx="2" fill="oklch(0.7 0.12 240)" />
+    <rect x="36" y="39" width="9" height="4" rx="2" fill="oklch(0.7 0.12 240)" />
+    <path d="M44 8v8M20 8v8" stroke="oklch(0.62 0.13 160)" stroke-width="4" stroke-linecap="round" />
+</svg>

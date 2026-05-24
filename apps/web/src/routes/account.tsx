@@ -67,7 +67,7 @@ function AccountPage() {
 	const saveProfile = useMutation({
 		mutationFn: () => api.patch("/api/v1/auth/me", { name }),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["me"] });
+			qc.invalidateQueries({ queryKey: ["me"] }).catch(console.error);
 			toast.success("Profile updated");
 		},
 		onError: (e: any) => toast.error("Update failed", e.message),

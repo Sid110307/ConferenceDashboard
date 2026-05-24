@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
 import { api } from "@/lib/api";
-import { hasRole, useConference } from "@/lib/ConferenceContext";
+import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtDate, fmtTime, humanise } from "@/lib/format";
 import { useUrlState } from "@/lib/useUrlState";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -78,7 +78,7 @@ function ProgrammePage() {
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 	const tab = search.tab ?? "sessions";
 	const { membership } = useConference();
-	const canEdit = hasRole(membership, "editor");
+	const canEdit = hasAtLeastRole(membership, "editor");
 
 	return (
 		<div className="p-6">
@@ -336,15 +336,13 @@ function SessionDrawer({ session, onClose }: { session: Session | null; onClose:
 						>
 							{[
 								"keynote",
-								"plenary",
 								"invited",
-								"contributed",
-								"poster",
 								"panel",
 								"workshop",
+								"poster",
 								"break",
-								"cultural",
-								"other",
+								"social",
+								"vip",
 							].map(v => (
 								<option key={v} value={v}>
 									{humanise(v)}

@@ -833,7 +833,6 @@ async function main() {
 				issues_open: 3,
 				issues_resolved: 7,
 			},
-			shiftHeadName: "Dr. Krishna",
 			createdBy: adminId,
 		});
 	}

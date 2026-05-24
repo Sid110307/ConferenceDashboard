@@ -8,10 +8,6 @@ import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 
-function clientIp(c: any) {
-	return c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-}
-
 export const settingsRouter = new Hono<AppContext>();
 
 settingsRouter.get("/app", requireRole("viewer"), async c => {
@@ -56,7 +52,7 @@ settingsRouter.put(
 				entity: "app_setting",
 				entityId: r!.id,
 				meta: { key },
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
@@ -118,7 +114,7 @@ settingsRouter.put(
 				action: "update",
 				entity: "theme_settings",
 				entityId: r!.id,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});

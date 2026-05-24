@@ -1,20 +1,21 @@
+import { createHash } from "node:crypto";
+import { Readable } from "node:stream";
+
 import { recordAudit } from "@/lib/audit";
 import type { AppContext } from "@/lib/context";
 import { BadRequestError, NotFoundError } from "@/lib/errors";
+import { getClientIp } from "@/lib/http";
 import { defaultJobOptions, JOB_NAMES, reportsQueue } from "@/lib/queue";
-import { presignDownloadUrl } from "@/lib/storage";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { files, reportJobs } from "@conference/db";
+import { getSignedDownloadUrl, s3 } from "@conference/infra";
 import { reportJobCreateSchema } from "@conference/shared";
 import { zValidator } from "@hono/zod-validator";
 import { and, desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
-
-function clientIp(c: any) {
-	return c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-}
 
 export const reportsRouter = new Hono<AppContext>();
 
@@ -70,7 +71,7 @@ reportsRouter.post(
 					format: input.format,
 					filters: input.filters,
 					columns: input.columns,
-					status: "queued",
+					status: "pending",
 					createdBy: user.id,
 					updatedBy: user.id,
 				})
@@ -83,7 +84,7 @@ reportsRouter.post(
 				entity: "report_job",
 				entityId: r!.id,
 				meta: { reportType: input.reportType, format: input.format },
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
@@ -115,14 +116,36 @@ reportsRouter.get(
 				.where(and(eq(reportJobs.id, id), eq(reportJobs.conferenceId, conf.id)))
 				.limit(1);
 			if (!r) throw new NotFoundError("report job");
-			if (r.status !== "completed" || !r.outputFileId) {
+			if (r.status !== "completed" || !r.fileId) {
 				throw new BadRequestError(`report not ready (status=${r.status})`);
 			}
-			const [f] = await tx.select().from(files).where(eq(files.id, r.outputFileId)).limit(1);
+			const [f] = await tx.select().from(files).where(eq(files.id, r.fileId)).limit(1);
 			if (!f) throw new NotFoundError("output file");
 			return { f };
 		});
-		const url = await presignDownloadUrl(job.f.storageKey, 60 * 10);
+		const url = await getSignedDownloadUrl(job.f.storageKey, 60 * 10);
+
+		if (job.f.checksum) {
+			const hash = createHash("sha256");
+			const stream = await s3
+				.send(
+					new GetObjectCommand({
+						Bucket: process.env.STORAGE_BUCKET,
+						Key: job.f.storageKey,
+					}),
+				)
+				.then(r => r.Body as Readable);
+			await new Promise((resolve, reject) => {
+				stream.on("data", chunk => hash.update(chunk));
+				stream.on("end", resolve);
+				stream.on("error", reject);
+			});
+
+			const calculatedChecksum = hash.digest("hex");
+			if (calculatedChecksum !== job.f.checksum)
+				throw new Error("File integrity check failed: checksum does not match");
+		}
+
 		return c.json({ url, filename: job.f.filename });
 	},
 );

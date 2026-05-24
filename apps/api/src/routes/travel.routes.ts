@@ -3,6 +3,7 @@ import type { AppContext } from "@/lib/context";
 import { makeCrudRouter } from "@/lib/crud-factory";
 import { validateCustomFields } from "@/lib/custom-fields";
 import { NotFoundError } from "@/lib/errors";
+import { getClientIp } from "@/lib/http";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import { attendees, travelSegments, vehicles } from "@conference/db";
@@ -46,12 +47,6 @@ export const vehiclesRouter = makeCrudRouter({
 });
 
 export const travelRouter = new Hono<AppContext>();
-
-function clientIp(c: any) {
-	return (
-		c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? null
-	);
-}
 
 travelRouter.get(
 	"/",
@@ -335,7 +330,7 @@ travelRouter.post(
 				entity: "travel_segment",
 				entityId: row!.id,
 				after: row,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
@@ -407,7 +402,7 @@ travelRouter.patch(
 				entityId: id,
 				before,
 				after: row,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
@@ -445,7 +440,7 @@ travelRouter.delete(
 				entity: "travel_segment",
 				entityId: id,
 				before,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
@@ -502,7 +497,7 @@ travelRouter.post(
 				action: "update",
 				entity: "travel_segment.assign_vehicle",
 				meta: { count: updated.length, vehicleId, segmentIds },
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});

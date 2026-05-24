@@ -1,3 +1,6 @@
+import { files } from "./files";
+import { sql } from "drizzle-orm";
+
 import {
 	boolean,
 	index,
@@ -5,6 +8,7 @@ import {
 	pgTable,
 	text,
 	timestamp,
+	uniqueIndex,
 	uuid,
 	varchar,
 } from "drizzle-orm/pg-core";
@@ -56,7 +60,9 @@ export const vehicles = pgTable(
 	},
 	t => ({
 		confIdx: index("vehicles_conf_idx").on(t.conferenceId),
-		confCodeUnique: index("vehicles_conf_code_idx").on(t.conferenceId, t.vehicleCode),
+		confCodeUnique: uniqueIndex("vehicles_conf_code_idx")
+			.on(t.conferenceId, t.vehicleCode)
+			.where(sql`${t.vehicleCode} IS NOT NULL`),
 		statusIdx: index("vehicles_status_idx").on(t.conferenceId, t.status),
 		deletedIdx: index("vehicles_deleted_idx").on(t.deletedAt),
 	}),
@@ -108,7 +114,7 @@ export const travelSegments = pgTable(
 		driverPhoneOverride: text("driver_phone_override"),
 		travelGroupCode: varchar("travel_group_code", { length: 32 }),
 
-		ticketFileId: uuid("ticket_file_id"),
+		ticketFileId: uuid("ticket_file_id").references(() => files.id, { onDelete: "set null" }),
 		notes: text("notes"),
 
 		...customFieldsColumn(),

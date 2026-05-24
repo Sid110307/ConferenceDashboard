@@ -1,17 +1,18 @@
 import { recordAudit } from "@/lib/audit";
 import type { AppContext } from "@/lib/context";
+import { env } from "@/lib/env";
 import { BadRequestError, NotFoundError } from "@/lib/errors";
-import {
-	deleteObject,
-	objectExists,
-	presignDownloadUrl,
-	presignUploadUrl,
-	publicUrl,
-	storageKey,
-} from "@/lib/storage";
+import { getClientIp } from "@/lib/http";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import { files } from "@conference/db";
+import {
+	deleteObject,
+	headObject as objectExists,
+	getSignedDownloadUrl as presignDownloadUrl,
+	getSignedUploadUrl as presignUploadUrl,
+	storageKey,
+} from "@conference/infra";
 import { LIMITS } from "@conference/shared";
 import { zValidator } from "@hono/zod-validator";
 import { createId } from "@paralleldrive/cuid2";
@@ -45,10 +46,6 @@ const PURPOSES = [
 	"attendee_doc",
 	"misc",
 ] as const;
-
-function clientIp(c: any) {
-	return c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-}
 
 export const filesRouter = new Hono<AppContext>();
 
@@ -94,15 +91,11 @@ filesRouter.post(
 					conferenceId: conf.id,
 					purpose: input.purpose,
 					filename: input.filename,
-					originalFilename: input.filename,
-					contentType: input.contentType,
+					mimeType: input.contentType,
 					sizeBytes: input.size,
-					storageProvider: "s3",
+					storageBucket: env.S3_BUCKET,
 					storageKey: key,
-					uploadStatus: "pending",
 					uploadedByUserId: user.id,
-					createdBy: user.id,
-					updatedBy: user.id,
 				})
 				.returning();
 			return row;
@@ -141,12 +134,7 @@ filesRouter.post(
 
 			const [updated] = await tx
 				.update(files)
-				.set({
-					uploadStatus: "ready",
-					publicUrl: publicUrl(f.storageKey) ?? null,
-					updatedBy: user.id,
-					updatedAt: new Date(),
-				})
+				.set({ publicUrl: `/${f.storageKey}` })
 				.where(eq(files.id, id))
 				.returning();
 
@@ -157,7 +145,7 @@ filesRouter.post(
 				entity: "file",
 				entityId: id,
 				after: updated,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
@@ -188,8 +176,8 @@ filesRouter.get(
 		const url = await presignDownloadUrl(f.storageKey, 60 * 15);
 		return c.json({
 			url,
-			filename: f.originalFilename ?? f.filename,
-			contentType: f.contentType,
+			filename: f.filename,
+			contentType: f.mimeType,
 			sizeBytes: f.sizeBytes,
 		});
 	},
@@ -217,10 +205,7 @@ filesRouter.delete(
 				.limit(1);
 			if (!f) throw new NotFoundError("file");
 
-			await tx
-				.update(files)
-				.set({ deletedAt: new Date(), deletedBy: user.id })
-				.where(eq(files.id, id));
+			await tx.update(files).set({ deletedAt: new Date() }).where(eq(files.id, id));
 
 			if (purge) {
 				await deleteObject(f.storageKey);
@@ -234,7 +219,7 @@ filesRouter.delete(
 				entity: "file",
 				entityId: id,
 				before: f,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});

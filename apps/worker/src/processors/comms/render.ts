@@ -1,4 +1,4 @@
-import { logger } from "@/lib/logger";
+import { logger } from "@/lib/infra";
 
 const VAR_RE = /\{\{\s*([a-zA-Z0-9_.]+)\s*}}/g;
 
@@ -25,13 +25,9 @@ export function render(template: string, ctx: RenderContext): string {
 	});
 }
 
-export function renderAll(
-	parts: { subject?: string | null; bodyText: string; bodyHtml?: string | null },
-	ctx: RenderContext,
-) {
+export function renderAll(parts: { subject?: string | null; body: string }, ctx: RenderContext) {
 	return {
 		subject: parts.subject ? render(parts.subject, ctx) : null,
-		bodyText: render(parts.bodyText, ctx),
-		bodyHtml: parts.bodyHtml ? render(parts.bodyHtml, ctx) : null,
+		body: render(parts.body, ctx),
 	};
 }

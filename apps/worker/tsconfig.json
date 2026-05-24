@@ -4,7 +4,11 @@
 		"outDir": "dist",
 		"rootDir": "src",
 		"baseUrl": ".",
-		"paths": { "@/*": ["src/*"] }
+		"paths": {
+			"@/*": ["src/*"],
+			"@conference/infra": ["../../packages/infra/src"],
+			"@conference/infra/*": ["../../packages/infra/src/*"]
+		}
 	},
 	"include": ["src/**/*.ts"]
 }

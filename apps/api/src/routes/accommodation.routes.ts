@@ -2,6 +2,7 @@ import { recordAudit } from "@/lib/audit";
 import type { AppContext } from "@/lib/context";
 import { makeCrudRouter } from "@/lib/crud-factory";
 import { BadRequestError, NotFoundError } from "@/lib/errors";
+import { getClientIp } from "@/lib/http";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import {
@@ -21,10 +22,6 @@ import { zValidator } from "@hono/zod-validator";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
-
-function clientIp(c: any) {
-	return c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-}
 
 export const blocksRouter = makeCrudRouter({
 	table: accommodationBlocks as any,
@@ -208,7 +205,7 @@ allocationsRouter.post(
 				entity: "room_allocation",
 				entityId: row!.id,
 				after: row,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
@@ -251,7 +248,7 @@ allocationsRouter.post(
 					status: "checked_in" as const,
 					checkinAt: before.checkinAt ?? now,
 					keyIssued: body.keyIssued ?? true,
-					checkedInByUserId: before.checkedInByUserId ?? user.id,
+					checkinByUserId: before.checkinByUserId ?? user.id,
 				},
 				check_out: {
 					status: "checked_out" as const,
@@ -296,7 +293,7 @@ allocationsRouter.post(
 				entityId: id,
 				before,
 				after: row,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});

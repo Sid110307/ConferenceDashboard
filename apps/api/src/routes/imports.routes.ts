@@ -1,6 +1,7 @@
 import { recordAudit } from "@/lib/audit";
 import type { AppContext } from "@/lib/context";
 import { BadRequestError, ForbiddenError, NotFoundError } from "@/lib/errors";
+import { getClientIp } from "@/lib/http";
 import { defaultJobOptions, importsQueue, JOB_NAMES } from "@/lib/queue";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
@@ -14,10 +15,6 @@ import { zValidator } from "@hono/zod-validator";
 import { and, desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
-
-function clientIp(c: any) {
-	return c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-}
 
 export const importsRouter = new Hono<AppContext>();
 
@@ -75,14 +72,14 @@ importsRouter.get(
 		const result = await withTenant(conf.id, async tx => {
 			const parts: any[] = [eq(importRows.jobId, id)];
 			if (q.status) parts.push(eq(importRows.status, q.status));
-			const data = await tx
+
+			return tx
 				.select()
 				.from(importRows)
 				.where(and(...parts))
 				.orderBy(importRows.rowNumber)
 				.limit(q.pageSize)
 				.offset((q.page - 1) * q.pageSize);
-			return data;
 		});
 		return c.json({ data: result });
 	},
@@ -110,7 +107,7 @@ importsRouter.post(
 					conferenceId: conf.id,
 					targetEntity: input.targetEntity,
 					fileId: input.fileId,
-					sourceFilename: f.originalFilename ?? f.filename,
+					sourceFilename: f.filename,
 					status: "uploaded",
 					createdBy: user.id,
 					updatedBy: user.id,
@@ -124,7 +121,7 @@ importsRouter.post(
 				entity: "import_job",
 				entityId: job!.id,
 				after: job,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});

@@ -41,11 +41,17 @@ export const committeesRouter = makeCrudRouter({
 		return parts;
 	},
 	extras: {
-		memberCount: sql<number>`(select count(*) ::int
+		memberCount: sql<number>`(select count(*)::int
 		                          from ${committeeAssignments}
 		                          where ${committeeAssignments.committeeId} = ${sql.raw(`"committees"."id"`)}
 			                        and ${committeeAssignments.conferenceId} = ${sql.raw(`"committees"."conference_id"`)}
 			                        and ${committeeAssignments.deletedAt} is null)`,
+		leadCount: sql<number>`(select count(*)::int
+		                        from ${committeeAssignments}
+		                        where ${committeeAssignments.committeeId} = ${sql.raw(`"committees"."id"`)}
+		                          and ${committeeAssignments.conferenceId} = ${sql.raw(`"committees"."conference_id"`)}
+		                          and ${committeeAssignments.deletedAt} is null
+		                          and ${committeeAssignments.isLead} = true)`,
 	},
 });
 

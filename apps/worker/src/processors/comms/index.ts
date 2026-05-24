@@ -1,8 +1,6 @@
-import { decryptJSON } from "@/lib/crypto";
 import { env } from "@/lib/env";
-import { logger } from "@/lib/logger";
 import { notifyConference } from "@/lib/notify";
-import { JOB_NAMES, redis } from "@/lib/redis";
+import { JOB_NAMES } from "@/lib/queue";
 import { db, withTenant } from "@/lib/tenancy";
 import { sendMessage } from "@/processors/comms/providers";
 import {
@@ -12,10 +10,18 @@ import {
 	messageTemplates,
 	messagingProviders,
 } from "@conference/db";
+import { createLogger, createRedis, decryptJSON } from "@conference/infra";
 import { LIMITS } from "@conference/shared";
 import { Queue } from "bullmq";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
+const logger = createLogger({
+	level: env.LOG_LEVEL,
+	service: "@conference/worker",
+	env: env.NODE_ENV,
+});
+
+const redis = createRedis({ url: env.REDIS_URL, logger });
 const commsQueue = new Queue("comms", { connection: redis });
 
 export async function processCampaignMaterialise(payload: {
@@ -78,7 +84,7 @@ export async function processCampaignMaterialise(payload: {
 				.update(messageCampaigns)
 				.set({
 					status: "completed",
-					totalRecipients: 0,
+					recipientCount: 0,
 					completedAt: new Date(),
 					updatedAt: new Date(),
 				})
@@ -94,7 +100,7 @@ export async function processCampaignMaterialise(payload: {
 					campaignId,
 					attendeeId: a.id,
 					channel: camp.channel,
-					toAddress: String(a.contact),
+					address: String(a.contact),
 					status: "queued" as const,
 					createdAt: new Date(),
 				})),
@@ -105,7 +111,7 @@ export async function processCampaignMaterialise(payload: {
 			.update(messageCampaigns)
 			.set({
 				status: "sending",
-				totalRecipients: total,
+				recipientCount: total,
 				updatedAt: new Date(),
 			})
 			.where(eq(messageCampaigns.id, campaignId));
@@ -180,8 +186,7 @@ export async function processCampaignDispatchBatch(payload: {
 	const creds = decryptJSON(provider.configEncrypted) as Record<string, any>;
 
 	let subject = camp.subject ?? null;
-	let bodyText = camp.bodyText;
-	let bodyHtml = camp.bodyHtml ?? null;
+	let body = camp.body;
 	if (camp.templateId) {
 		const [t] = await db
 			.select()
@@ -190,8 +195,7 @@ export async function processCampaignDispatchBatch(payload: {
 			.limit(1);
 		if (t) {
 			subject = camp.subject ?? t.subject ?? null;
-			bodyText = camp.bodyText || t.bodyText;
-			bodyHtml = camp.bodyHtml ?? t.bodyHtml ?? null;
+			body = camp.body || t.body;
 		}
 	}
 
@@ -214,14 +218,12 @@ export async function processCampaignDispatchBatch(payload: {
 	for (const r of recipients) {
 		if (r.status !== "queued") continue;
 		try {
-			const merged = renderTemplate(bodyText, r);
-			const mergedHtml = bodyHtml ? renderTemplate(bodyHtml, r) : null;
+			const merged = renderTemplate(body || "", r);
 			const result = await sendMessage({
 				channel: camp.channel,
-				to: r.toAddress,
+				to: r.address,
 				subject,
-				bodyText: merged,
-				bodyHtml: mergedHtml,
+				body: merged,
 				fromAddress: provider.fromAddress,
 				fromName: provider.fromName,
 				provider: provider.provider,

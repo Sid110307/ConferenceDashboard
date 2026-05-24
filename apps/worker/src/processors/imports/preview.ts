@@ -1,13 +1,18 @@
 import { env } from "@/lib/env";
-import { logger } from "@/lib/logger";
 import { notifyConference } from "@/lib/notify";
-import { getObjectBuffer } from "@/lib/storage";
 import { db, withTenant } from "@/lib/tenancy";
 import { parseCSV } from "@/processors/imports/parsers/csv";
 import { parseXLSX } from "@/processors/imports/parsers/xlsx";
 import { validatorFor } from "@/processors/imports/validators";
 import { attendees, files, importJobs, importRows } from "@conference/db";
+import { createLogger, getObject as getObjectBuffer } from "@conference/infra";
 import { and, eq, isNull } from "drizzle-orm";
+
+const logger = createLogger({
+	level: env.LOG_LEVEL,
+	service: "@conference/worker",
+	env: env.NODE_ENV,
+});
 
 export async function processImportPreview(payload: {
 	jobId: string;

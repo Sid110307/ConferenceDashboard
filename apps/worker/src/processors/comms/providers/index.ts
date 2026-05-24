@@ -5,8 +5,7 @@ export type SendInput = {
 	channel: MessageChannel;
 	to: string;
 	subject?: string | null;
-	bodyText: string;
-	bodyHtml?: string | null;
+	body: string;
 	fromAddress?: string | null;
 	fromName?: string | null;
 	provider: string;
@@ -47,8 +46,7 @@ async function sendEmail(input: SendInput): Promise<SendResult> {
 				from,
 				to: input.to,
 				subject: input.subject ?? "",
-				text: input.bodyText,
-				html: input.bodyHtml ?? undefined,
+				text: input.body,
 			});
 			return { providerMessageId: info.messageId ?? null };
 		}
@@ -63,8 +61,7 @@ async function sendEmail(input: SendInput): Promise<SendResult> {
 					from,
 					to: [input.to],
 					subject: input.subject ?? "",
-					text: input.bodyText,
-					html: input.bodyHtml ?? undefined,
+					text: input.body,
 				}),
 			});
 			if (!res.ok) {
@@ -88,8 +85,8 @@ async function sendEmail(input: SendInput): Promise<SendResult> {
 					},
 					subject: input.subject ?? "",
 					content: [
-						{ type: "text/plain", value: input.bodyText },
-						...(input.bodyHtml ? [{ type: "text/html", value: input.bodyHtml }] : []),
+						{ type: "text/plain", value: input.body || "" },
+						{ type: "text/html", value: input.body ? undefined : "" },
 					],
 				}),
 			});
@@ -115,7 +112,7 @@ async function sendSms(input: SendInput): Promise<SendResult> {
 			const form = new URLSearchParams({
 				From: credentials.fromNumber,
 				To: input.to,
-				Body: input.bodyText,
+				Body: input.body,
 			});
 			const res = await fetch(
 				`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
@@ -173,7 +170,7 @@ async function sendWhatsApp(input: SendInput): Promise<SendResult> {
 			const form = new URLSearchParams({
 				From: `whatsapp:${credentials.fromNumber}`,
 				To: `whatsapp:${input.to}`,
-				Body: input.bodyText,
+				Body: input.body,
 			});
 			const res = await fetch(
 				`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
@@ -204,7 +201,7 @@ async function sendWhatsApp(input: SendInput): Promise<SendResult> {
 					messaging_product: "whatsapp",
 					to: input.to,
 					type: "text",
-					text: { body: input.bodyText, preview_url: false },
+					text: { body: input.body, preview_url: false },
 				}),
 			});
 			const data = (await res.json()) as any;

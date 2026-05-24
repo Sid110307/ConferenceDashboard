@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
-import { hasRole, useConference } from "@/lib/ConferenceContext";
+import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtDate } from "@/lib/format";
 import { useRealtime } from "@/lib/useRealtime";
+import { type FoodPlan } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
@@ -11,7 +12,6 @@ import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { Camera, Plus, QrCode, Utensils, X } from "lucide-react";
 import { z } from "zod";
 
-import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { DatePickerInput } from "@/components/DatePicker";
@@ -29,18 +29,6 @@ export const Route = createFileRoute("/c/$slug/food")({
 	component: FoodPage,
 });
 
-type FoodPlan = {
-	id: string;
-	mealDate: string;
-	breakfastCount?: number;
-	lunchCount?: number;
-	dinnerCount?: number;
-	snacksCount?: number;
-	expectedHeadcount?: number | null;
-	vegCount?: number;
-	nonVegCount?: number;
-	notes?: string | null;
-};
 type ScanStat = {
 	mealDate: string;
 	mealType: string;
@@ -51,7 +39,7 @@ const MEALS = ["breakfast", "lunch", "dinner", "snacks"] as const;
 
 function FoodPage() {
 	const { conference, membership } = useConference();
-	const canEdit = hasRole(membership, "editor");
+	const canEdit = hasAtLeastRole(membership, "editor");
 	const qc = useQueryClient();
 
 	const plans = useQuery<{ data: FoodPlan[] }>({
@@ -70,7 +58,9 @@ function FoodPage() {
 
 	useRealtime(conference.slug, ev => {
 		if (ev.type === "meal_scan.created") {
-			qc.invalidateQueries({ queryKey: ["meal-scan-stats", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["meal-scan-stats", conference.slug] }).catch(
+				console.error,
+			);
 		}
 	});
 
@@ -124,7 +114,9 @@ function FoodPage() {
 						<div className="space-y-2.5">
 							{MEALS.map(meal => {
 								const scanned = statFor(p.mealDate, meal);
-								const expected = p.expectedHeadcount ?? 0;
+								const expected = p[`${meal}Count` as keyof FoodPlan] as
+									| number
+									| null;
 								const pct = expected ? Math.round((scanned / expected) * 100) : 0;
 								return (
 									<div key={meal} className="flex items-center gap-3">
@@ -144,12 +136,6 @@ function FoodPage() {
 									</div>
 								);
 							})}
-							{(p.vegCount != null || p.nonVegCount != null) && (
-								<div className="pt-2 mt-1 border-t border-line flex gap-2">
-									<Badge variant="success">Veg {p.vegCount ?? 0}</Badge>
-									<Badge variant="warn">Non-veg {p.nonVegCount ?? 0}</Badge>
-								</div>
-							)}
 						</div>
 					</Card>
 				))}
@@ -180,7 +166,9 @@ function PlanDrawer({ onClose }: { onClose: () => void }) {
 				notes: form.notes || undefined,
 			}),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["food-plans", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["food-plans", conference.slug] }).catch(
+				console.error,
+			);
 			toast.success("Meal plan added");
 			onClose();
 		},
@@ -257,7 +245,9 @@ function ScanDrawer({ onClose }: { onClose: () => void }) {
 		onSuccess: (_data, overrideCode) => {
 			const scannedCode = overrideCode ?? form.attendeeCode;
 
-			qc.invalidateQueries({ queryKey: ["meal-scan-stats", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["meal-scan-stats", conference.slug] }).catch(
+				console.error,
+			);
 			toast.success("Scan recorded", `${scannedCode} · ${form.mealType}`);
 			setForm(p => ({ ...p, attendeeCode: "" }));
 		},

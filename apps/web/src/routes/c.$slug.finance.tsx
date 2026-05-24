@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { api } from "@/lib/api";
-import { hasRole, useConference } from "@/lib/ConferenceContext";
+import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtINR, humanise } from "@/lib/format";
 import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
@@ -72,7 +72,7 @@ const PAGE_SIZE = 25;
 
 function FinancePage() {
 	const { conference, membership } = useConference();
-	const canEdit = hasRole(membership, "editor");
+	const canEdit = hasAtLeastRole(membership, "editor");
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 	const tab = search.tab ?? "ledger";
 
@@ -152,7 +152,7 @@ function LedgerTab({
 	setSearch: (p: Partial<z.infer<typeof Search>>) => void;
 }) {
 	const { conference } = useConference();
-	const list = useListQuery<{ data: FinanceItem[] }>({
+	const list = useListQuery<FinanceItem>({
 		key: ["finance-items", conference.slug],
 		path: `/api/v1/c/${conference.slug}/finance`,
 		params: { page: search.page ?? 1, pageSize: PAGE_SIZE },
@@ -262,12 +262,12 @@ function FinanceItemDrawer({ item, onClose }: { item: FinanceItem | null; onClos
 			return isEdit ? api.patch(`${path}/${item!.id}`, body) : api.post(path, body);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["finance-items", conference.slug] }).catch(
-				console.error,
-			);
-			qc.invalidateQueries({ queryKey: ["finance-summary", conference.slug] }).catch(
-				console.error,
-			);
+			qc.invalidateQueries({ queryKey: ["finance-items", conference.slug] })
+				.catch(console.error)
+				.catch(console.error);
+			qc.invalidateQueries({ queryKey: ["finance-summary", conference.slug] })
+				.catch(console.error)
+				.catch(console.error);
 			toast.success("Saved");
 			onClose();
 		},
@@ -354,7 +354,7 @@ function SponsorsTab({
 	setSearch: (p: Partial<z.infer<typeof Search>>) => void;
 }) {
 	const { conference } = useConference();
-	const list = useListQuery<{ data: Sponsor[] }>({
+	const list = useListQuery<Sponsor>({
 		key: ["sponsors", conference.slug],
 		path: `/api/v1/c/${conference.slug}/sponsors`,
 		params: { page: search.page ?? 1, pageSize: PAGE_SIZE },

@@ -107,8 +107,8 @@ export const importJobMappingSchema = z.object({
 	mapping: z.record(z.string(), z.string()),
 	options: z
 		.object({
-			dedupe_by: z.array(z.string()).optional(),
-			on_duplicate: z.enum(["skip", "update", "error", "create_anyway"]).optional(),
+			dedupe_by: z.string().optional(),
+			on_duplicate: z.enum(["skip", "update", "fail"]).optional(),
 			update_existing: z.boolean().optional(),
 			trim_whitespace: z.boolean().optional(),
 			empty_string_as_null: z.boolean().optional(),
@@ -191,6 +191,7 @@ export type MessageCampaignInput = z.infer<typeof messageCampaignCreateSchema>;
 export type AudienceFilter = z.infer<typeof audienceFilterSchema>;
 export type AudiencePreviewInput = z.infer<typeof audiencePreviewSchema>;
 export type ImportJobCreateInput = z.infer<typeof importJobCreateSchema>;
+export type ImportJobActionInput = z.infer<typeof importJobActionSchema>;
 export type ImportJobMappingInput = z.infer<typeof importJobMappingSchema>;
 export type CustomFieldDefinitionInput = z.infer<typeof customFieldDefinitionSchema>;
 export type ReportJobCreateInput = z.infer<typeof reportJobCreateSchema>;

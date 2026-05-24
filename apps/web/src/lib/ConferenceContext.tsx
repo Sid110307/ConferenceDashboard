@@ -1,10 +1,12 @@
 import { createContext, useContext, type ReactNode } from "react";
 
+import { hasAtLeastRole as sharedHasAtLeastRole, type UserRole } from "@conference/shared";
+
 export type Membership = {
 	role: "viewer" | "editor" | "admin" | "super_admin";
 	isActive: boolean;
-	permissions?: string[];
-	userId?: string;
+	permissions?: Record<string, any>;
+	userId: string;
 };
 
 export type ActiveConference = {
@@ -12,11 +14,13 @@ export type ActiveConference = {
 	slug: string;
 	name: string;
 	shortName: string;
-	venue?: string | null;
-	city?: string | null;
+	description: string;
+	venueName?: string | null;
+	venueAddress?: string | null;
+	venueCity?: string | null;
 	startDate?: string | null;
 	endDate?: string | null;
-	logoUrl?: string | null;
+	logoFileId?: string | null;
 	theme?: {
 		primaryColor?: string | null;
 		secondaryColor?: string | null;
@@ -55,8 +59,6 @@ export function useConference(): Ctx {
 	return ctx;
 }
 
-const ROLE_RANK = { viewer: 1, editor: 2, admin: 3, super_admin: 4 } as const;
-
-export function hasRole(membership: Membership, minimum: Membership["role"]): boolean {
-	return ROLE_RANK[membership.role] >= ROLE_RANK[minimum];
+export function hasAtLeastRole(membership: Membership, minimum: Membership["role"]): boolean {
+	return sharedHasAtLeastRole(membership.role as UserRole, minimum as UserRole);
 }

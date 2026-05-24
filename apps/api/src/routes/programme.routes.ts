@@ -113,18 +113,7 @@ export const sessionsRouter = makeCrudRouter({
 		title: z.string().min(1).max(500),
 		description: z.string().max(5000).optional(),
 		sessionType: z
-			.enum([
-				"keynote",
-				"plenary",
-				"invited",
-				"contributed",
-				"poster",
-				"panel",
-				"workshop",
-				"break",
-				"cultural",
-				"other",
-			])
+			.enum(["keynote", "invited", "panel", "workshop", "poster", "break", "social", "vip"])
 			.default("invited"),
 		startTime: isoDatetimeSchema,
 		endTime: isoDatetimeSchema,
@@ -140,15 +129,13 @@ export const sessionsRouter = makeCrudRouter({
 			description: z.string().max(5000),
 			sessionType: z.enum([
 				"keynote",
-				"plenary",
 				"invited",
-				"contributed",
-				"poster",
 				"panel",
 				"workshop",
+				"poster",
 				"break",
-				"cultural",
-				"other",
+				"social",
+				"vip",
 			]),
 			startTime: isoDatetimeSchema,
 			endTime: isoDatetimeSchema,
@@ -170,18 +157,7 @@ export const sessionsRouter = makeCrudRouter({
 		trackId: z.string().uuid().optional(),
 		venueId: z.string().uuid().optional(),
 		sessionType: z
-			.enum([
-				"keynote",
-				"plenary",
-				"invited",
-				"contributed",
-				"poster",
-				"panel",
-				"workshop",
-				"break",
-				"cultural",
-				"other",
-			])
+			.enum(["keynote", "invited", "panel", "workshop", "poster", "break", "social", "vip"])
 			.optional(),
 	}),
 	applyFilters: filters => {

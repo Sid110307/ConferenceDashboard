@@ -2,6 +2,7 @@ import { recordAudit } from "@/lib/audit";
 import type { AppContext } from "@/lib/context";
 import { validateCustomFields } from "@/lib/custom-fields";
 import { BadRequestError, ForbiddenError, NotFoundError } from "@/lib/errors";
+import { buildPagination, getClientIp } from "@/lib/http";
 import { withTenant, type TenantTx } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import { LIMITS, paginationQuerySchema, type CustomFieldEntity } from "@conference/shared";
@@ -128,13 +129,11 @@ export function makeCrudRouter(cfg: CrudConfig) {
 
 			return c.json({
 				data: result.data,
-				pagination: {
+				pagination: buildPagination({
 					page,
 					pageSize,
 					total: result.total,
-					totalPages: Math.max(1, Math.ceil(result.total / pageSize)),
-					hasNextPage: page * pageSize < result.total,
-				},
+				}),
 			});
 		},
 	);
@@ -188,7 +187,7 @@ export function makeCrudRouter(cfg: CrudConfig) {
 				entity: cfg.entity,
 				entityId: row.id as string,
 				after: row,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId,
 			});
@@ -255,7 +254,7 @@ export function makeCrudRouter(cfg: CrudConfig) {
 					entityId: id,
 					before,
 					after: row,
-					ip: clientIp(c),
+					ip: getClientIp(c),
 					userAgent: c.req.header("user-agent") ?? null,
 					requestId,
 				});
@@ -306,7 +305,7 @@ export function makeCrudRouter(cfg: CrudConfig) {
 						entity: cfg.entity,
 						entityId: id,
 						before,
-						ip: clientIp(c),
+						ip: getClientIp(c),
 						userAgent: c.req.header("user-agent") ?? null,
 						requestId,
 					});
@@ -331,7 +330,7 @@ export function makeCrudRouter(cfg: CrudConfig) {
 						entity: cfg.entity,
 						entityId: id,
 						before,
-						ip: clientIp(c),
+						ip: getClientIp(c),
 						userAgent: c.req.header("user-agent") ?? null,
 						requestId,
 					});
@@ -383,7 +382,7 @@ export function makeCrudRouter(cfg: CrudConfig) {
 					entityId: id,
 					before,
 					after: row,
-					ip: clientIp(c),
+					ip: getClientIp(c),
 					userAgent: c.req.header("user-agent") ?? null,
 					requestId,
 				});
@@ -418,10 +417,4 @@ async function findOneById(
 		.where(where)
 		.limit(1);
 	return rows[0] ?? null;
-}
-
-function clientIp(c: AppContext): string | null {
-	return (
-		c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? null
-	);
 }

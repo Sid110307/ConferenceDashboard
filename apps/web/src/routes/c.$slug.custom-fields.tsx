@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { api } from "@/lib/api";
-import { hasRole, useConference } from "@/lib/ConferenceContext";
+import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { humanise, slugify } from "@/lib/format";
 import { useUrlState } from "@/lib/useUrlState";
 import {
@@ -71,7 +71,7 @@ const HAS_OPTIONS = new Set(["select", "multiselect"]);
 
 function CustomFieldsPage() {
 	const { conference, membership } = useConference();
-	const canAdmin = hasRole(membership, "admin");
+	const canAdmin = hasAtLeastRole(membership, "admin");
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 	const entity = search.entity ?? "attendees";
 	const qc = useQueryClient();
@@ -93,7 +93,9 @@ function CustomFieldsPage() {
 	const del = useMutation({
 		mutationFn: (id: string) => api.del(`/api/v1/c/${conference.slug}/custom-fields/${id}`),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["custom-fields", conference.slug, entity] });
+			qc.invalidateQueries({ queryKey: ["custom-fields", conference.slug, entity] }).catch(
+				console.error,
+			);
 			toast.success("Field deleted");
 		},
 		onError: (e: any) => toast.error("Delete failed", e.message),
@@ -273,7 +275,9 @@ function FieldDefDrawer({
 			return api.post(path, body);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["custom-fields", conference.slug, entity] });
+			qc.invalidateQueries({ queryKey: ["custom-fields", conference.slug, entity] }).catch(
+				console.error,
+			);
 			toast.success(isEdit ? "Field updated" : "Field created");
 			onClose();
 		},

@@ -77,7 +77,7 @@ function DashboardPage() {
 	const navigate = useNavigate();
 	const qc = useQueryClient();
 
-	const { data, isLoading } = useQuery<{ data: Dashboard }>({
+	const { data, isLoading, dataUpdatedAt } = useQuery<{ data: Dashboard }>({
 		queryKey: ["dashboard", conference.slug],
 		queryFn: () => api.get<{ data: Dashboard }>(`/api/v1/c/${conference.slug}/dashboard`),
 		refetchInterval: 60000,
@@ -91,7 +91,7 @@ function DashboardPage() {
 			ev.type.startsWith("allocation.") ||
 			ev.type === "meal_scan.created"
 		) {
-			qc.invalidateQueries({ queryKey: ["dashboard", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["dashboard", conference.slug] }).catch(console.error);
 		}
 	});
 
@@ -103,18 +103,16 @@ function DashboardPage() {
 		);
 
 	const arrivals = {
-		scheduled: data.data?.travel.arrivalsPending,
-		assigned: data.data?.travel.arrivalsCompleted,
-		enRoute: data.data?.travel.arrivalsDelayed,
-		arrived: data.data?.travel.arrivalsCompleted,
+		pending: data.data?.travel.arrivalsPending,
+		completed: data.data?.travel.arrivalsCompleted,
+		delayed: data.data?.travel.arrivalsDelayed,
 	};
 	const departures = {
 		scheduled: data.data?.travel.departuresPending + data.data?.travel.departuresCompleted,
 		completed: data.data?.travel.departuresCompleted,
 	};
-	const totalArrivals =
-		arrivals.scheduled + arrivals.assigned + arrivals.enRoute + arrivals.arrived;
-	const arrivalsPct = totalArrivals === 0 ? 0 : (arrivals.arrived / totalArrivals) * 100;
+	const totalArrivals = arrivals.pending + arrivals.completed + arrivals.delayed;
+	const arrivalsPct = totalArrivals === 0 ? 0 : (arrivals.completed / totalArrivals) * 100;
 
 	const occupancyPct =
 		data.data?.accommodation.capacity === 0
@@ -127,6 +125,7 @@ function DashboardPage() {
 	const expensePlanned = Number(data.data?.finance.expensePlanned) || 0;
 	const net = incomeActual - expenseActual;
 	const incomePct = incomePlanned === 0 ? 0 : (incomeActual / incomePlanned) * 100;
+	const expensePct = expensePlanned === 0 ? 0 : (expenseActual / expensePlanned) * 100;
 
 	const checkinPct =
 		data.data?.attendees.total === 0
@@ -137,7 +136,7 @@ function DashboardPage() {
 		<div className="p-6 space-y-6">
 			<PageHeader
 				title={conference.name}
-				description={`${conference.venue} · ${fmtDateTime(conference.startDate)} - ${fmtDateTime(conference.endDate)}`}
+				description={`${conference.venueName} · ${fmtDateTime(conference.startDate)} - ${fmtDateTime(conference.endDate)}\n${conference.venueAddress}`}
 			/>
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 				<StatCard
@@ -170,7 +169,9 @@ function DashboardPage() {
 					tone="success"
 					hint={`${checkinPct.toFixed(1)}% of registered`}
 					trend={checkinPct > 50 ? "up" : "flat"}
-					onClick={() => navigate({ to: "accommodation" })}
+					onClick={() =>
+						navigate({ to: "attendees", search: { checkinStatus: "checked_in" } })
+					}
 				/>
 				<StatCard
 					label="VIP guests"
@@ -206,14 +207,14 @@ function DashboardPage() {
 						<ProgressBar
 							value={arrivalsPct}
 							max={100}
-							label={`${fmtNumber(arrivals.arrived)} arrived`}
+							label={`${fmtNumber(arrivals.completed)} arrived`}
 							hint={`${arrivalsPct.toFixed(0)}%`}
 							tone="success"
 						/>
 						<div className="grid grid-cols-3 gap-2">
-							<MiniStat label="Scheduled" value={arrivals.scheduled} tone="neutral" />
-							<MiniStat label="Assigned" value={arrivals.assigned} tone="info" />
-							<MiniStat label="En route" value={arrivals.enRoute} tone="warn" />
+							<MiniStat label="Scheduled" value={arrivals.pending} tone="neutral" />
+							<MiniStat label="En route" value={arrivals.delayed} tone="warn" />
+							<MiniStat label="Arrived" value={arrivals.completed} tone="success" />
 						</div>
 						<div className="pt-2 mt-2 border-t border-line text-xs text-ink-3">
 							Departures: <span className="text-ink-2">{departures.scheduled}</span>{" "}
@@ -342,7 +343,7 @@ function DashboardPage() {
 									/>
 									{expensePlanned > 0 && (
 										<span className="text-ink-3 text-xs">
-											/ {fmtINR(expensePlanned)} ({incomePct.toFixed(0)}%)
+											/ {fmtINR(expensePlanned)} ({expensePct.toFixed(0)}%)
 										</span>
 									)}
 								</span>
@@ -351,21 +352,8 @@ function DashboardPage() {
 					</div>
 				</Card>
 			</div>
-			<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-				<MiniStat
-					label="Badge printed"
-					value={data.data?.attendees.badgePrinted}
-					tone="accent"
-				/>
-				<MiniStat
-					label="Kit collected"
-					value={data.data?.attendees.kitCollected}
-					tone="accent"
-				/>
-			</div>
-
 			<div className="text-xs text-ink-3 text-center pt-2">
-				Last updated: {fmtDateTime(new Date())}
+				Last updated: {fmtDateTime(dataUpdatedAt ? new Date(dataUpdatedAt) : null)}
 			</div>
 		</div>
 	);

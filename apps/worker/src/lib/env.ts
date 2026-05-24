@@ -24,11 +24,7 @@ const schema = z.object({
 	S3_BUCKET: z.string().default("conference-dashboard"),
 	S3_ACCESS_KEY: z.string().optional(),
 	S3_SECRET_KEY: z.string().optional(),
-	S3_FORCE_PATH_STYLE: z
-		.string()
-		.optional()
-		.default("true")
-		.transform(v => v !== "false"),
+	S3_PUBLIC_BASE_URL: z.string().url().optional(),
 
 	IMPORT_BATCH_SIZE: z.coerce.number().int().default(500),
 	IMPORT_MAX_ROWS: z.coerce.number().int().default(50000),

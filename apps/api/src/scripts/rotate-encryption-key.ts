@@ -3,14 +3,26 @@
 
 import "dotenv/config";
 
-import { decrypt, encrypt } from "@/lib/crypto";
-import { logger } from "@/lib/logger";
+import { env } from "@/lib/env";
 import { db, messagingProviders } from "@conference/db";
+import { createLogger, decrypt, encrypt } from "@conference/infra";
 import { eq } from "drizzle-orm";
 
 
 
 
+
+const logger = createLogger({
+	level: env.LOG_LEVEL,
+	service: "@conference/api",
+	env: env.NODE_ENV,
+	redactPaths: [
+		"req.headers.authorization",
+		"req.headers.cookie",
+		'req.headers["x-api-key"]',
+		"req.body.password",
+	],
+});
 
 const oldKeyB64 = process.env.OLD_ENCRYPTION_KEY;
 if (!oldKeyB64) {

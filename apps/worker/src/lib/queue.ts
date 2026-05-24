@@ -1,7 +1,8 @@
-import { redis } from "@/lib/redis";
+import { env } from "@/lib/env";
+import { createRedis } from "@conference/infra";
 import { Queue, type JobsOptions } from "bullmq";
 
-const connection = redis;
+const connection = createRedis({ url: env.REDIS_URL });
 
 export const importsQueue = new Queue("imports", { connection });
 export const commsQueue = new Queue("comms", { connection });

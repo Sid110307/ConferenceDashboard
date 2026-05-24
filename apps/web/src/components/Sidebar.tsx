@@ -1,11 +1,14 @@
 import { type ReactNode } from "react";
 
-import { hasRole, useConference, type Membership } from "@/lib/ConferenceContext";
+import { hasAtLeastRole, useConference, type Membership } from "@/lib/ConferenceContext";
 import { cx } from "@/lib/uiStyles";
 import { Link, useRouter } from "@tanstack/react-router";
 import {
+	Award,
 	BedDouble,
+	Box,
 	CalendarDays,
+	ClipboardList,
 	Crown,
 	FileBarChart2,
 	LayoutDashboard,
@@ -62,6 +65,14 @@ function buildNav(slug: string): NavSection[] {
 				{ to: `${base}/food`, label: "Food & Dining", icon: <Utensils size={16} /> },
 				{ to: `${base}/programme`, label: "Programme", icon: <CalendarDays size={16} /> },
 				{ to: `${base}/helpdesk`, label: "Helpdesk", icon: <LifeBuoy size={16} /> },
+				{
+					to: `${base}/announcements`,
+					label: "Announcements",
+					icon: <Megaphone size={16} />,
+				},
+				{ to: `${base}/certificates`, label: "Certificates", icon: <Award size={16} /> },
+				{ to: `${base}/feedback`, label: "Feedback", icon: <ClipboardList size={16} /> },
+				{ to: `${base}/logistics`, label: "Logistics", icon: <Box size={16} /> },
 			],
 		},
 		{
@@ -137,7 +148,9 @@ export function Sidebar() {
 
 			<nav className="flex-1 overflow-y-auto px-2 py-3 space-y-3">
 				{sections.map(sec => {
-					const items = sec.items.filter(i => !i.min || hasRole(membership, i.min));
+					const items = sec.items.filter(
+						i => !i.min || hasAtLeastRole(membership, i.min),
+					);
 					if (!items.length) return null;
 					return (
 						<div key={sec.label}>

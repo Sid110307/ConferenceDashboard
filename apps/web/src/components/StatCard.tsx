@@ -51,7 +51,7 @@ export function StatCard({
 			className={cx(
 				card,
 				"p-4 flex items-start gap-3 text-left",
-				onClick && "hover:bg-surface-2 transition-colors cursor-pointer w-full",
+				onClick && "hover:bg-surface-3 transition-colors cursor-pointer w-full",
 				className,
 			)}
 		>

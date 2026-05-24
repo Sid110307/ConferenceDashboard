@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { api } from "@/lib/api";
-import { hasRole, useConference } from "@/lib/ConferenceContext";
+import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { humanise } from "@/lib/format";
 import { useUrlState } from "@/lib/useUrlState";
 import { conferenceUpdateSchema, type ConferenceUpdateInput } from "@conference/shared";
@@ -34,7 +34,7 @@ function SettingsPage() {
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 	const tab = search.tab ?? "profile";
 
-	if (!hasRole(membership, "admin")) {
+	if (!hasAtLeastRole(membership, "admin")) {
 		return (
 			<div className="p-6">
 				<PageHeader title="Settings" />
@@ -93,8 +93,12 @@ function ProfileTab() {
 				conferenceUpdateSchema.parse(form) as ConferenceUpdateInput,
 			),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["conf-profile", conference.slug] });
-			qc.invalidateQueries({ queryKey: ["active-conference", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["conf-profile", conference.slug] }).catch(
+				console.error,
+			);
+			qc.invalidateQueries({ queryKey: ["active-conference", conference.slug] }).catch(
+				console.error,
+			);
 			toast.success("Conference profile saved");
 			setForm({});
 		},
@@ -197,7 +201,9 @@ function AppearanceTab() {
 	const save = useMutation({
 		mutationFn: () => api.put(`/api/v1/c/${conference.slug}/settings/theme`, merged),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["conf-theme", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["conf-theme", conference.slug] }).catch(
+				console.error,
+			);
 			toast.success("Theme saved");
 			setForm({});
 		},
@@ -298,7 +304,9 @@ function AdvancedTab() {
 				value: input.value,
 			}),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["app-settings", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["app-settings", conference.slug] }).catch(
+				console.error,
+			);
 			toast.success("Setting saved");
 		},
 		onError: (e: any) => toast.error("Save failed", e.message),

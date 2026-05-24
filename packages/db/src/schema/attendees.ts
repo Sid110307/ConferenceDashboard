@@ -69,7 +69,7 @@ export const attendees = pgTable(
 
 		checkinStatus: checkinStatusEnum("checkin_status").notNull().default("not_checked_in"),
 		checkedInAt: timestamp("checked_in_at", { withTimezone: true }),
-		checkedInByUserId: text("checked_in_by_user_id").references(() => users.id, {
+		checkinByUserId: text("checked_in_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),
 		checkedOutAt: timestamp("checked_out_at", { withTimezone: true }),

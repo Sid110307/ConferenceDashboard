@@ -1,8 +1,21 @@
 import type { AppContext } from "@/lib/context";
+import { env } from "@/lib/env";
 import { HttpError } from "@/lib/errors";
-import { logger } from "@/lib/logger";
+import { createLogger } from "@conference/infra";
 import type { Context } from "hono";
 import { ZodError } from "zod";
+
+const logger = createLogger({
+	level: env.LOG_LEVEL,
+	service: "@conference/api",
+	env: env.NODE_ENV,
+	redactPaths: [
+		"req.headers.authorization",
+		"req.headers.cookie",
+		'req.headers["x-api-key"]',
+		"req.body.password",
+	],
+});
 
 export function errorHandler(err: Error, c: Context<AppContext>) {
 	const reqId = c.get("requestId");

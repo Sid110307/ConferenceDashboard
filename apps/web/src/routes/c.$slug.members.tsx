@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { api } from "@/lib/api";
-import { hasRole, useConference } from "@/lib/ConferenceContext";
+import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtRelative, humanise, initials } from "@/lib/format";
 import type { BadgeVariant } from "@/lib/uiStyles";
 import {
@@ -57,7 +57,7 @@ const ASSIGNABLE_ROLES: UserRole[] = USER_ROLES.filter(r => r !== "super_admin")
 
 function MembersPage() {
 	const { conference, membership } = useConference();
-	const canAdmin = hasRole(membership, "admin");
+	const canAdmin = hasAtLeastRole(membership, "admin");
 	const isSuperAdmin = membership.role === "super_admin";
 	const qc = useQueryClient();
 	const toast = useToast();
@@ -81,7 +81,7 @@ function MembersPage() {
 				role: input.role,
 			}),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["members", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["members", conference.slug] }).catch(console.error);
 			toast.success("Role updated");
 		},
 		onError: (e: any) => toast.error("Could not change role", e.message),
@@ -89,7 +89,7 @@ function MembersPage() {
 	const deactivate = useMutation({
 		mutationFn: (userId: string) => api.del(`/api/v1/c/${conference.slug}/members/${userId}`),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["members", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["members", conference.slug] }).catch(console.error);
 			toast.success("Member removed");
 		},
 		onError: (e: any) => toast.error("Could not remove member", e.message),
@@ -98,7 +98,7 @@ function MembersPage() {
 		mutationFn: (id: string) =>
 			api.post(`/api/v1/c/${conference.slug}/members/invites/${id}/revoke`, {}),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["invites", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["invites", conference.slug] }).catch(console.error);
 			toast.success("Invite revoked");
 		},
 		onError: (e: any) => toast.error("Could not revoke", e.message),
@@ -223,7 +223,12 @@ function MembersPage() {
 											{inv.invitedByName && ` by ${inv.invitedByName}`}
 										</div>
 									</div>
-									<Badge variant={ROLE_VARIANT[inv.role] ?? "neutral"}>
+									<Badge
+										variant={
+											ROLE_VARIANT[inv.role as keyof typeof ROLE_VARIANT] ??
+											"neutral"
+										}
+									>
 										{humanise(inv.role)}
 									</Badge>
 									<Button
@@ -261,7 +266,7 @@ function InviteDrawer({ roleOptions, onClose }: { roleOptions: UserRole[]; onClo
 				inviteUserSchema.parse({ email, role }) as InviteUserInput,
 			),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["invites", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["invites", conference.slug] }).catch(console.error);
 			toast.success("Invitation sent", `${email} will receive an email shortly.`);
 			onClose();
 		},

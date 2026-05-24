@@ -11,8 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as NewConferenceRouteImport } from './routes/new-conference'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as CRouteImport } from './routes/c'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CIndexRouteImport } from './routes/c.index'
 import { Route as PublicCSlugRouteImport } from './routes/public-c.$slug'
 import { Route as CSlugRouteImport } from './routes/c.$slug'
 import { Route as CSlugIndexRouteImport } from './routes/c.$slug.index'
@@ -23,15 +25,19 @@ import { Route as CSlugSettingsRouteImport } from './routes/c.$slug.settings'
 import { Route as CSlugReportsRouteImport } from './routes/c.$slug.reports'
 import { Route as CSlugProgrammeRouteImport } from './routes/c.$slug.programme'
 import { Route as CSlugMembersRouteImport } from './routes/c.$slug.members'
+import { Route as CSlugLogisticsRouteImport } from './routes/c.$slug.logistics'
 import { Route as CSlugImportsRouteImport } from './routes/c.$slug.imports'
 import { Route as CSlugHelpdeskRouteImport } from './routes/c.$slug.helpdesk'
 import { Route as CSlugFoodRouteImport } from './routes/c.$slug.food'
 import { Route as CSlugFinanceRouteImport } from './routes/c.$slug.finance'
+import { Route as CSlugFeedbackRouteImport } from './routes/c.$slug.feedback'
 import { Route as CSlugCustomFieldsRouteImport } from './routes/c.$slug.custom-fields'
 import { Route as CSlugControlRoomRouteImport } from './routes/c.$slug.control-room'
 import { Route as CSlugCommsRouteImport } from './routes/c.$slug.comms'
+import { Route as CSlugCertificatesRouteImport } from './routes/c.$slug.certificates'
 import { Route as CSlugAuditRouteImport } from './routes/c.$slug.audit'
 import { Route as CSlugAttendeesRouteImport } from './routes/c.$slug.attendees'
+import { Route as CSlugAnnouncementsRouteImport } from './routes/c.$slug.announcements'
 import { Route as CSlugAccommodationRouteImport } from './routes/c.$slug.accommodation'
 
 const NewConferenceRoute = NewConferenceRouteImport.update({
@@ -44,6 +50,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CRoute = CRouteImport.update({
+  id: '/c',
+  path: '/c',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AccountRoute = AccountRouteImport.update({
   id: '/account',
   path: '/account',
@@ -54,15 +65,20 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CIndexRoute = CIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CRoute,
+} as any)
 const PublicCSlugRoute = PublicCSlugRouteImport.update({
   id: '/public-c/$slug',
   path: '/public-c/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CSlugRoute = CSlugRouteImport.update({
-  id: '/c/$slug',
-  path: '/c/$slug',
-  getParentRoute: () => rootRouteImport,
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => CRoute,
 } as any)
 const CSlugIndexRoute = CSlugIndexRouteImport.update({
   id: '/',
@@ -104,6 +120,11 @@ const CSlugMembersRoute = CSlugMembersRouteImport.update({
   path: '/members',
   getParentRoute: () => CSlugRoute,
 } as any)
+const CSlugLogisticsRoute = CSlugLogisticsRouteImport.update({
+  id: '/logistics',
+  path: '/logistics',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugImportsRoute = CSlugImportsRouteImport.update({
   id: '/imports',
   path: '/imports',
@@ -124,6 +145,11 @@ const CSlugFinanceRoute = CSlugFinanceRouteImport.update({
   path: '/finance',
   getParentRoute: () => CSlugRoute,
 } as any)
+const CSlugFeedbackRoute = CSlugFeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugCustomFieldsRoute = CSlugCustomFieldsRouteImport.update({
   id: '/custom-fields',
   path: '/custom-fields',
@@ -139,6 +165,11 @@ const CSlugCommsRoute = CSlugCommsRouteImport.update({
   path: '/comms',
   getParentRoute: () => CSlugRoute,
 } as any)
+const CSlugCertificatesRoute = CSlugCertificatesRouteImport.update({
+  id: '/certificates',
+  path: '/certificates',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugAuditRoute = CSlugAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
@@ -147,6 +178,11 @@ const CSlugAuditRoute = CSlugAuditRouteImport.update({
 const CSlugAttendeesRoute = CSlugAttendeesRouteImport.update({
   id: '/attendees',
   path: '/attendees',
+  getParentRoute: () => CSlugRoute,
+} as any)
+const CSlugAnnouncementsRoute = CSlugAnnouncementsRouteImport.update({
+  id: '/announcements',
+  path: '/announcements',
   getParentRoute: () => CSlugRoute,
 } as any)
 const CSlugAccommodationRoute = CSlugAccommodationRouteImport.update({
@@ -158,20 +194,26 @@ const CSlugAccommodationRoute = CSlugAccommodationRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/c': typeof CRouteWithChildren
   '/login': typeof LoginRoute
   '/new-conference': typeof NewConferenceRoute
   '/c/$slug': typeof CSlugRouteWithChildren
   '/public-c/$slug': typeof PublicCSlugRoute
+  '/c/': typeof CIndexRoute
   '/c/$slug/accommodation': typeof CSlugAccommodationRoute
+  '/c/$slug/announcements': typeof CSlugAnnouncementsRoute
   '/c/$slug/attendees': typeof CSlugAttendeesRoute
   '/c/$slug/audit': typeof CSlugAuditRoute
+  '/c/$slug/certificates': typeof CSlugCertificatesRoute
   '/c/$slug/comms': typeof CSlugCommsRoute
   '/c/$slug/control-room': typeof CSlugControlRoomRoute
   '/c/$slug/custom-fields': typeof CSlugCustomFieldsRoute
+  '/c/$slug/feedback': typeof CSlugFeedbackRoute
   '/c/$slug/finance': typeof CSlugFinanceRoute
   '/c/$slug/food': typeof CSlugFoodRoute
   '/c/$slug/helpdesk': typeof CSlugHelpdeskRoute
   '/c/$slug/imports': typeof CSlugImportsRoute
+  '/c/$slug/logistics': typeof CSlugLogisticsRoute
   '/c/$slug/members': typeof CSlugMembersRoute
   '/c/$slug/programme': typeof CSlugProgrammeRoute
   '/c/$slug/reports': typeof CSlugReportsRoute
@@ -187,16 +229,21 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/new-conference': typeof NewConferenceRoute
   '/public-c/$slug': typeof PublicCSlugRoute
+  '/c': typeof CIndexRoute
   '/c/$slug/accommodation': typeof CSlugAccommodationRoute
+  '/c/$slug/announcements': typeof CSlugAnnouncementsRoute
   '/c/$slug/attendees': typeof CSlugAttendeesRoute
   '/c/$slug/audit': typeof CSlugAuditRoute
+  '/c/$slug/certificates': typeof CSlugCertificatesRoute
   '/c/$slug/comms': typeof CSlugCommsRoute
   '/c/$slug/control-room': typeof CSlugControlRoomRoute
   '/c/$slug/custom-fields': typeof CSlugCustomFieldsRoute
+  '/c/$slug/feedback': typeof CSlugFeedbackRoute
   '/c/$slug/finance': typeof CSlugFinanceRoute
   '/c/$slug/food': typeof CSlugFoodRoute
   '/c/$slug/helpdesk': typeof CSlugHelpdeskRoute
   '/c/$slug/imports': typeof CSlugImportsRoute
+  '/c/$slug/logistics': typeof CSlugLogisticsRoute
   '/c/$slug/members': typeof CSlugMembersRoute
   '/c/$slug/programme': typeof CSlugProgrammeRoute
   '/c/$slug/reports': typeof CSlugReportsRoute
@@ -210,20 +257,26 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/c': typeof CRouteWithChildren
   '/login': typeof LoginRoute
   '/new-conference': typeof NewConferenceRoute
   '/c/$slug': typeof CSlugRouteWithChildren
   '/public-c/$slug': typeof PublicCSlugRoute
+  '/c/': typeof CIndexRoute
   '/c/$slug/accommodation': typeof CSlugAccommodationRoute
+  '/c/$slug/announcements': typeof CSlugAnnouncementsRoute
   '/c/$slug/attendees': typeof CSlugAttendeesRoute
   '/c/$slug/audit': typeof CSlugAuditRoute
+  '/c/$slug/certificates': typeof CSlugCertificatesRoute
   '/c/$slug/comms': typeof CSlugCommsRoute
   '/c/$slug/control-room': typeof CSlugControlRoomRoute
   '/c/$slug/custom-fields': typeof CSlugCustomFieldsRoute
+  '/c/$slug/feedback': typeof CSlugFeedbackRoute
   '/c/$slug/finance': typeof CSlugFinanceRoute
   '/c/$slug/food': typeof CSlugFoodRoute
   '/c/$slug/helpdesk': typeof CSlugHelpdeskRoute
   '/c/$slug/imports': typeof CSlugImportsRoute
+  '/c/$slug/logistics': typeof CSlugLogisticsRoute
   '/c/$slug/members': typeof CSlugMembersRoute
   '/c/$slug/programme': typeof CSlugProgrammeRoute
   '/c/$slug/reports': typeof CSlugReportsRoute
@@ -238,20 +291,26 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/account'
+    | '/c'
     | '/login'
     | '/new-conference'
     | '/c/$slug'
     | '/public-c/$slug'
+    | '/c/'
     | '/c/$slug/accommodation'
+    | '/c/$slug/announcements'
     | '/c/$slug/attendees'
     | '/c/$slug/audit'
+    | '/c/$slug/certificates'
     | '/c/$slug/comms'
     | '/c/$slug/control-room'
     | '/c/$slug/custom-fields'
+    | '/c/$slug/feedback'
     | '/c/$slug/finance'
     | '/c/$slug/food'
     | '/c/$slug/helpdesk'
     | '/c/$slug/imports'
+    | '/c/$slug/logistics'
     | '/c/$slug/members'
     | '/c/$slug/programme'
     | '/c/$slug/reports'
@@ -267,16 +326,21 @@ export interface FileRouteTypes {
     | '/login'
     | '/new-conference'
     | '/public-c/$slug'
+    | '/c'
     | '/c/$slug/accommodation'
+    | '/c/$slug/announcements'
     | '/c/$slug/attendees'
     | '/c/$slug/audit'
+    | '/c/$slug/certificates'
     | '/c/$slug/comms'
     | '/c/$slug/control-room'
     | '/c/$slug/custom-fields'
+    | '/c/$slug/feedback'
     | '/c/$slug/finance'
     | '/c/$slug/food'
     | '/c/$slug/helpdesk'
     | '/c/$slug/imports'
+    | '/c/$slug/logistics'
     | '/c/$slug/members'
     | '/c/$slug/programme'
     | '/c/$slug/reports'
@@ -289,20 +353,26 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/account'
+    | '/c'
     | '/login'
     | '/new-conference'
     | '/c/$slug'
     | '/public-c/$slug'
+    | '/c/'
     | '/c/$slug/accommodation'
+    | '/c/$slug/announcements'
     | '/c/$slug/attendees'
     | '/c/$slug/audit'
+    | '/c/$slug/certificates'
     | '/c/$slug/comms'
     | '/c/$slug/control-room'
     | '/c/$slug/custom-fields'
+    | '/c/$slug/feedback'
     | '/c/$slug/finance'
     | '/c/$slug/food'
     | '/c/$slug/helpdesk'
     | '/c/$slug/imports'
+    | '/c/$slug/logistics'
     | '/c/$slug/members'
     | '/c/$slug/programme'
     | '/c/$slug/reports'
@@ -316,9 +386,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
+  CRoute: typeof CRouteWithChildren
   LoginRoute: typeof LoginRoute
   NewConferenceRoute: typeof NewConferenceRoute
-  CSlugRoute: typeof CSlugRouteWithChildren
   PublicCSlugRoute: typeof PublicCSlugRoute
 }
 
@@ -338,6 +408,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/c': {
+      id: '/c'
+      path: '/c'
+      fullPath: '/c'
+      preLoaderRoute: typeof CRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/account': {
       id: '/account'
       path: '/account'
@@ -352,6 +429,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/c/': {
+      id: '/c/'
+      path: '/'
+      fullPath: '/c/'
+      preLoaderRoute: typeof CIndexRouteImport
+      parentRoute: typeof CRoute
+    }
     '/public-c/$slug': {
       id: '/public-c/$slug'
       path: '/public-c/$slug'
@@ -361,10 +445,10 @@ declare module '@tanstack/react-router' {
     }
     '/c/$slug': {
       id: '/c/$slug'
-      path: '/c/$slug'
+      path: '/$slug'
       fullPath: '/c/$slug'
       preLoaderRoute: typeof CSlugRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof CRoute
     }
     '/c/$slug/': {
       id: '/c/$slug/'
@@ -422,6 +506,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CSlugMembersRouteImport
       parentRoute: typeof CSlugRoute
     }
+    '/c/$slug/logistics': {
+      id: '/c/$slug/logistics'
+      path: '/logistics'
+      fullPath: '/c/$slug/logistics'
+      preLoaderRoute: typeof CSlugLogisticsRouteImport
+      parentRoute: typeof CSlugRoute
+    }
     '/c/$slug/imports': {
       id: '/c/$slug/imports'
       path: '/imports'
@@ -450,6 +541,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CSlugFinanceRouteImport
       parentRoute: typeof CSlugRoute
     }
+    '/c/$slug/feedback': {
+      id: '/c/$slug/feedback'
+      path: '/feedback'
+      fullPath: '/c/$slug/feedback'
+      preLoaderRoute: typeof CSlugFeedbackRouteImport
+      parentRoute: typeof CSlugRoute
+    }
     '/c/$slug/custom-fields': {
       id: '/c/$slug/custom-fields'
       path: '/custom-fields'
@@ -471,6 +569,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CSlugCommsRouteImport
       parentRoute: typeof CSlugRoute
     }
+    '/c/$slug/certificates': {
+      id: '/c/$slug/certificates'
+      path: '/certificates'
+      fullPath: '/c/$slug/certificates'
+      preLoaderRoute: typeof CSlugCertificatesRouteImport
+      parentRoute: typeof CSlugRoute
+    }
     '/c/$slug/audit': {
       id: '/c/$slug/audit'
       path: '/audit'
@@ -485,6 +590,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CSlugAttendeesRouteImport
       parentRoute: typeof CSlugRoute
     }
+    '/c/$slug/announcements': {
+      id: '/c/$slug/announcements'
+      path: '/announcements'
+      fullPath: '/c/$slug/announcements'
+      preLoaderRoute: typeof CSlugAnnouncementsRouteImport
+      parentRoute: typeof CSlugRoute
+    }
     '/c/$slug/accommodation': {
       id: '/c/$slug/accommodation'
       path: '/accommodation'
@@ -497,15 +609,19 @@ declare module '@tanstack/react-router' {
 
 interface CSlugRouteChildren {
   CSlugAccommodationRoute: typeof CSlugAccommodationRoute
+  CSlugAnnouncementsRoute: typeof CSlugAnnouncementsRoute
   CSlugAttendeesRoute: typeof CSlugAttendeesRoute
   CSlugAuditRoute: typeof CSlugAuditRoute
+  CSlugCertificatesRoute: typeof CSlugCertificatesRoute
   CSlugCommsRoute: typeof CSlugCommsRoute
   CSlugControlRoomRoute: typeof CSlugControlRoomRoute
   CSlugCustomFieldsRoute: typeof CSlugCustomFieldsRoute
+  CSlugFeedbackRoute: typeof CSlugFeedbackRoute
   CSlugFinanceRoute: typeof CSlugFinanceRoute
   CSlugFoodRoute: typeof CSlugFoodRoute
   CSlugHelpdeskRoute: typeof CSlugHelpdeskRoute
   CSlugImportsRoute: typeof CSlugImportsRoute
+  CSlugLogisticsRoute: typeof CSlugLogisticsRoute
   CSlugMembersRoute: typeof CSlugMembersRoute
   CSlugProgrammeRoute: typeof CSlugProgrammeRoute
   CSlugReportsRoute: typeof CSlugReportsRoute
@@ -518,15 +634,19 @@ interface CSlugRouteChildren {
 
 const CSlugRouteChildren: CSlugRouteChildren = {
   CSlugAccommodationRoute: CSlugAccommodationRoute,
+  CSlugAnnouncementsRoute: CSlugAnnouncementsRoute,
   CSlugAttendeesRoute: CSlugAttendeesRoute,
   CSlugAuditRoute: CSlugAuditRoute,
+  CSlugCertificatesRoute: CSlugCertificatesRoute,
   CSlugCommsRoute: CSlugCommsRoute,
   CSlugControlRoomRoute: CSlugControlRoomRoute,
   CSlugCustomFieldsRoute: CSlugCustomFieldsRoute,
+  CSlugFeedbackRoute: CSlugFeedbackRoute,
   CSlugFinanceRoute: CSlugFinanceRoute,
   CSlugFoodRoute: CSlugFoodRoute,
   CSlugHelpdeskRoute: CSlugHelpdeskRoute,
   CSlugImportsRoute: CSlugImportsRoute,
+  CSlugLogisticsRoute: CSlugLogisticsRoute,
   CSlugMembersRoute: CSlugMembersRoute,
   CSlugProgrammeRoute: CSlugProgrammeRoute,
   CSlugReportsRoute: CSlugReportsRoute,
@@ -539,12 +659,24 @@ const CSlugRouteChildren: CSlugRouteChildren = {
 
 const CSlugRouteWithChildren = CSlugRoute._addFileChildren(CSlugRouteChildren)
 
+interface CRouteChildren {
+  CSlugRoute: typeof CSlugRouteWithChildren
+  CIndexRoute: typeof CIndexRoute
+}
+
+const CRouteChildren: CRouteChildren = {
+  CSlugRoute: CSlugRouteWithChildren,
+  CIndexRoute: CIndexRoute,
+}
+
+const CRouteWithChildren = CRoute._addFileChildren(CRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
+  CRoute: CRouteWithChildren,
   LoginRoute: LoginRoute,
   NewConferenceRoute: NewConferenceRoute,
-  CSlugRoute: CSlugRouteWithChildren,
   PublicCSlugRoute: PublicCSlugRoute,
 }
 export const routeTree = rootRouteImport

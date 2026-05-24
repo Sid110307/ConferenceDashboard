@@ -1,8 +1,15 @@
-import { logger } from "@/lib/logger";
+import { env } from "@/lib/env";
 import { notifyConference } from "@/lib/notify";
 import { db, withTenant } from "@/lib/tenancy";
 import { attendees, importJobs, importRows, staff, travelSegments } from "@conference/db";
+import { createLogger } from "@conference/infra";
 import { and, eq, inArray, isNotNull } from "drizzle-orm";
+
+const logger = createLogger({
+	level: env.LOG_LEVEL,
+	service: "@conference/worker",
+	env: env.NODE_ENV,
+});
 
 export async function processImportRollback(payload: {
 	jobId: string;

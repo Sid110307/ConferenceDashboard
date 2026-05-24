@@ -1,6 +1,11 @@
 {
 	"files": [],
 	"compilerOptions": {
+		"baseUrl": ".",
+		"paths": {
+			"@conference/infra": ["packages/infra/src"],
+			"@conference/infra/*": ["packages/infra/src/*"]
+		},
 		"target": "ES2022",
 		"lib": ["ES2023"],
 		"module": "ESNext",

@@ -1,7 +1,6 @@
 import { env } from "@/lib/env";
-import { logger } from "@/lib/logger";
+import { logger, putObject, storageKey } from "@/lib/infra";
 import { notifyConference } from "@/lib/notify";
-import { putObject, storageKey } from "@/lib/storage";
 import { db, withTenant } from "@/lib/tenancy";
 import { files as filesTable, reportJobs } from "@conference/db";
 import { createId } from "@paralleldrive/cuid2";
@@ -174,7 +173,7 @@ export async function processReportGenerate(payload: {
 				.update(reportJobs)
 				.set({
 					status: "completed",
-					outputFileId: file!.id,
+					fileId: file!.id,
 					rowCount: rows.length,
 					completedAt: new Date(),
 					updatedAt: new Date(),

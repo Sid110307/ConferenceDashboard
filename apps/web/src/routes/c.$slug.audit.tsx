@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { hasRole, useConference } from "@/lib/ConferenceContext";
+import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtDateTime, humanise, initials } from "@/lib/format";
 import { BadgeVariant, cx } from "@/lib/uiStyles";
 import { useListQuery } from "@/lib/useListQuery";
@@ -73,7 +73,7 @@ function AuditPage() {
 	const { conference, membership } = useConference();
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 
-	const list = useListQuery<{ data: AuditEntry[] }>({
+	const list = useListQuery<AuditEntry>({
 		key: ["audit", conference.slug],
 		path: `/api/v1/c/${conference.slug}/audit`,
 		params: {
@@ -87,7 +87,7 @@ function AuditPage() {
 		staleTime: 5000,
 	});
 
-	if (!hasRole(membership, "admin")) {
+	if (!hasAtLeastRole(membership, "admin")) {
 		return (
 			<div className="p-6">
 				<PageHeader title="Audit log" />

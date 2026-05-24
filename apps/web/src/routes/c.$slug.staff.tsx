@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { api } from "@/lib/api";
-import { hasRole, useConference } from "@/lib/ConferenceContext";
+import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { humanise, slugify } from "@/lib/format";
 import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
@@ -12,12 +12,13 @@ import {
 	GENDERS,
 	staffCreateSchema,
 	staffUpdateSchema,
+	type Committee,
 	type CommitteeAssignmentInput,
 	type CommitteeCreateInput,
 	type CommitteeUpdateInput,
+	type Staff,
 	type StaffCreateInput,
 	type StaffUpdateInput,
-	type StaffWithCommitteesItem,
 } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -75,23 +76,15 @@ export const Route = createFileRoute("/c/$slug/staff")({
 	component: StaffPage,
 });
 
-type Committee = {
-	id: string;
-	name: string;
-	slug: string;
-	description?: string | null;
-	memberCount?: number;
-	leadCount?: number;
-};
-type Staff = StaffWithCommitteesItem & {
-	id: string;
-	name: string;
-	email?: string | null;
-	phone?: string | null;
-	prantha?: string | null;
-	gender?: string | null;
-	status?: string | null;
-	committees?: { id: string; name: string; isLead: boolean; slug: string }[];
+type CommitteeType = Committee & { memberCount?: number; leadCount?: number };
+type StaffType = Staff & {
+	committees?: {
+		id: string;
+		slug: string;
+		name: string;
+		role?: string | null;
+		isLead?: boolean;
+	}[];
 };
 type Assignment = {
 	id: string;
@@ -130,7 +123,7 @@ const ICONS: Record<string, React.ReactNode> = {
 
 function StaffPage() {
 	const { membership } = useConference();
-	const canEdit = hasRole(membership, "editor");
+	const canEdit = hasAtLeastRole(membership, "editor");
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 	const tab = search.tab ?? "committees";
 
@@ -164,10 +157,10 @@ function StaffPage() {
 
 function CommitteesTab({ canEdit }: { canEdit: boolean }) {
 	const { conference } = useConference();
-	const committees = useQuery<{ data: Committee[] }>({
+	const committees = useQuery<{ data: CommitteeType[] }>({
 		queryKey: ["committees", conference.slug],
 		queryFn: () =>
-			api.get<{ data: Committee[] }>(`/api/v1/c/${conference.slug}/committees`, {
+			api.get<{ data: CommitteeType[] }>(`/api/v1/c/${conference.slug}/committees`, {
 				pageSize: 100,
 			}),
 	});
@@ -307,9 +300,9 @@ function CommitteeDrawer({
 			return api.patch(`${path}/${committee!.id}`, body);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["committees", conference.slug] }).catch(
-				console.error,
-			);
+			qc.invalidateQueries({ queryKey: ["committees", conference.slug] })
+				.catch(console.error)
+				.catch(console.error);
 			qc.invalidateQueries({ queryKey: ["staff", conference.slug] }).catch(console.error);
 
 			if (committee) {
@@ -346,9 +339,9 @@ function CommitteeDrawer({
 			qc.invalidateQueries({
 				queryKey: ["assignments", conference.slug, committee!.id],
 			}).catch(console.error);
-			qc.invalidateQueries({ queryKey: ["committees", conference.slug] }).catch(
-				console.error,
-			);
+			qc.invalidateQueries({ queryKey: ["committees", conference.slug] })
+				.catch(console.error)
+				.catch(console.error);
 			qc.invalidateQueries({ queryKey: ["staff", conference.slug] }).catch(console.error);
 			qc.invalidateQueries({ queryKey: ["staff-all", conference.slug] }).catch(console.error);
 
@@ -364,9 +357,9 @@ function CommitteeDrawer({
 			qc.invalidateQueries({
 				queryKey: ["assignments", conference.slug, committee!.id],
 			}).catch(console.error);
-			qc.invalidateQueries({ queryKey: ["committees", conference.slug] }).catch(
-				console.error,
-			);
+			qc.invalidateQueries({ queryKey: ["committees", conference.slug] })
+				.catch(console.error)
+				.catch(console.error);
 			qc.invalidateQueries({ queryKey: ["staff", conference.slug] }).catch(console.error);
 			qc.invalidateQueries({ queryKey: ["staff-all", conference.slug] }).catch(console.error);
 
@@ -381,9 +374,9 @@ function CommitteeDrawer({
 				isLead,
 			}),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["committees", conference.slug] }).catch(
-				console.error,
-			);
+			qc.invalidateQueries({ queryKey: ["committees", conference.slug] })
+				.catch(console.error)
+				.catch(console.error);
 			qc.invalidateQueries({ queryKey: ["staff", conference.slug] }).catch(console.error);
 			qc.invalidateQueries({
 				queryKey: ["assignments", conference.slug, committee!.id],
@@ -581,7 +574,7 @@ function StaffTab({
 	const { conference } = useConference();
 	const qc = useQueryClient();
 
-	const list = useListQuery<{ data: Staff[] }>({
+	const list = useListQuery<StaffType>({
 		key: ["staff", conference.slug],
 		path: `/api/v1/c/${conference.slug}/staff/_with-committees`,
 		params: { page: search.page ?? 1, pageSize: PAGE_SIZE, q: search.q },
@@ -593,7 +586,7 @@ function StaffTab({
 	const rows = list.data?.data ?? [];
 	const total = list.data?.pagination?.total ?? 0;
 
-	const cols: Column<Staff>[] = [
+	const cols: Column<StaffType>[] = [
 		{
 			key: "name",
 			header: "Name",
@@ -713,7 +706,7 @@ function StaffDrawer({
 	onClose,
 	onSaved,
 }: {
-	staff: Staff | null;
+	staff: StaffType | null;
 	onClose: () => void;
 	onSaved: () => void;
 }) {
@@ -802,7 +795,7 @@ function StaffDrawer({
 				<FieldRow label="Gender">
 					<Select
 						value={form.gender ?? ""}
-						onChange={e => upd({ gender: e.target.value || null })}
+						onChange={e => upd({ gender: (e.target.value || null) as Staff["gender"] })}
 					>
 						<option value="">—</option>
 						{GENDERS.map(g => (
@@ -815,7 +808,7 @@ function StaffDrawer({
 				<FieldRow label="Status">
 					<Select
 						value={form.status ?? ""}
-						onChange={e => upd({ status: e.target.value || null })}
+						onChange={e => upd({ status: (e.target.value || null) as Staff["status"] })}
 					>
 						<option value="">—</option>
 						<option value="active">Active</option>

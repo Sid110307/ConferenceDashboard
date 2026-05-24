@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Google } from "iconoir-react";
 import { z } from "zod";
@@ -20,8 +21,10 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const search = Route.useSearch();
 	const toast = useToast();
+
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [loading, setLoading] = useState<"none" | "email" | "google">("none");
@@ -38,13 +41,21 @@ function LoginPage() {
 
 		setLoading("email");
 		try {
-			const r = await authClient.signIn.email({ email: email.trim(), password });
-			if (r.error) {
-				toast.error("Sign-in failed", r.error.message);
-				return;
-			}
-
-			await navigate({ to: next });
+			await authClient.signIn.email(
+				{ email: email.trim(), password },
+				{
+					onSuccess: () => {
+						queryClient.removeQueries({ queryKey: ["me"] });
+						navigate({ to: next });
+					},
+					onError: err => {
+						toast.error(
+							"Sign-in failed",
+							err?.error?.message ?? "Check your credentials and try again.",
+						);
+					},
+				},
+			);
 		} catch (err: any) {
 			toast.error(
 				"Sign-in failed",

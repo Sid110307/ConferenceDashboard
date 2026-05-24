@@ -2,6 +2,7 @@ import { recordAudit } from "@/lib/audit";
 import type { AppContext } from "@/lib/context";
 import { validateCustomFields } from "@/lib/custom-fields";
 import { BadRequestError, ConflictError, NotFoundError } from "@/lib/errors";
+import { getClientIp } from "@/lib/http";
 import { codes, prefixFromConference } from "@/lib/id";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
@@ -21,16 +22,13 @@ import { z } from "zod";
 
 export const attendeesRouter = new Hono<AppContext>();
 
-function clientIp(c: any): string | null {
-	return (
-		c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? null
-	);
-}
-
-async function nextAttendeeCode(
+async function createAttendeeWithCode(
 	tx: any,
 	conf: { id: string; slug: string; shortName: string | null },
-): Promise<string> {
+	input: any,
+	customFields: Record<string, unknown>,
+	userId: string,
+) {
 	const prefix = prefixFromConference({
 		shortName: conf.shortName,
 		slug: conf.slug,
@@ -40,17 +38,31 @@ async function nextAttendeeCode(
 		.select({ n: sql<number>`count(*)::int` })
 		.from(attendees)
 		.where(eq(attendees.conferenceId, conf.id));
-	const seq = (row?.n ?? 0) + 1;
+	const startSeq = (row?.n ?? 0) + 1;
 
-	for (let attempt = 0; attempt < 20; attempt++) {
-		const candidate = codes.attendee(prefix, seq + attempt);
-		const [existing] = await tx
-			.select({ id: attendees.id })
-			.from(attendees)
-			.where(and(eq(attendees.conferenceId, conf.id), eq(attendees.attendeeCode, candidate)))
-			.limit(1);
-		if (!existing) return candidate;
+	for (let attempt = 0; attempt < 50; attempt++) {
+		const attendeeCode = codes.attendee(prefix, startSeq + attempt);
+
+		try {
+			const [created] = await tx
+				.insert(attendees)
+				.values({
+					...input,
+					customFields,
+					attendeeCode,
+					conferenceId: conf.id,
+					createdBy: userId,
+					updatedBy: userId,
+				})
+				.returning();
+
+			return created;
+		} catch (err: any) {
+			if (err?.code === "23505") continue;
+			throw err;
+		}
 	}
+
 	throw new BadRequestError("could not allocate attendee code");
 }
 
@@ -98,7 +110,21 @@ attendeesRouter.get(
 
 		const result = await withTenant(conf.id, async tx => {
 			const data = await tx
-				.select()
+				.select({
+					id: attendees.id,
+					attendeeCode: attendees.attendeeCode,
+					name: attendees.name,
+					email: attendees.email,
+					phone: attendees.phone,
+					category: attendees.category,
+					registrationStatus: attendees.registrationStatus,
+					checkinStatus: attendees.checkinStatus,
+					isVip: attendees.isVip,
+					gender: attendees.gender,
+					institution: attendees.institution,
+					tags: attendees.tags,
+					createdAt: attendees.createdAt,
+				})
 				.from(attendees)
 				.where(and(...whereParts))
 				.orderBy(orderFn(orderCol))
@@ -244,23 +270,13 @@ attendeesRouter.post(
 				payload: input.customFields,
 			});
 
-			const code = await nextAttendeeCode(tx, {
-				id: conf.id,
-				slug: conf.slug,
-				shortName: conf.shortName,
-			});
-
-			const [row] = await tx
-				.insert(attendees)
-				.values({
-					...input,
-					customFields,
-					attendeeCode: code,
-					conferenceId: conf.id,
-					createdBy: user.id,
-					updatedBy: user.id,
-				})
-				.returning();
+			const row = await createAttendeeWithCode(
+				tx,
+				{ id: conf.id, slug: conf.slug, shortName: conf.shortName },
+				input,
+				customFields,
+				user.id,
+			);
 
 			await recordAudit(tx, {
 				conferenceId: conf.id,
@@ -269,7 +285,7 @@ attendeesRouter.post(
 				entity: "attendee",
 				entityId: row!.id,
 				after: row,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
@@ -335,7 +351,7 @@ attendeesRouter.patch(
 				entityId: id,
 				before,
 				after: row,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
@@ -358,7 +374,6 @@ attendeesRouter.delete(
 		const m = c.get("membership")!;
 		const { id } = c.req.valid("param");
 		const { purge } = c.req.valid("query");
-
 		if (purge && m.role !== "super_admin") {
 			throw new BadRequestError("purge requires super_admin");
 		}
@@ -382,7 +397,7 @@ attendeesRouter.delete(
 					entity: "attendee",
 					entityId: id,
 					before,
-					ip: clientIp(c),
+					ip: getClientIp(c),
 					userAgent: c.req.header("user-agent") ?? null,
 					requestId: c.get("requestId"),
 				});
@@ -398,7 +413,7 @@ attendeesRouter.delete(
 					entity: "attendee",
 					entityId: id,
 					before,
-					ip: clientIp(c),
+					ip: getClientIp(c),
 					userAgent: c.req.header("user-agent") ?? null,
 					requestId: c.get("requestId"),
 				});
@@ -436,7 +451,7 @@ attendeesRouter.post(
 				entity: "attendee",
 				entityId: id,
 				before,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
@@ -477,13 +492,15 @@ attendeesRouter.post(
 				)
 				.limit(1);
 			if (!before) throw new NotFoundError("attendee");
+			if (before.checkinStatus === "checked_in")
+				throw new BadRequestError("attendee already checked in");
 
 			const [updated] = await tx
 				.update(attendees)
 				.set({
 					checkinStatus: "checked_in",
 					checkedInAt: before.checkedInAt ?? new Date(),
-					checkedInByUserId: before.checkedInByUserId ?? user.id,
+					checkinByUserId: before.checkinByUserId ?? user.id,
 					badgePrinted: input.printBadge ?? before.badgePrinted,
 					kitCollected: input.kitCollected ?? before.kitCollected,
 					updatedBy: user.id,
@@ -500,7 +517,7 @@ attendeesRouter.post(
 				entityId: id,
 				before,
 				after: updated,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
@@ -547,7 +564,7 @@ attendeesRouter.post(
 				entity: "attendee.check_out",
 				entityId: id,
 				after: updated,
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
@@ -574,7 +591,7 @@ attendeesRouter.post(
 			check_in: {
 				checkinStatus: "checked_in",
 				checkedInAt: new Date(),
-				checkedInByUserId: user.id,
+				checkinByUserId: user.id,
 			},
 			check_out: { checkinStatus: "checked_out", checkedOutAt: new Date() },
 			confirm: { registrationStatus: "confirmed" },
@@ -603,7 +620,7 @@ attendeesRouter.post(
 					action === "delete" ? "delete" : action === "restore" ? "restore" : "update",
 				entity: `attendee.bulk_${action}`,
 				meta: { count: updated.length, action, ids },
-				ip: clientIp(c),
+				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});

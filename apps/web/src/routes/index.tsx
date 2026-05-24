@@ -1,5 +1,3 @@
-import { useEffect } from "react";
-
 import { api } from "@/lib/api";
 import { humanise } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
@@ -37,14 +35,6 @@ function IndexPage() {
 		queryFn: () => api.get<Me>("/api/v1/auth/me"),
 		retry: false,
 	});
-
-	useEffect(() => {
-		if (!data) return;
-		const active = (data?.memberships ?? []).filter(m => m.isActive);
-		if (active.length === 1) {
-			navigate({ to: `/c/${active[0]!.conferenceSlug}`, replace: true }).catch(console.error);
-		}
-	}, [data, navigate]);
 
 	return isLoading ? (
 		<CenterSpinner />

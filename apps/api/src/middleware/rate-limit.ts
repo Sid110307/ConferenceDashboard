@@ -1,7 +1,10 @@
 import type { AppContext } from "@/lib/context";
+import { env } from "@/lib/env";
 import { RateLimitedError } from "@/lib/errors";
-import { redis } from "@/lib/redis";
+import { createRedis } from "@conference/infra";
 import { createMiddleware } from "hono/factory";
+
+const redis = createRedis({ url: env.REDIS_URL, lazyConnect: false });
 
 export type RateLimitOptions = {
 	key: string;

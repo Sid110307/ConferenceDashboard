@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
-import { hasRole, useConference } from "@/lib/ConferenceContext";
+import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtDateTime, humanise } from "@/lib/format";
 import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
@@ -12,6 +12,8 @@ import {
 	vehicleUpdateSchema,
 	type Gender,
 	type PickupStatus,
+	type TravelSegment,
+	type Vehicle,
 	type VehicleCreateInput,
 	type VehicleUpdateInput,
 } from "@conference/shared";
@@ -59,44 +61,7 @@ export const Route = createFileRoute("/c/$slug/travel")({
 	component: TravelPage,
 });
 
-type Segment = {
-	id: string;
-	attendeeId: string;
-	direction: string;
-	travelMode: string | null;
-
-	carrier: string | null;
-	serviceNumber: string | null;
-	pnr: string | null;
-	seatNumber: string | null;
-	coachNumber: string | null;
-	classOfTravel: string | null;
-
-	originCity: string | null;
-	originLocation: string | null;
-	originTerminal: string | null;
-	destinationCity: string | null;
-	destinationLocation: string | null;
-	destinationTerminal: string | null;
-
-	scheduledTime: string | null;
-	actualTime: string | null;
-
-	pickupRequired: boolean;
-	pickupStatus: PickupStatus;
-	pickupPoint: string | null;
-	dropPoint: string | null;
-	pickupScheduledAt: string | null;
-	pickupCompletedAt: string | null;
-
-	vehicleId: string | null;
-	driverNameOverride: string | null;
-	driverPhoneOverride: string | null;
-	travelGroupCode: string | null;
-
-	ticketFileId: string | null;
-	notes: string | null;
-
+type Segment = TravelSegment & {
 	attendeeName?: string;
 	attendeeCode?: string;
 	gender?: string | null;
@@ -108,28 +73,6 @@ type Segment = {
 	plateNumber?: string | null;
 	driverName?: string | null;
 	driverPhone?: string | null;
-};
-
-type Vehicle = {
-	id: string;
-
-	vehicleCode: string | null;
-	vehicleType: string | null;
-	plateNumber: string | null;
-	make: string | null;
-	model: string | null;
-	capacity: number;
-
-	driverName: string | null;
-	driverPhone: string | null;
-	driverLicense: string | null;
-
-	assignedCommitteeId: string | null;
-	isExternal: boolean;
-	vendorName: string | null;
-	vendorContact: string | null;
-	ratePerDay: string | null;
-	notes: string | null;
 };
 
 const PAGE_SIZE = 25;
@@ -145,7 +88,7 @@ const TRAVEL_MODE_ICONS: Record<string, React.ReactNode> = {
 
 function TravelPage() {
 	const { conference, membership } = useConference();
-	const canEdit = hasRole(membership, "editor");
+	const canEdit = hasAtLeastRole(membership, "editor");
 	const qc = useQueryClient();
 	const toast = useToast();
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
@@ -184,7 +127,7 @@ function TravelPage() {
 		mutationFn: (input: { segmentIds: string[]; vehicleId: string }) =>
 			api.post(`/api/v1/c/${conference.slug}/travel/assign-vehicle`, input),
 		onSuccess: (_d, input) => {
-			qc.invalidateQueries({ queryKey: ["travel", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["travel", conference.slug] }).catch(console.error);
 			setSelected(new Set());
 			setAssignOpen(false);
 			toast.success(
@@ -514,7 +457,9 @@ function TravelPage() {
 				vehicle={editingVehicle}
 				onClose={() => setVehicleDrawerMode("closed")}
 				onSaved={() => {
-					qc.invalidateQueries({ queryKey: ["vehicles", conference.slug] });
+					qc.invalidateQueries({ queryKey: ["vehicles", conference.slug] }).catch(
+						console.error,
+					);
 				}}
 			/>
 		</div>
@@ -638,7 +583,7 @@ function VehicleDrawer({ mode, vehicle, onClose, onSaved }: VehicleDrawerProps) 
 			return api.post<{ data: Vehicle }>(path, payload);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["vehicles", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["vehicles", conference.slug] }).catch(console.error);
 			onSaved();
 			onClose();
 			toast.success(isEdit ? "Vehicle updated" : "Vehicle added");

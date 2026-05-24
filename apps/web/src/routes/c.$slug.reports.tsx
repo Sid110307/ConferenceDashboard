@@ -29,7 +29,7 @@ type ReportJob = {
 	format: string;
 	status: string;
 	rowCount?: number | null;
-	outputFileId?: string | null;
+	fileId?: string | null;
 	errorMessage?: string | null;
 	createdAt: string;
 };
@@ -58,7 +58,7 @@ function ReportsPage() {
 
 	useRealtime(conference.slug, ev => {
 		if (ev.type.startsWith("report.")) {
-			qc.invalidateQueries({ queryKey: ["reports", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["reports", conference.slug] }).catch(console.error);
 		}
 	});
 
@@ -119,7 +119,7 @@ function ReportsPage() {
 							</div>
 							<div className="flex items-center gap-3 shrink-0">
 								<StatusBadge status={j.status} />
-								{j.status === "completed" && j.outputFileId && (
+								{j.status === "completed" && j.fileId && (
 									<Button
 										variant="secondary"
 										size="sm"
@@ -158,7 +158,7 @@ function GenerateDrawer({ onClose }: { onClose: () => void }) {
 				reportJobCreateSchema.parse({ name: humanise(reportType), reportType, format }),
 			),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["reports", conference.slug] });
+			qc.invalidateQueries({ queryKey: ["reports", conference.slug] }).catch(console.error);
 			toast.success("Report queued", "It will appear in the list when ready.");
 			onClose();
 		},
@@ -184,7 +184,12 @@ function GenerateDrawer({ onClose }: { onClose: () => void }) {
 		>
 			<div className="space-y-4">
 				<FieldRow label="Report type">
-					<Select value={reportType} onChange={e => setReportType(e.target.value)}>
+					<Select
+						value={reportType}
+						onChange={e =>
+							setReportType(e.target.value as ReportJobCreateInput["reportType"])
+						}
+					>
 						{REPORT_TYPES.map(t => (
 							<option key={t.value} value={t.value}>
 								{t.label}
@@ -193,7 +198,10 @@ function GenerateDrawer({ onClose }: { onClose: () => void }) {
 					</Select>
 				</FieldRow>
 				<FieldRow label="Format">
-					<Select value={format} onChange={e => setFormat(e.target.value)}>
+					<Select
+						value={format}
+						onChange={e => setFormat(e.target.value as ReportJobCreateInput["format"])}
+					>
 						<option value="xlsx">Excel (XLSX)</option>
 						<option value="csv">CSV</option>
 						<option value="pdf">PDF</option>

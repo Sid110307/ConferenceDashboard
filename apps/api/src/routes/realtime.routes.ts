@@ -1,10 +1,22 @@
 import type { AppContext } from "@/lib/context";
 import { env } from "@/lib/env";
-import { logger } from "@/lib/logger";
 import { requireRole } from "@/middleware/auth";
+import { createLogger } from "@conference/infra";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import pg from "pg";
+
+const logger = createLogger({
+	level: env.LOG_LEVEL,
+	service: "@conference/api",
+	env: env.NODE_ENV,
+	redactPaths: [
+		"req.headers.authorization",
+		"req.headers.cookie",
+		'req.headers["x-api-key"]',
+		"req.body.password",
+	],
+});
 
 export const realtimeRouter = new Hono<AppContext>();
 

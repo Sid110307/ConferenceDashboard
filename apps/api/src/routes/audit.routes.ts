@@ -16,7 +16,23 @@ auditRouter.get(
 	zValidator(
 		"query",
 		paginationQuerySchema.extend({
-			action: z.string().optional(),
+			action: z
+				.enum([
+					"create",
+					"update",
+					"delete",
+					"restore",
+					"purge",
+					"login",
+					"logout",
+					"invite",
+					"accept_invite",
+					"export",
+					"import",
+					"send_campaign",
+					"role_change",
+				] as const)
+				.optional(),
 			entity: z.string().optional(),
 			userId: z.string().uuid().optional(),
 			from: z.string().datetime({ offset: true }).optional(),

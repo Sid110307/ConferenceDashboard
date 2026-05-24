@@ -1,17 +1,24 @@
 import { env } from "@/lib/env";
-import { logger } from "@/lib/logger";
 import { commsQueue, importsQueue, JOB_NAMES, maintenanceQueue, reportsQueue } from "@/lib/queue";
-import { redis } from "@/lib/redis";
 import { processCampaignDispatchBatch } from "@/processors/comms/dispatch";
 import { processCampaignMaterialise } from "@/processors/comms/materialise";
 import { processImportPreview } from "@/processors/imports/preview";
 import { processImportRollback } from "@/processors/imports/rollback";
 import { processImportStart } from "@/processors/imports/start";
-import { processCleanOldTokens, processRefreshDashboard } from "@/processors/maintenance";
+import { processCleanOldFiles, processCleanOldTokens } from "@/processors/maintenance";
 import { processReportGenerate } from "@/processors/reports/generate";
+import { createLogger, createRedis } from "@conference/infra";
 import { Worker, type Job } from "bullmq";
 
 import "@/lib/env";
+
+const logger = createLogger({
+	level: env.LOG_LEVEL,
+	service: "@conference/worker",
+	env: env.NODE_ENV,
+});
+
+const redis = createRedis({ url: env.REDIS_URL, logger });
 
 logger.info(
 	{
@@ -86,7 +93,7 @@ const maintenanceWorker = new Worker(
 			case JOB_NAMES.MAINT_CLEAN_OLD_TOKENS:
 				return processCleanOldTokens();
 			case JOB_NAMES.MAINT_REFRESH_DASHBOARD:
-				return processRefreshDashboard();
+				return processCleanOldFiles();
 			default:
 				throw new Error(`unknown maintenance job: ${job.name}`);
 		}
@@ -132,7 +139,7 @@ async function seedRepeatableJobs() {
 		JOB_NAMES.MAINT_REFRESH_DASHBOARD,
 		{},
 		{
-			repeat: { every: 10 * 60 * 1000 },
+			repeat: { pattern: "0 * * * *" },
 			jobId: "repeat:refresh_dashboard",
 		},
 	);

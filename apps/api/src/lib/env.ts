@@ -35,11 +35,6 @@ const schema = z.object({
 	S3_BUCKET: z.string().default("conference-dashboard"),
 	S3_ACCESS_KEY: z.string().optional(),
 	S3_SECRET_KEY: z.string().optional(),
-	S3_FORCE_PATH_STYLE: z
-		.string()
-		.optional()
-		.default("true")
-		.transform(v => v !== "false"),
 	S3_PUBLIC_BASE_URL: z.string().url().optional(),
 
 	IMPORT_MAX_ROWS: z.coerce.number().int().default(50000),
@@ -48,7 +43,7 @@ const schema = z.object({
 	COMMS_SMS_RATE_PER_SEC: z.coerce.number().int().default(5),
 	COMMS_WA_RATE_PER_SEC: z.coerce.number().int().default(5),
 
-	SESSION_COOKIE_NAME: z.string().default("conf_os_session"),
+	SESSION_COOKIE_NAME: z.string().default("conf_session"),
 	SESSION_TTL_DAYS: z.coerce.number().int().default(30),
 });
 

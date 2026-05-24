@@ -56,13 +56,6 @@ function buildUrl(path: string, query?: ApiRequest["query"]) {
 	return `${API_BASE}${path}${sep}${qs}`;
 }
 
-function shouldUnwrapData(payload: unknown): payload is { data: unknown } {
-	if (typeof payload !== "object" || payload === null) return false;
-	if (!("data" in payload)) return false;
-
-	return Object.keys(payload).length === 1;
-}
-
 export async function api<T = unknown>(req: ApiRequest): Promise<T> {
 	const requestId = newRequestId();
 	const headers: Record<string, string> = {

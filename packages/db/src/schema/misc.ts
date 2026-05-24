@@ -188,7 +188,6 @@ export const dailyControlLogs = pgTable(
 			.notNull()
 			.default(sql`'{}'::jsonb`)
 			.$type<Record<string, number>>(),
-		shiftHeadName: text("shift_head_name"),
 		shiftHeadStaffId: uuid("shift_head_staff_id"),
 		...auditColumns(() => users.id),
 	},
