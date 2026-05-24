@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { BADGE_VARIANTS, cx, type BadgeVariant } from "@/lib/uiStyles";
+import { humanise } from "@/lib/format";
 
 type Size = "xs" | "sm" | "md";
 
@@ -51,6 +52,11 @@ export function StatusBadge({ status }: { status: string | null | undefined }) {
 		cancelled: { variant: "danger", label: "Cancelled" },
 		waitlisted: { variant: "neutral", label: "Waitlisted" },
 
+		printed: { variant: "accent", label: "Printed" },
+		not_printed: { variant: "neutral", label: "Not printed" },
+		collected: { variant: "success", label: "Collected" },
+		not_collected: { variant: "neutral", label: "Not collected" },
+
 		not_checked_in: { variant: "neutral", label: "Not checked in" },
 		checked_in: { variant: "success", label: "Checked in" },
 		checked_out: { variant: "neutral", label: "Checked out" },
@@ -61,6 +67,7 @@ export function StatusBadge({ status }: { status: string | null | undefined }) {
 		en_route: { variant: "warn", label: "En route" },
 		arrived: { variant: "success", label: "Arrived" },
 		missed: { variant: "danger", label: "Missed" },
+		not_required: { variant: "neutral", label: "No pickup required" },
 
 		open: { variant: "warn", label: "Open" },
 		in_progress: { variant: "info", label: "In progress" },
@@ -88,5 +95,5 @@ export function StatusBadge({ status }: { status: string | null | undefined }) {
 		blocked: { variant: "danger", label: "Blocked" },
 	};
 	const m = map[s] ?? { variant: "neutral" as BadgeVariant, label: status };
-	return <Badge variant={m.variant}>{m.label}</Badge>;
+	return <Badge variant={m.variant}>{humanise(m.label)}</Badge>;
 }

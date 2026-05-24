@@ -75,7 +75,7 @@ type Segment = TravelSegment & {
 	driverPhone?: string | null;
 };
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 20;
 const TRAVEL_MODE_ICONS: Record<string, React.ReactNode> = {
 	flight: <Plane size={13} />,
 	train: <TrainFront size={13} />,

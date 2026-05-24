@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtDateTime, humanise } from "@/lib/format";
 import { useListQuery } from "@/lib/useListQuery";
+import { useUrlState } from "@/lib/useUrlState";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
@@ -42,14 +43,14 @@ type Announcement = {
 	createdAt: string;
 };
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 20;
 const PRIORITIES = ["low", "medium", "high", "urgent"] as const;
 
 function AnnouncementsPage() {
 	const { membership } = useConference();
 	const canEdit = hasAtLeastRole(membership, "editor");
 	const { conference } = useConference();
-	const [search, setSearch] = useState({ page: 1 });
+	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 	const list = useListQuery<Announcement>({
 		key: ["announcements", conference.slug],
 		path: `/api/v1/c/${conference.slug}/announcements`,
@@ -133,7 +134,7 @@ function AnnouncementsPage() {
 					emptyHint="Pin a notice to keep it visible on the dashboard."
 				/>
 				<Pagination
-					page={search.page}
+					page={search.page ?? 1}
 					pageSize={PAGE_SIZE}
 					total={total}
 					onChange={p => setSearch({ page: p })}
@@ -183,9 +184,9 @@ function AnnouncementDrawer({
 			return isEdit ? api.patch(`${path}/${announcement!.id}`, body) : api.post(path, body);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["announcements", conference.slug] })
-				.catch(console.error)
-				.catch(console.error);
+			qc.invalidateQueries({ queryKey: ["announcements", conference.slug] }).catch(
+				console.error,
+			);
 			toast.success(isEdit ? "Announcement updated" : "Announcement created");
 			onClose();
 		},

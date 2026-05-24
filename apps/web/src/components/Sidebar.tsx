@@ -6,6 +6,7 @@ import { Link, useRouter } from "@tanstack/react-router";
 import {
 	Award,
 	BedDouble,
+	Bell,
 	Box,
 	CalendarDays,
 	ClipboardList,
@@ -68,7 +69,7 @@ function buildNav(slug: string): NavSection[] {
 				{
 					to: `${base}/announcements`,
 					label: "Announcements",
-					icon: <Megaphone size={16} />,
+					icon: <Bell size={16} />,
 				},
 				{ to: `${base}/certificates`, label: "Certificates", icon: <Award size={16} /> },
 				{ to: `${base}/feedback`, label: "Feedback", icon: <ClipboardList size={16} /> },

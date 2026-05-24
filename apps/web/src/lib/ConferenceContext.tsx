@@ -21,11 +21,6 @@ export type ActiveConference = {
 	startDate?: string | null;
 	endDate?: string | null;
 	logoFileId?: string | null;
-	theme?: {
-		primaryColor?: string | null;
-		secondaryColor?: string | null;
-		accentColor?: string | null;
-	} | null;
 };
 
 type Ctx = {

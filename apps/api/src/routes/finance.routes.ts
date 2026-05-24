@@ -3,6 +3,7 @@ import { makeCrudRouter } from "@/lib/crud-factory";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import { financeItems } from "@conference/db";
+import { moneySchema } from "@conference/shared";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -17,13 +18,14 @@ export const financeItemsRouter = makeCrudRouter({
 		category: z.enum([
 			"registration",
 			"sponsorship",
-			"venue_av",
-			"food",
-			"travel",
 			"accommodation",
-			"publication",
-			"marketing",
-			"awards",
+			"food",
+			"transport",
+			"printing",
+			"venue_av",
+			"vip_event",
+			"logistics",
+			"honorarium",
 			"misc",
 		]),
 		budgetAmount: z.string().regex(/^-?\d+(\.\d{1,2})?$/),
@@ -32,22 +34,43 @@ export const financeItemsRouter = makeCrudRouter({
 			.regex(/^-?\d+(\.\d{1,2})?$/)
 			.optional(),
 		paymentStatus: z
-			.enum(["pending", "partial", "paid", "received", "overdue"])
+			.enum(["pending", "partial", "paid", "received", "cancelled", "refunded"])
 			.default("pending"),
 		vendorOrSource: z.string().max(255).optional(),
 		invoiceNumber: z.string().max(64).optional(),
-		dueDate: z
-			.string()
-			.regex(/^\d{4}-\d{2}-\d{2}$/)
-			.optional(),
-		paidDate: z
-			.string()
-			.regex(/^\d{4}-\d{2}-\d{2}$/)
-			.optional(),
+		paidAt: z.string().datetime({ offset: true }).optional(),
 		notes: z.string().max(2000).optional(),
 		customFields: z.record(z.string(), z.any()).default({}),
 	}),
-	updateSchema: z.object({}).passthrough(),
+	updateSchema: z
+		.object({
+			itemName: z.string().min(1).max(255),
+			itemType: z.enum(["income", "expense"]),
+			category: z.enum([
+				"registration",
+				"sponsorship",
+				"accommodation",
+				"food",
+				"transport",
+				"printing",
+				"venue_av",
+				"vip_event",
+				"logistics",
+				"honorarium",
+				"misc",
+			]),
+			budgetAmount: moneySchema,
+			actualAmount: moneySchema.optional(),
+			paymentStatus: z
+				.enum(["pending", "partial", "paid", "received", "cancelled", "refunded"])
+				.optional(),
+			vendorOrSource: z.string().max(255).optional(),
+			invoiceNumber: z.string().max(64).optional(),
+			paidAt: z.string().datetime({ offset: true }).nullable().optional(),
+			notes: z.string().max(2000).optional(),
+			customFields: z.record(z.string(), z.any()).optional(),
+		})
+		.partial(),
 	searchColumns: [financeItems.itemName, financeItems.vendorOrSource],
 	defaultSort: financeItems.createdAt,
 	listQuerySchema: z.object({

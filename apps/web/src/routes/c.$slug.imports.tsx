@@ -260,7 +260,7 @@ function NewImportCard({ onCreated }: { onCreated: (jobId: string) => void }) {
 						}}
 					/>
 					{busy ? (
-						<CenterSpinner label="Uploading..." />
+						<CenterSpinner />
 					) : (
 						<>
 							<FileSpreadsheet size={28} className="mx-auto text-ink-3" />

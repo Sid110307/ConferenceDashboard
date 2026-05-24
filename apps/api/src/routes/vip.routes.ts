@@ -16,13 +16,9 @@ export const vipRouter = makeCrudRouter({
 	createSchema: z.object({
 		attendeeId: z.string().uuid().optional(),
 		name: z.string().min(1).max(255),
-		salutation: z.string().max(16).optional(),
 		designation: z.string().max(255).optional(),
 		institution: z.string().max(255).optional(),
 		protocolLevel: z.enum(["a_plus", "a", "b", "c"]).default("b"),
-		assistantName: z.string().max(255).optional(),
-		assistantPhone: z.string().max(32).optional(),
-		assignedLiaisonStaffId: z.string().uuid().optional(),
 		notes: z.string().max(5000).optional(),
 		customFields: z.record(z.string(), z.any()).default({}),
 	}),
@@ -30,13 +26,9 @@ export const vipRouter = makeCrudRouter({
 		.object({
 			attendeeId: z.string().uuid().nullable(),
 			name: z.string().min(1).max(255),
-			salutation: z.string().max(16),
 			designation: z.string().max(255),
 			institution: z.string().max(255),
 			protocolLevel: z.enum(["a_plus", "a", "b", "c"]),
-			assistantName: z.string().max(255),
-			assistantPhone: z.string().max(32),
-			assignedLiaisonStaffId: z.string().uuid().nullable(),
 			notes: z.string().max(5000),
 			customFields: z.record(z.string(), z.any()),
 		})
@@ -100,13 +92,7 @@ vipChecklistRouter.patch(
 	"/:vipId/:itemId",
 	requireRole("editor"),
 	zValidator("param", z.object({ vipId: z.string().uuid(), itemId: z.string().uuid() })),
-	zValidator(
-		"json",
-		z.object({
-			isDone: z.boolean().optional(),
-			note: z.string().max(2000).optional(),
-		}),
-	),
+	zValidator("json", z.object({ isDone: z.boolean().optional() })),
 	async c => {
 		const conf = c.get("conference")!;
 		const user = c.get("user")!;

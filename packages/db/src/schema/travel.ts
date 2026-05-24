@@ -1,4 +1,3 @@
-import { files } from "./files";
 import { sql } from "drizzle-orm";
 
 import {
@@ -24,6 +23,7 @@ import {
 	travelStatusEnum,
 	vehicleStatusEnum,
 } from "./enums";
+import { files } from "./files";
 import { committees } from "./staff";
 
 export const vehicles = pgTable(

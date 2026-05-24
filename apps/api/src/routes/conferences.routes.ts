@@ -2,7 +2,7 @@ import { recordAudit } from "@/lib/audit";
 import type { AppContext } from "@/lib/context";
 import { BadRequestError, ConflictError, NotFoundError } from "@/lib/errors";
 import { db } from "@/lib/tenancy";
-import { requireAuth, requirePlatformAdmin } from "@/middleware/auth";
+import { loadAuthUser, requirePlatformAdmin } from "@/middleware/auth";
 import { conferences, userConferenceRoles } from "@conference/db";
 import {
 	conferenceCreateSchema,
@@ -17,7 +17,7 @@ import { z } from "zod";
 export const conferencesRouter = new Hono<AppContext>();
 conferencesRouter.get(
 	"/",
-	requireAuth,
+	loadAuthUser,
 	zValidator(
 		"query",
 		paginationQuerySchema.extend({
@@ -78,7 +78,7 @@ conferencesRouter.get(
 
 conferencesRouter.get(
 	"/:slug",
-	requireAuth,
+	loadAuthUser,
 	zValidator("param", z.object({ slug: z.string() })),
 	async c => {
 		const user = c.get("user")!;
@@ -112,7 +112,7 @@ conferencesRouter.get(
 
 conferencesRouter.post(
 	"/",
-	requireAuth,
+	loadAuthUser,
 	requirePlatformAdmin,
 	zValidator("json", conferenceCreateSchema),
 	async c => {
@@ -166,7 +166,7 @@ conferencesRouter.post(
 
 conferencesRouter.patch(
 	"/:slug",
-	requireAuth,
+	loadAuthUser,
 	zValidator("param", z.object({ slug: z.string() })),
 	zValidator("json", conferenceUpdateSchema),
 	async c => {
@@ -232,7 +232,7 @@ conferencesRouter.patch(
 
 conferencesRouter.delete(
 	"/:slug",
-	requireAuth,
+	loadAuthUser,
 	requirePlatformAdmin,
 	zValidator("param", z.object({ slug: z.string() })),
 	zValidator("query", z.object({ purge: z.coerce.boolean().optional() })),

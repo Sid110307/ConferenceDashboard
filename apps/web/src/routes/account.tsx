@@ -122,7 +122,7 @@ function AccountPage() {
 		<div className="min-h-full">
 			<AppHeader />
 			<div className="py-20">
-				<CenterSpinner label="Loading account..." />
+				<CenterSpinner />
 			</div>
 		</div>
 	) : (

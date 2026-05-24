@@ -4,18 +4,22 @@ import { validateCustomFields } from "@/lib/custom-fields";
 import { BadRequestError, ConflictError, NotFoundError } from "@/lib/errors";
 import { getClientIp } from "@/lib/http";
 import { codes, prefixFromConference } from "@/lib/id";
+import { notifyConference } from "@/lib/notify";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import { attendees } from "@conference/db";
-import { attendeeBulkActionSchema, attendeeCreateSchema, attendeeListQuerySchema, attendeeUpdateSchema, LIMITS, paginationQuerySchema } from "@conference/shared";
+import {
+	attendeeBulkActionSchema,
+	attendeeCreateSchema,
+	attendeeListQuerySchema,
+	attendeeUpdateSchema,
+	LIMITS,
+	paginationQuerySchema,
+} from "@conference/shared";
 import { zValidator } from "@hono/zod-validator";
 import { and, asc, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
-
-
-
-
 
 export const attendeesRouter = new Hono<AppContext>();
 
@@ -114,11 +118,14 @@ attendeesRouter.get(
 					email: attendees.email,
 					phone: attendees.phone,
 					category: attendees.category,
+					prantha: attendees.prantha,
 					registrationStatus: attendees.registrationStatus,
 					checkinStatus: attendees.checkinStatus,
 					isVip: attendees.isVip,
 					gender: attendees.gender,
 					institution: attendees.institution,
+					badgePrinted: attendees.badgePrinted,
+					kitCollected: attendees.kitCollected,
 					tags: attendees.tags,
 					createdAt: attendees.createdAt,
 				})
@@ -285,6 +292,16 @@ attendeesRouter.post(
 				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
+			});
+
+			await notifyConference(tx, conf.id, {
+				type: "attendee.created",
+				entity: "attendee",
+				id: row!.id,
+				meta: {
+					name: row!.name,
+					attendeeCode: row!.attendeeCode,
+				},
 			});
 			return row;
 		});
@@ -519,6 +536,16 @@ attendeesRouter.post(
 				requestId: c.get("requestId"),
 			});
 
+			await notifyConference(tx, conf.id, {
+				type: "attendee.checked_in",
+				entity: "attendee",
+				id,
+				meta: {
+					name: updated!.name,
+					attendeeCode: updated!.attendeeCode,
+				},
+			});
+
 			return updated;
 		});
 
@@ -564,6 +591,16 @@ attendeesRouter.post(
 				ip: getClientIp(c),
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
+			});
+
+			await notifyConference(tx, conf.id, {
+				type: "attendee.checked_out",
+				entity: "attendee",
+				id,
+				meta: {
+					name: updated!.name,
+					attendeeCode: updated!.attendeeCode,
+				},
 			});
 			return updated;
 		});
@@ -621,6 +658,18 @@ attendeesRouter.post(
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
+
+			if (action === "check_in" || action === "check_out") {
+				await notifyConference(tx, conf.id, {
+					type: action === "check_in" ? "attendee.checked_in" : "attendee.checked_out",
+					entity: "attendee",
+					meta: {
+						count: updated.length,
+						ids: updated.map(r => r.id),
+						bulk: true,
+					},
+				});
+			}
 
 			return updated.length;
 		});

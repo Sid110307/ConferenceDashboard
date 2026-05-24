@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtDateTime, humanise } from "@/lib/format";
 import { useListQuery } from "@/lib/useListQuery";
+import { useUrlState } from "@/lib/useUrlState";
 import { type Attendee } from "@conference/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -46,14 +47,14 @@ type Certificate = {
 	createdAt: string;
 };
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 20;
 const TYPES = ["participation", "speaker", "volunteer", "organizer", "award"] as const;
 const STATUSES = ["not_issued", "generated", "emailed", "printed", "revoked"] as const;
 
 function CertificatesPage() {
 	const { membership, conference } = useConference();
 	const canEdit = hasAtLeastRole(membership, "editor");
-	const [search, setSearch] = useState({ page: 1 });
+	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 	const list = useListQuery<Certificate>({
 		key: ["certificates", conference.slug],
 		path: `/api/v1/c/${conference.slug}/certificates`,
@@ -152,7 +153,7 @@ function CertificatesPage() {
 					emptyHint="Create certificates after the conference."
 				/>
 				<Pagination
-					page={search.page}
+					page={search.page ?? 1}
 					pageSize={PAGE_SIZE}
 					total={total}
 					onChange={p => setSearch({ page: p })}

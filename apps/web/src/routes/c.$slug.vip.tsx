@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
+import { humanise } from "@/lib/format";
 import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -44,17 +45,18 @@ type Vip = {
 	securityRequired: boolean;
 	speechRequired: boolean;
 	greenRoom: string;
+	status: string;
 	notes: string;
 };
 type ChecklistItem = {
 	id: string;
 	vipGuestId: string;
-	label: string;
+	item: string;
 	isDone: boolean;
 	notes?: string | null;
 };
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 20;
 
 function VipPage() {
 	const { conference, membership } = useConference();
@@ -92,10 +94,16 @@ function VipPage() {
 					className="capitalize"
 					variant={r.protocolLevel === "a_plus" ? "success" : "neutral"}
 				>
-					{r.protocolLevel === "a_plus" ? "A+" : (r.protocolLevel ?? "standard")}
+					{r.protocolLevel === "a_plus" ? "A+" : (r.protocolLevel ?? "none")}
 				</Badge>
 			),
 			width: "w-32",
+		},
+		{
+			key: "status",
+			header: "Status",
+			cell: r => <Badge className="capitalize">{r.status}</Badge>,
+			width: "w-28",
 		},
 		{
 			key: "arrival",
@@ -197,18 +205,12 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 
 	const checklist = useQuery<{ data: ChecklistItem[] }>({
 		queryKey: ["vip-checklist", conference.slug, vip.id],
-		queryFn: () =>
-			api.get<{ data: ChecklistItem[] }>(`/api/v1/c/${conference.slug}/vip-checklist`, {
-				vipGuestId: vip.id,
-			}),
+		queryFn: () => api.get(`/api/v1/c/${conference.slug}/vip-checklist/${vip.id}`),
 	});
 
 	const addItem = useMutation({
 		mutationFn: () =>
-			api.post(`/api/v1/c/${conference.slug}/vip-checklist`, {
-				vipGuestId: vip.id,
-				label: newItem,
-			}),
+			api.post(`/api/v1/c/${conference.slug}/vip-checklist/${vip.id}`, { item: newItem }),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["vip-checklist", conference.slug, vip.id] }).catch(
 				console.error,
@@ -219,7 +221,7 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 	});
 	const toggle = useMutation({
 		mutationFn: (item: ChecklistItem) =>
-			api.patch(`/api/v1/c/${conference.slug}/vip-checklist/${item.id}`, {
+			api.patch(`/api/v1/c/${conference.slug}/vip-checklist/${vip.id}/${item.id}`, {
 				isDone: !item.isDone,
 			}),
 		onSuccess: () =>
@@ -237,7 +239,7 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 			subtitle={[vip.designation, vip.institution].filter(Boolean).join(" · ")}
 			status={
 				<Badge variant="warn" className="capitalize">
-					{vip.protocolLevel ?? "standard"} protocol
+					{vip.protocolLevel === "a_plus" ? "A+" : (vip.protocolLevel ?? "none")}
 				</Badge>
 			}
 			width="md"
@@ -292,7 +294,7 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 				{vip.notes && (
 					<div>
 						<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3 mb-1">
-							Arrival notes
+							Notes
 						</div>
 						<p className="text-sm text-ink-2 whitespace-pre-wrap">{vip.notes}</p>
 					</div>
@@ -331,7 +333,7 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 											: "text-sm text-ink"
 									}
 								>
-									{item.label}
+									{item.item}
 								</span>
 							</button>
 						))}
@@ -367,10 +369,10 @@ function CreateVipDrawer({ onClose }: { onClose: () => void }) {
 	const [form, setForm] = useState({
 		name: "",
 		designation: "",
-		organisation: "",
-		phone: "",
-		protocolLevel: "standard",
-		arrivalNotes: "",
+		institution: "",
+		protocolLevel: "none",
+		status: "pending",
+		notes: "",
 	});
 	const create = useMutation({
 		mutationFn: () => api.post(`/api/v1/c/${conference.slug}/vip`, form),
@@ -413,14 +415,11 @@ function CreateVipDrawer({ onClose }: { onClose: () => void }) {
 						onChange={e => upd({ designation: e.target.value })}
 					/>
 				</FieldRow>
-				<FieldRow label="Organisation">
+				<FieldRow label="Institution">
 					<Input
-						value={form.organisation}
-						onChange={e => upd({ organisation: e.target.value })}
+						value={form.institution}
+						onChange={e => upd({ institution: e.target.value })}
 					/>
-				</FieldRow>
-				<FieldRow label="Phone">
-					<Input value={form.phone} onChange={e => upd({ phone: e.target.value })} />
 				</FieldRow>
 				<FieldRow label="Protocol level">
 					<Select
@@ -434,11 +433,17 @@ function CreateVipDrawer({ onClose }: { onClose: () => void }) {
 						<option value="none">None</option>
 					</Select>
 				</FieldRow>
-				<FieldRow label="Arrival notes" className="sm:col-span-2">
-					<Textarea
-						value={form.arrivalNotes}
-						onChange={e => upd({ arrivalNotes: e.target.value })}
-					/>
+				<FieldRow label="Status">
+					<Select value={form.status} onChange={e => upd({ status: e.target.value })}>
+						{["pending", "confirmed", "arrived", "completed", "cancelled"].map(s => (
+							<option key={s} value={s}>
+								{humanise(s)}
+							</option>
+						))}
+					</Select>
+				</FieldRow>
+				<FieldRow label="Notes" className="sm:col-span-2">
+					<Textarea value={form.notes} onChange={e => upd({ notes: e.target.value })} />
 				</FieldRow>
 			</div>
 		</EntityDrawer>

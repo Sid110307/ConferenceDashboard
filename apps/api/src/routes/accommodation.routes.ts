@@ -3,6 +3,7 @@ import type { AppContext } from "@/lib/context";
 import { makeCrudRouter } from "@/lib/crud-factory";
 import { BadRequestError, NotFoundError } from "@/lib/errors";
 import { getClientIp } from "@/lib/http";
+import { notifyConference } from "@/lib/notify";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import {
@@ -285,20 +286,33 @@ allocationsRouter.post(
 					.where(eq(accommodationRooms.id, before.roomId));
 			}
 
-			await recordAudit(tx, {
-				conferenceId: conf.id,
-				userId: user.id,
-				action: "update",
-				entity: `room_allocation.${body.action}`,
-				entityId: id,
-				before,
-				after: row,
-				ip: getClientIp(c),
-				userAgent: c.req.header("user-agent") ?? null,
-				requestId: c.get("requestId"),
-			});
+		await recordAudit(tx, {
+			conferenceId: conf.id,
+			userId: user.id,
+			action: "update",
+			entity: `room_allocation.${body.action}`,
+			entityId: id,
+			before,
+			after: row,
+			ip: getClientIp(c),
+			userAgent: c.req.header("user-agent") ?? null,
+			requestId: c.get("requestId"),
+		});
 
-			return row;
+		if (body.action === "check_in") {
+			await notifyConference(tx, conf.id, {
+				type: "allocation.checked_in",
+				entity: "room_allocation",
+				id,
+				meta: {
+					attendeeId: row!.attendeeId,
+					roomId: row!.roomId,
+					keyIssued: row!.keyIssued,
+				},
+			});
+		}
+
+		return row;
 		});
 
 		return c.json({ data: updated });

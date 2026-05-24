@@ -198,7 +198,6 @@ function AuditPage() {
 
 function AuditRow({ entry }: { entry: AuditEntry }) {
 	const [expanded, setExpanded] = useState(false);
-	console.log(entry);
 
 	const before = entry.changes?.before ?? {};
 	const after = entry.changes?.after ?? {};
@@ -229,19 +228,19 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
 						</Badge>
 						<span className="text-sm text-ink">
 							{entry.userName && <b>{entry.userName} </b>}
-							<span className="text-ink-3">{humanise(entry.entity)}</span>
+							<span className="text-ink-3">
+								{humanise(entry.entity.replace(".", ": "))}
+							</span>
 						</span>
 					</div>
 
 					<div className="mt-0.5 text-xs text-ink-3">
 						{fmtDateTime(entry.createdAt)}
 						{entry.entityId && (
-							<>
+							<span className="font-mono">
 								{" · "}
-								<span className="font-mono">
-									{entry.entity}:{entry.entityId.slice(0, 8)}
-								</span>
-							</>
+								{entry.entityId.slice(0, 8)}
+							</span>
 						)}
 						{entry.ipAddress && <> · {entry.ipAddress}</>}
 					</div>
@@ -255,7 +254,6 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
 								{expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
 								{diffs.length} field change{diffs.length > 1 ? "s" : ""}
 							</button>
-
 							{expanded && (
 								<div className="mt-2 rounded-md border border-line bg-surface-2 divide-y divide-line">
 									{diffs.map(diff => (

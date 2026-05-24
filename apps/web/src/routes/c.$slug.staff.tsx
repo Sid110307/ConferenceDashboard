@@ -95,7 +95,7 @@ type Assignment = {
 	isLead?: boolean;
 };
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 20;
 
 const ICONS: Record<string, React.ReactNode> = {
 	"control-room": <TowerControl size={18} />,

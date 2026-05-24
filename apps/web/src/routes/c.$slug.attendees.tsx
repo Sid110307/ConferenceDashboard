@@ -98,7 +98,7 @@ type AccommodationAllocation = {
 	checkoutAt?: string | null;
 };
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 20;
 
 function AttendeesPage() {
 	const { conference, membership } = useConference();
@@ -193,7 +193,28 @@ function AttendeesPage() {
 		onSuccess: (_d, input) => {
 			invalidate();
 			setSelected(new Set());
-			toast.success(`${humanise(input.action)} applied to ${input.ids.length} attendee(s)`);
+			toast.success(
+				(() => {
+					switch (input.action) {
+						case "check_in":
+							return `Checked in ${input.ids.length} attendee(s)`;
+						case "check_out":
+							return `Checked out ${input.ids.length} attendee(s)`;
+						case "confirm":
+							return `Registered ${input.ids.length} attendee(s)`;
+						case "cancel":
+							return `Cancelled registration for ${input.ids.length} attendee(s)`;
+						case "mark_badge_printed":
+							return `Marked badge printed for ${input.ids.length} attendee(s)`;
+						case "mark_kit_collected":
+							return `Marked kit collected for ${input.ids.length} attendee(s)`;
+						case "delete":
+							return `Deleted ${input.ids.length} attendee(s)`;
+						case "restore":
+							return `Restored ${input.ids.length} attendee(s)`;
+					}
+				})(),
+			);
 		},
 		onError: (e: any) => toast.error("Bulk action failed", e.message),
 	});
@@ -322,27 +343,21 @@ function AttendeesPage() {
 			width: "w-64",
 		},
 		{
-			key: "location",
+			key: "prantha",
 			header: "Prantha",
-			cell: r => (
-				<div className="text-xs text-ink-2 truncate">
-					{[r.prantha].filter(Boolean).join(" · ") || "—"}
-				</div>
-			),
+			cell: r => <div className="text-xs text-ink-2 truncate">{r.prantha || "-"}</div>,
 			width: "w-58",
+		},
+		{
+			key: "institution",
+			header: "Institution",
+			cell: r => <div className="text-xs text-ink-2 truncate">{r.institution || "-"}</div>,
+			width: "w-64",
 		},
 		{
 			key: "accommodation",
 			header: "Accommodation",
 			cell: r => {
-				const attendeeCodes = new Set(rows.map(r => r.attendeeCode));
-
-				console.log(
-					accommodationAllocations.data?.data?.map(a => ({
-						allocCode: a.attendeeCode,
-						exists: attendeeCodes.has(a.attendeeCode || ""),
-					})),
-				);
 				const allocation = accommodationByAttendee.get(r.id);
 				if (!allocation) return <span className="text-xs text-ink-3">-</span>;
 				return (
@@ -355,7 +370,7 @@ function AttendeesPage() {
 						</div>
 						<div className="text-[11px] text-ink-3 truncate">
 							{allocation.roomFloor ? `Floor ${allocation.roomFloor}` : "Floor -"}
-							{allocation.checkinAt && ` · In ${fmtRelative(allocation.checkinAt)}`}
+							{allocation.checkinAt && ` · ${fmtRelative(allocation.checkinAt)}`}
 						</div>
 					</div>
 				);
@@ -371,7 +386,6 @@ function AttendeesPage() {
 				const details = [
 					segment.travelMode ? humanise(segment.travelMode) : null,
 					segment.originCity,
-					segment.pickupStatus ? humanise(segment.pickupStatus) : null,
 				]
 					.filter(Boolean)
 					.join(" · ");
@@ -382,7 +396,10 @@ function AttendeesPage() {
 								? fmtDateTime(segment.scheduledTime)
 								: "Time TBD"}
 						</div>
-						<div className="text-[11px] text-ink-3 truncate">{details || "-"}</div>
+						<div className="text-[11px] text-ink-3 truncate flex items-center gap-1">
+							<StatusBadge status={segment.pickupStatus} />
+							{details || "-"}
+						</div>
 					</div>
 				);
 			},
@@ -397,7 +414,6 @@ function AttendeesPage() {
 				const details = [
 					segment.travelMode ? humanise(segment.travelMode) : null,
 					segment.destinationCity,
-					segment.pickupStatus ? humanise(segment.pickupStatus) : null,
 				]
 					.filter(Boolean)
 					.join(" · ");
@@ -408,7 +424,10 @@ function AttendeesPage() {
 								? fmtDateTime(segment.scheduledTime)
 								: "Time TBD"}
 						</div>
-						<div className="text-[11px] text-ink-3 truncate">{details || "-"}</div>
+						<div className="text-[11px] text-ink-3 truncate flex items-center gap-1">
+							<StatusBadge status={segment.pickupStatus} />
+							{details || "-"}
+						</div>
 					</div>
 				);
 			},
@@ -434,6 +453,18 @@ function AttendeesPage() {
 				);
 			},
 			width: "w-60",
+		},
+		{
+			key: "badgePrinted",
+			header: "Badge",
+			cell: r => <StatusBadge status={r.badgePrinted ? "printed" : "not_printed"} />,
+			width: "w-32",
+		},
+		{
+			key: "kitCollected",
+			header: "Kit",
+			cell: r => <StatusBadge status={r.kitCollected ? "collected" : "not_collected"} />,
+			width: "w-32",
 		},
 		{
 			key: "actions",
@@ -463,6 +494,7 @@ function AttendeesPage() {
 									e.stopPropagation();
 									checkInMut.mutate(r.id);
 								}}
+								className="font-semibold"
 								disabled={checkInMut.isPending || checkOutMut.isPending}
 								loading={checkInMut.isPending}
 								leadingIcon={<CheckCircle2 size={12} />}
@@ -472,7 +504,6 @@ function AttendeesPage() {
 						)}
 					</div>
 				),
-			align: "right",
 			width: "w-32",
 		},
 	];
@@ -528,18 +559,41 @@ function AttendeesPage() {
 					</>
 				}
 			/>
-			<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-				<StatCard label="Students" value={stats.data?.data?.students ?? 0} tone="neutral" />
-				<StatCard label="Faculty" value={stats.data?.data?.faculty ?? 0} tone="neutral" />
-				<StatCard label="Speakers" value={stats.data?.data?.speakers ?? 0} tone="neutral" />
+			<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+				<StatCard
+					label="Registered"
+					value={stats.data?.data?.registered ?? 0}
+					tone="neutral"
+					onClick={() => setSearch({ registrationStatus: "registered", page: 1 })}
+				/>
+				<StatCard
+					label="Students"
+					value={stats.data?.data?.students ?? 0}
+					tone="neutral"
+					onClick={() => setSearch({ category: "student", page: 1 })}
+				/>
+				<StatCard
+					label="Faculty"
+					value={stats.data?.data?.faculty ?? 0}
+					tone="neutral"
+					onClick={() => setSearch({ category: "faculty", page: 1 })}
+				/>
+				<StatCard
+					label="Speakers"
+					value={stats.data?.data?.speakers ?? 0}
+					tone="neutral"
+					onClick={() => setSearch({ category: "speaker", page: 1 })}
+				/>
 				<StatCard
 					label="Badge printed"
 					value={stats.data?.data?.badgePrinted ?? 0}
+					hint={`of ${stats.data?.data?.total ?? 0}`}
 					tone="accent"
 				/>
 				<StatCard
 					label="Kit collected"
 					value={stats.data?.data?.kitCollected ?? 0}
+					hint={`of ${stats.data?.data?.total ?? 0}`}
 					tone="accent"
 				/>
 			</div>
@@ -575,8 +629,6 @@ function AttendeesPage() {
 									if (action === "delete") {
 										const ok = await confirm({
 											title: `Delete ${selected.size} attendee(s)?`,
-											description:
-												"They will be soft-deleted and recoverable from the audit log.",
 											tone: "danger",
 											confirmLabel: "Delete",
 										});
@@ -790,8 +842,8 @@ function BulkActionsMenu({
 	}[] = [
 		{ value: "check_in", label: "Check in" },
 		{ value: "check_out", label: "Check out" },
-		{ value: "confirm", label: "Mark confirmed" },
-		{ value: "cancel", label: "Mark cancelled" },
+		{ value: "confirm", label: "Confirm registration" },
+		{ value: "cancel", label: "Cancel registration" },
 		{ value: "mark_badge_printed", label: "Mark badge printed" },
 		{ value: "mark_kit_collected", label: "Mark kit collected" },
 	];
@@ -883,7 +935,10 @@ function AttendeeDrawer({
 			if (err instanceof ApiError && err.details && typeof err.details === "object") {
 				toast.error("Validation failed", JSON.stringify(err.details));
 			} else if (err instanceof z.ZodError) {
-				toast.error("Validation failed", err.issues.map(i => i.message).join(", "));
+				toast.error(
+					"Validation failed",
+					err.issues.map(i => `${i.path}: ${i.message}`).join(", "),
+				);
 			} else {
 				toast.error("Save failed", err.message);
 			}
@@ -1064,6 +1119,24 @@ function AttendeeDrawer({
 						<option value="true">Yes</option>
 					</Select>
 				</FieldRow>
+				<FieldRow label="Badge printed">
+					<Select
+						value={form.badgePrinted ? "true" : "false"}
+						onChange={e => update({ badgePrinted: e.target.value === "true" })}
+					>
+						<option value="false">No</option>
+						<option value="true">Yes</option>
+					</Select>
+				</FieldRow>
+				<FieldRow label="Kit collected">
+					<Select
+						value={form.kitCollected ? "true" : "false"}
+						onChange={e => update({ kitCollected: e.target.value === "true" })}
+					>
+						<option value="false">No</option>
+						<option value="true">Yes</option>
+					</Select>
+				</FieldRow>
 				<FieldRow label="Tags (comma-separated)" className="sm:col-span-2">
 					<Input
 						value={(form.tags ?? []).join(", ")}
@@ -1087,6 +1160,10 @@ function cleanForApi(o: Partial<Attendee>): Partial<Attendee> {
 	const out: any = {};
 	for (const [k, v] of Object.entries(o)) {
 		if (v === "" || v === undefined) continue;
+		if (k === "tags" || Array.isArray(v)) {
+			out[k] = Array.isArray(v) ? v.filter(s => s.trim() !== "") : (v ?? []);
+			continue;
+		}
 		out[k] = v;
 	}
 	return out;

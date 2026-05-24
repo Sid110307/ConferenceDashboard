@@ -4,6 +4,7 @@ import { makeCrudRouter } from "@/lib/crud-factory";
 import { validateCustomFields } from "@/lib/custom-fields";
 import { NotFoundError } from "@/lib/errors";
 import { getClientIp } from "@/lib/http";
+import { notifyConference } from "@/lib/notify";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import { attendees, travelSegments, vehicles } from "@conference/db";
@@ -407,6 +408,19 @@ travelRouter.patch(
 				requestId: c.get("requestId"),
 			});
 
+			if (before.status !== "arrived" && row!.status === "arrived") {
+				await notifyConference(tx, conf.id, {
+					type: "travel.arrived",
+					entity: "travel_segment",
+					id,
+					meta: {
+						attendeeId: row!.attendeeId,
+						direction: row!.direction,
+						travelMode: row!.travelMode,
+					},
+				});
+			}
+
 			return row;
 		});
 
@@ -501,6 +515,18 @@ travelRouter.post(
 				userAgent: c.req.header("user-agent") ?? null,
 				requestId: c.get("requestId"),
 			});
+
+			if (vehicleId && updated.length > 0) {
+				await notifyConference(tx, conf.id, {
+					type: "travel.assigned",
+					entity: "travel_segment",
+					meta: {
+						count: updated.length,
+						vehicleId,
+						segmentIds: updated.map(r => r.id),
+					},
+				});
+			}
 			return updated.length;
 		});
 

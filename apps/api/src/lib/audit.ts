@@ -17,21 +17,6 @@ function sanitise(value: unknown): unknown {
 	return out;
 }
 
-export type AuditAction =
-	| "create"
-	| "update"
-	| "delete"
-	| "restore"
-	| "purge"
-	| "login"
-	| "logout"
-	| "invite"
-	| "accept_invite"
-	| "export"
-	| "import"
-	| "send_campaign"
-	| "role_change";
-
 export type AuditInput = Omit<NewAuditLogEntry, "createdAt" | "id" | "changes"> & {
 	before?: unknown;
 	after?: unknown;

@@ -27,7 +27,7 @@ realtimeRouter.get("/stream", requireRole("viewer"), async c => {
 
 	return streamSSE(c, async stream => {
 		const client = new pg.Client({
-			connectionString: env.DATABASE_URL,
+			connectionString: env.DATABASE_URL_DIRECT,
 			ssl: env.DATABASE_SSL ? { rejectUnauthorized: false } : undefined,
 		});
 		await client.connect();

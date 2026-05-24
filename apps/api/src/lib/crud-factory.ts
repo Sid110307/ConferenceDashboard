@@ -52,6 +52,7 @@ export type CrudConfig = {
 	readRole?: "viewer" | "editor" | "admin" | "super_admin";
 	writeRole?: "viewer" | "editor" | "admin" | "super_admin";
 	deleteRole?: "viewer" | "editor" | "admin" | "super_admin";
+	disabledRoutes?: ("list" | "get" | "create" | "update" | "delete" | "restore")[];
 };
 
 const idParamSchema = z.object({ id: z.string().uuid() });
@@ -63,196 +64,135 @@ export function makeCrudRouter(cfg: CrudConfig) {
 	const deleteRole = cfg.deleteRole ?? "editor";
 	const t = cfg.table;
 
-	router.get(
-		"/",
-		requireRole(readRole),
-		zValidator(
-			"query",
-			paginationQuerySchema
-				.merge(
-					cfg.listQuerySchema instanceof z.ZodObject ? cfg.listQuerySchema : z.object({}),
-				)
-				.extend({
-					q: z.string().trim().optional(),
-					includeDeleted: z.coerce.boolean().optional(),
-				}),
-		),
-		async c => {
-			const conf = c.get("conference")!;
-			const query = c.req.valid("query") as Record<string, any>;
+	if (!cfg.disabledRoutes?.includes("list"))
+		router.get(
+			"/",
+			requireRole(readRole),
+			zValidator(
+				"query",
+				paginationQuerySchema
+					.merge(
+						cfg.listQuerySchema instanceof z.ZodObject
+							? cfg.listQuerySchema
+							: z.object({}),
+					)
+					.extend({
+						q: z.string().trim().optional(),
+						includeDeleted: z.coerce.boolean().optional(),
+					}),
+			),
+			async c => {
+				const conf = c.get("conference")!;
+				const query = c.req.valid("query") as Record<string, any>;
 
-			const whereParts: SQL[] = [eq(t.conferenceId as AnyColumn, conf.id)];
+				const whereParts: SQL[] = [eq(t.conferenceId as AnyColumn, conf.id)];
 
-			if (!query.includeDeleted) {
-				whereParts.push(isNull(t.deletedAt));
-			}
+				if (!query.includeDeleted) {
+					whereParts.push(isNull(t.deletedAt));
+				}
 
-			if (query.q && cfg.searchColumns && cfg.searchColumns.length > 0) {
-				const pattern = `%${query.q}%`;
-				const orParts = cfg.searchColumns.map(col => ilike(col, pattern));
-				whereParts.push(or(...orParts) as SQL);
-			}
+				if (query.q && cfg.searchColumns && cfg.searchColumns.length > 0) {
+					const pattern = `%${query.q}%`;
+					const orParts = cfg.searchColumns.map(col => ilike(col, pattern));
+					whereParts.push(or(...orParts) as SQL);
+				}
 
-			if (cfg.applyFilters) {
-				whereParts.push(...cfg.applyFilters(query, t));
-			}
+				if (cfg.applyFilters) {
+					whereParts.push(...cfg.applyFilters(query, t));
+				}
 
-			let orderCol: PgColumn<any> = cfg.defaultSort ?? t.createdAt;
-			if (typeof query.sort === "string" && cfg.sortMap?.[query.sort]) {
-				orderCol = cfg.sortMap[query.sort]!;
-			}
-			const orderFn = query.order === "asc" ? asc : desc;
+				let orderCol: PgColumn<any> = cfg.defaultSort ?? t.createdAt;
+				if (typeof query.sort === "string" && cfg.sortMap?.[query.sort]) {
+					orderCol = cfg.sortMap[query.sort]!;
+				}
+				const orderFn = query.order === "asc" ? asc : desc;
 
-			const page = query.page ?? 1;
-			const pageSize = Math.min(
-				(query.pageSize as number) ?? LIMITS.PAGE_SIZE_DEFAULT,
-				LIMITS.PAGE_SIZE_MAX,
-			);
-			const offset = (page - 1) * pageSize;
+				const page = query.page ?? 1;
+				const pageSize = Math.min(
+					(query.pageSize as number) ?? LIMITS.PAGE_SIZE_DEFAULT,
+					LIMITS.PAGE_SIZE_MAX,
+				);
+				const offset = (page - 1) * pageSize;
 
-			const result = await withTenant(conf.id, async tx => {
-				const data = await tx
-					.select({ ...getTableColumns(t), ...(cfg.extras ?? {}) })
-					.from(t)
-					.where(and(...whereParts))
-					.orderBy(orderFn(orderCol))
-					.limit(pageSize)
-					.offset(offset);
+				const result = await withTenant(conf.id, async tx => {
+					const data = await tx
+						.select({ ...getTableColumns(t), ...(cfg.extras ?? {}) })
+						.from(t)
+						.where(and(...whereParts))
+						.orderBy(orderFn(orderCol))
+						.limit(pageSize)
+						.offset(offset);
 
-				const countRows = await tx
-					.select({ count: sql<number>`count(*)::int` })
-					.from(t)
-					.where(and(...whereParts));
-				const total = countRows[0]?.count ?? 0;
-				return { data, total };
-			});
+					const countRows = await tx
+						.select({ count: sql<number>`count(*)::int` })
+						.from(t)
+						.where(and(...whereParts));
+					const total = countRows[0]?.count ?? 0;
+					return { data, total };
+				});
 
-			return c.json({
-				data: result.data,
-				pagination: buildPagination({
-					page,
-					pageSize,
-					total: result.total,
-				}),
-			});
-		},
-	);
+				return c.json({
+					data: result.data,
+					pagination: buildPagination({
+						page,
+						pageSize,
+						total: result.total,
+					}),
+				});
+			},
+		);
 
 	cfg.beforeIdRoutes?.(router);
-	router.get("/:id", requireRole(readRole), zValidator("param", idParamSchema), async c => {
-		const conf = c.get("conference")!;
-		const { id } = c.req.valid("param");
-		const row = await withTenant(conf.id, async tx =>
-			findOneById(tx, t, conf.id, id, {}, cfg.extras),
-		);
-		if (!row) throw new NotFoundError(cfg.entity);
-		return c.json({ data: row });
-	});
 
-	router.post("/", requireRole(writeRole), zValidator("json", cfg.createSchema), async c => {
-		const conf = c.get("conference")!;
-		const user = c.get("user")!;
-		const requestId = c.get("requestId");
-		const input = c.req.valid("json") as Record<string, unknown>;
-
-		const created = await withTenant(conf.id, async tx => {
-			let customFields = input.customFields as Record<string, unknown> | undefined;
-			if (cfg.customFieldEntity) {
-				customFields = await validateCustomFields({
-					tx,
-					conferenceId: conf.id,
-					entity: cfg.customFieldEntity,
-					payload: customFields,
-				});
-			}
-
-			const values = {
-				...input,
-				...(customFields !== undefined ? { customFields } : {}),
-				conferenceId: conf.id,
-				createdBy: user.id,
-				updatedBy: user.id,
-			};
-
-			const inserted = await (tx as TenantTx)
-				.insert(t)
-				.values(values as unknown as Record<string, unknown>)
-				.returning();
-			const row = inserted[0]!;
-
-			await recordAudit(tx, {
-				conferenceId: conf.id,
-				userId: user.id,
-				action: "create",
-				entity: cfg.entity,
-				entityId: row.id as string,
-				after: row,
-				ip: getClientIp(c),
-				userAgent: c.req.header("user-agent") ?? null,
-				requestId,
-			});
-
-			return row;
+	if (!cfg.disabledRoutes?.includes("get"))
+		router.get("/:id", requireRole(readRole), zValidator("param", idParamSchema), async c => {
+			const conf = c.get("conference")!;
+			const { id } = c.req.valid("param");
+			const row = await withTenant(conf.id, async tx =>
+				findOneById(tx, t, conf.id, id, {}, cfg.extras),
+			);
+			if (!row) throw new NotFoundError(cfg.entity);
+			return c.json({ data: row });
 		});
 
-		return c.json({ data: created }, 201);
-	});
-
-	router.patch(
-		"/:id",
-		requireRole(writeRole),
-		zValidator("param", idParamSchema),
-		zValidator("json", cfg.updateSchema),
-		async c => {
+	if (!cfg.disabledRoutes?.includes("create"))
+		router.post("/", requireRole(writeRole), zValidator("json", cfg.createSchema), async c => {
 			const conf = c.get("conference")!;
 			const user = c.get("user")!;
 			const requestId = c.get("requestId");
-			const { id } = c.req.valid("param");
 			const input = c.req.valid("json") as Record<string, unknown>;
 
-			const updated = await withTenant(conf.id, async tx => {
-				const before = await findOneById(tx, t, conf.id, id);
-				if (!before) throw new NotFoundError(cfg.entity);
-
-				let customFields: Record<string, unknown> | undefined;
-				if (cfg.customFieldEntity && "customFields" in input) {
+			const created = await withTenant(conf.id, async tx => {
+				let customFields = input.customFields as Record<string, unknown> | undefined;
+				if (cfg.customFieldEntity) {
 					customFields = await validateCustomFields({
 						tx,
 						conferenceId: conf.id,
 						entity: cfg.customFieldEntity,
-						payload: input.customFields as Record<string, unknown>,
-						partial: true,
+						payload: customFields,
 					});
 				}
 
 				const values = {
 					...input,
 					...(customFields !== undefined ? { customFields } : {}),
+					conferenceId: conf.id,
+					createdBy: user.id,
 					updatedBy: user.id,
-					updatedAt: new Date(),
 				};
 
-				const result = await (tx as TenantTx)
-					.update(t)
-					.set(values as unknown as Record<string, unknown>)
-					.where(
-						and(
-							eq(t.id as AnyColumn, id),
-							eq(t.conferenceId as AnyColumn, conf.id),
-							isNull(t.deletedAt),
-						),
-					)
+				const inserted = await (tx as TenantTx)
+					.insert(t)
+					.values(values as unknown as Record<string, unknown>)
 					.returning();
-				const row = result[0];
-				if (!row) throw new NotFoundError(cfg.entity);
+				const row = inserted[0]!;
 
 				await recordAudit(tx, {
 					conferenceId: conf.id,
 					userId: user.id,
-					action: "update",
+					action: "create",
 					entity: cfg.entity,
-					entityId: id,
-					before,
+					entityId: row.id as string,
 					after: row,
 					ip: getClientIp(c),
 					userAgent: c.req.header("user-agent") ?? null,
@@ -262,136 +202,211 @@ export function makeCrudRouter(cfg: CrudConfig) {
 				return row;
 			});
 
-			return c.json({ data: updated });
-		},
-	);
+			return c.json({ data: created }, 201);
+		});
 
-	router.delete(
-		"/:id",
-		requireRole(deleteRole),
-		zValidator("param", idParamSchema),
-		zValidator("query", z.object({ purge: z.coerce.boolean().optional() })),
-		async c => {
-			const conf = c.get("conference")!;
-			const user = c.get("user")!;
-			const m = c.get("membership")!;
-			const requestId = c.get("requestId");
-			const { id } = c.req.valid("param");
-			const { purge } = c.req.valid("query");
+	if (!cfg.disabledRoutes?.includes("update"))
+		router.patch(
+			"/:id",
+			requireRole(writeRole),
+			zValidator("param", idParamSchema),
+			zValidator("json", cfg.updateSchema),
+			async c => {
+				const conf = c.get("conference")!;
+				const user = c.get("user")!;
+				const requestId = c.get("requestId");
+				const { id } = c.req.valid("param");
+				const input = c.req.valid("json") as Record<string, unknown>;
 
-			if (purge && m.role !== "super_admin") {
-				throw new ForbiddenError("Only super admins can purge records");
-			}
+				const updated = await withTenant(conf.id, async tx => {
+					const before = await findOneById(tx, t, conf.id, id);
+					if (!before) throw new NotFoundError(cfg.entity);
 
-			await withTenant(conf.id, async tx => {
-				const before = await findOneById(tx, t, conf.id, id, {
-					includeDeleted: true,
-				});
-				if (!before) throw new NotFoundError(cfg.entity);
+					let customFields: Record<string, unknown> | undefined;
+					if (cfg.customFieldEntity && "customFields" in input) {
+						customFields = await validateCustomFields({
+							tx,
+							conferenceId: conf.id,
+							entity: cfg.customFieldEntity,
+							payload: input.customFields as Record<string, unknown>,
+							partial: true,
+						});
+					}
 
-				if (purge) {
-					await (tx as TenantTx)
-						.delete(t)
+					const values = {
+						...input,
+						...(customFields !== undefined ? { customFields } : {}),
+						updatedBy: user.id,
+						updatedAt: new Date(),
+					};
+
+					const result = await (tx as TenantTx)
+						.update(t)
+						.set(values as unknown as Record<string, unknown>)
 						.where(
 							and(
 								eq(t.id as AnyColumn, id),
 								eq(t.conferenceId as AnyColumn, conf.id),
+								isNull(t.deletedAt),
 							),
-						);
+						)
+						.returning();
+					const row = result[0];
+					if (!row) throw new NotFoundError(cfg.entity);
+
 					await recordAudit(tx, {
 						conferenceId: conf.id,
 						userId: user.id,
-						action: "purge",
+						action: "update",
 						entity: cfg.entity,
 						entityId: id,
 						before,
+						after: row,
 						ip: getClientIp(c),
 						userAgent: c.req.header("user-agent") ?? null,
 						requestId,
 					});
-				} else {
-					await (tx as TenantTx)
+
+					return row;
+				});
+
+				return c.json({ data: updated });
+			},
+		);
+
+	if (!cfg.disabledRoutes?.includes("delete"))
+		router.delete(
+			"/:id",
+			requireRole(deleteRole),
+			zValidator("param", idParamSchema),
+			zValidator("query", z.object({ purge: z.coerce.boolean().optional() })),
+			async c => {
+				const conf = c.get("conference")!;
+				const user = c.get("user")!;
+				const m = c.get("membership")!;
+				const requestId = c.get("requestId");
+				const { id } = c.req.valid("param");
+				const { purge } = c.req.valid("query");
+
+				if (purge && m.role !== "super_admin") {
+					throw new ForbiddenError("Only super admins can purge records");
+				}
+
+				await withTenant(conf.id, async tx => {
+					const before = await findOneById(tx, t, conf.id, id, {
+						includeDeleted: true,
+					});
+					if (!before) throw new NotFoundError(cfg.entity);
+
+					if (purge) {
+						await (tx as TenantTx)
+							.delete(t)
+							.where(
+								and(
+									eq(t.id as AnyColumn, id),
+									eq(t.conferenceId as AnyColumn, conf.id),
+								),
+							);
+						await recordAudit(tx, {
+							conferenceId: conf.id,
+							userId: user.id,
+							action: "purge",
+							entity: cfg.entity,
+							entityId: id,
+							before,
+							ip: getClientIp(c),
+							userAgent: c.req.header("user-agent") ?? null,
+							requestId,
+						});
+					} else {
+						await (tx as TenantTx)
+							.update(t)
+							.set({
+								deletedAt: new Date(),
+								deletedBy: user.id,
+								updatedBy: user.id,
+							} as unknown as Record<string, unknown>)
+							.where(
+								and(
+									eq(t.id as AnyColumn, id),
+									eq(t.conferenceId as AnyColumn, conf.id),
+								),
+							);
+						await recordAudit(tx, {
+							conferenceId: conf.id,
+							userId: user.id,
+							action: "delete",
+							entity: cfg.entity,
+							entityId: id,
+							before,
+							ip: getClientIp(c),
+							userAgent: c.req.header("user-agent") ?? null,
+							requestId,
+						});
+					}
+				});
+
+				return c.json({ deleted: true, id, purged: !!purge });
+			},
+		);
+
+	if (!cfg.disabledRoutes?.includes("restore"))
+		router.post(
+			"/:id/restore",
+			requireRole(deleteRole),
+			zValidator("param", idParamSchema),
+			async c => {
+				const conf = c.get("conference")!;
+				const user = c.get("user")!;
+				const requestId = c.get("requestId");
+				const { id } = c.req.valid("param");
+
+				const restored = await withTenant(conf.id, async tx => {
+					const before = await findOneById(tx, t, conf.id, id, {
+						includeDeleted: true,
+					});
+					if (!before) throw new NotFoundError(cfg.entity);
+					if (!(before as unknown as Record<string, unknown>).deletedAt) {
+						throw new BadRequestError(`${cfg.entity} is not deleted`);
+					}
+
+					const result = await (tx as TenantTx)
 						.update(t)
 						.set({
-							deletedAt: new Date(),
-							deletedBy: user.id,
+							deletedAt: null,
+							deletedBy: null,
 							updatedBy: user.id,
+							updatedAt: new Date(),
 						} as unknown as Record<string, unknown>)
 						.where(
 							and(
 								eq(t.id as AnyColumn, id),
 								eq(t.conferenceId as AnyColumn, conf.id),
 							),
-						);
+						)
+						.returning();
+
+					const row = result[0];
+					if (!row) throw new NotFoundError(cfg.entity);
+
 					await recordAudit(tx, {
 						conferenceId: conf.id,
 						userId: user.id,
-						action: "delete",
+						action: "restore",
 						entity: cfg.entity,
 						entityId: id,
 						before,
+						after: row,
 						ip: getClientIp(c),
 						userAgent: c.req.header("user-agent") ?? null,
 						requestId,
 					});
-				}
-			});
-
-			return c.json({ deleted: true, id, purged: !!purge });
-		},
-	);
-
-	router.post(
-		"/:id/restore",
-		requireRole(deleteRole),
-		zValidator("param", idParamSchema),
-		async c => {
-			const conf = c.get("conference")!;
-			const user = c.get("user")!;
-			const requestId = c.get("requestId");
-			const { id } = c.req.valid("param");
-
-			const restored = await withTenant(conf.id, async tx => {
-				const before = await findOneById(tx, t, conf.id, id, {
-					includeDeleted: true,
+					return row;
 				});
-				if (!before) throw new NotFoundError(cfg.entity);
-				if (!(before as unknown as Record<string, unknown>).deletedAt) {
-					throw new BadRequestError(`${cfg.entity} is not deleted`);
-				}
 
-				const result = await (tx as TenantTx)
-					.update(t)
-					.set({
-						deletedAt: null,
-						deletedBy: null,
-						updatedBy: user.id,
-						updatedAt: new Date(),
-					} as unknown as Record<string, unknown>)
-					.where(and(eq(t.id as AnyColumn, id), eq(t.conferenceId as AnyColumn, conf.id)))
-					.returning();
-
-				const row = result[0];
-				if (!row) throw new NotFoundError(cfg.entity);
-
-				await recordAudit(tx, {
-					conferenceId: conf.id,
-					userId: user.id,
-					action: "restore",
-					entity: cfg.entity,
-					entityId: id,
-					before,
-					after: row,
-					ip: getClientIp(c),
-					userAgent: c.req.header("user-agent") ?? null,
-					requestId,
-				});
-				return row;
-			});
-
-			return c.json({ data: restored });
-		},
-	);
+				return c.json({ data: restored });
+			},
+		);
 
 	return router;
 }

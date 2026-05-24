@@ -68,7 +68,7 @@ type Summary = {
 	count: number;
 };
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 20;
 
 function FinancePage() {
 	const { conference, membership } = useConference();
@@ -185,14 +185,12 @@ function LedgerTab({
 			key: "budgetAmount",
 			header: "Budget",
 			cell: r => fmtINR(Number(r.budgetAmount ?? 0)),
-			align: "right",
 			width: "w-32",
 		},
 		{
 			key: "actualAmount",
 			header: "Actual",
 			cell: r => <span className="font-medium">{fmtINR(Number(r.actualAmount ?? 0))}</span>,
-			align: "right",
 			width: "w-32",
 		},
 	];
@@ -262,12 +260,12 @@ function FinanceItemDrawer({ item, onClose }: { item: FinanceItem | null; onClos
 			return isEdit ? api.patch(`${path}/${item!.id}`, body) : api.post(path, body);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["finance-items", conference.slug] })
-				.catch(console.error)
-				.catch(console.error);
-			qc.invalidateQueries({ queryKey: ["finance-summary", conference.slug] })
-				.catch(console.error)
-				.catch(console.error);
+			qc.invalidateQueries({ queryKey: ["finance-items", conference.slug] }).catch(
+				console.error,
+			);
+			qc.invalidateQueries({ queryKey: ["finance-summary", conference.slug] }).catch(
+				console.error,
+			);
 			toast.success("Saved");
 			onClose();
 		},
@@ -313,10 +311,29 @@ function FinanceItemDrawer({ item, onClose }: { item: FinanceItem | null; onClos
 						</Select>
 					</FieldRow>
 					<FieldRow label="Category">
-						<Input
+						<Select
 							value={form.category ?? ""}
-							onChange={e => upd({ category: e.target.value })}
-						/>
+							onChange={e => upd({ category: e.target.value as any })}
+						>
+							<option value="">—</option>
+							{[
+								"registration",
+								"sponsorship",
+								"accommodation",
+								"food",
+								"transport",
+								"printing",
+								"venue_av",
+								"vip_event",
+								"logistics",
+								"honorarium",
+								"misc",
+							].map(c => (
+								<option key={c} value={c}>
+									{humanise(c)}
+								</option>
+							))}
+						</Select>
 					</FieldRow>
 					<FieldRow label="Budget amount (₹)">
 						<Input
@@ -389,7 +406,6 @@ function SponsorsTab({
 			key: "contribution",
 			header: "Contribution",
 			cell: r => fmtINR(Number(r.contributionAmount ?? 0)),
-			align: "right",
 			width: "w-32",
 		},
 	];

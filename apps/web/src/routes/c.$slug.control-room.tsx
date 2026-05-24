@@ -9,7 +9,7 @@ import { useRealtime } from "@/lib/useRealtime";
 import { Dashboard } from "@/routes/c.$slug.index";
 import { type Staff } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
 	Activity,
 	BedDouble,
@@ -65,7 +65,7 @@ type StatRow = {
 	value: string;
 };
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 20;
 
 const EVENT_TONE: Record<string, FeedEvent["tone"]> = {
 	"attendee.checked_in": "success",
@@ -77,7 +77,9 @@ const EVENT_TONE: Record<string, FeedEvent["tone"]> = {
 	"helpdesk.resolved": "success",
 	"allocation.checked_in": "success",
 	"meal_scan.created": "info",
+	"campaign.progress": "info",
 	"campaign.completed": "success",
+	"import.progress": "info",
 	"import.completed": "success",
 };
 
@@ -132,7 +134,9 @@ function rowsToStats(rows: StatRow[]): Record<string, number> {
 
 function ControlRoomPage() {
 	const { conference } = useConference();
+	const navigate = useNavigate();
 	const qc = useQueryClient();
+
 	const [feed, setFeed] = useState<FeedEvent[]>([]);
 	const seq = useRef(0);
 	const [logOpen, setLogOpen] = useState<DailyControlLog | null>(null);
@@ -178,12 +182,14 @@ function ControlRoomPage() {
 			ev.type.startsWith("helpdesk.") ||
 			ev.type.startsWith("allocation.") ||
 			ev.type === "meal_scan.created" ||
+			ev.type.startsWith("campaign.") ||
+			ev.type.startsWith("import.") ||
 			ev.type.startsWith("daily_control.")
 		) {
 			qc.invalidateQueries({ queryKey: ["dashboard", conference.slug] }).catch(console.error);
-			qc.invalidateQueries({ queryKey: ["control-room-logs", conference.slug] })
-				.catch(console.error)
-				.catch(console.error);
+			qc.invalidateQueries({ queryKey: ["control-room-logs", conference.slug] }).catch(
+				console.error,
+			);
 		}
 	});
 
@@ -269,6 +275,9 @@ function ControlRoomPage() {
 					value={c?.attendees.checkedIn ?? 0}
 					hint={`of ${fmtNumber(c?.attendees.total ?? 0)}`}
 					tone="success"
+					onClick={() =>
+						navigate({ to: "attendees", search: { checkinStatus: "checked_in" } })
+					}
 				/>
 				<StatCard
 					icon={<Plane size={20} />}
@@ -276,6 +285,9 @@ function ControlRoomPage() {
 					value={c?.travel.arrivalsCompleted ?? 0}
 					hint={`${c?.travel.arrivalsPending ?? 0} en route`}
 					tone="neutral"
+					onClick={() =>
+						navigate({ to: "travel", search: { pickupStatus: "completed" } })
+					}
 				/>
 				<StatCard
 					icon={<BedDouble size={20} />}
@@ -283,12 +295,14 @@ function ControlRoomPage() {
 					value={c?.accommodation.occupied ?? 0}
 					hint={`of ${fmtNumber(c?.accommodation.capacity ?? 0)}`}
 					tone="accent"
+					onClick={() => navigate({ to: "accommodation" })}
 				/>
 				<StatCard
 					icon={<Utensils size={20} />}
 					label="Meal scans today"
 					value={meals}
 					tone="neutral"
+					onClick={() => navigate({ to: "food" })}
 				/>
 				<StatCard
 					icon={<LifeBuoy size={20} />}
@@ -296,6 +310,7 @@ function ControlRoomPage() {
 					value={(c?.helpdesk.open ?? 0) + (c?.helpdesk.inProgress ?? 0)}
 					hint={c?.helpdesk.urgent ? `${c.helpdesk.urgent} urgent` : "none urgent"}
 					tone={c?.helpdesk.urgent ? "danger" : "neutral"}
+					onClick={() => navigate({ to: "helpdesk", search: { status: "open" } })}
 				/>
 			</div>
 			<Card
@@ -316,7 +331,7 @@ function ControlRoomPage() {
 								className={cx(
 									"size-2 rounded-full shrink-0",
 									{
-										neutral: "bg-ink-4",
+										neutral: "bg-ink-3",
 										success: "bg-success",
 										warn: "bg-warn",
 										danger: "bg-danger",

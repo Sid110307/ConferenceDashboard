@@ -22,6 +22,8 @@ export const s3 = new S3Client({
 			: undefined,
 });
 
+export { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, HeadObjectCommand };
+
 export function storageKey(opts: {
 	conferenceId?: string | null;
 	purpose: string;

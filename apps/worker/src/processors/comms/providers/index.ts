@@ -86,7 +86,7 @@ async function sendEmail(input: SendInput): Promise<SendResult> {
 					subject: input.subject ?? "",
 					content: [
 						{ type: "text/plain", value: input.body || "" },
-						{ type: "text/html", value: input.body ? undefined : "" },
+						{ type: "text/html", value: input.body || "" },
 					],
 				}),
 			});

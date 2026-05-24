@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { humanise } from "@/lib/format";
 import { cx } from "@/lib/uiStyles";
 import { X } from "lucide-react";
 
@@ -23,13 +24,13 @@ export function FilterChip({
 		>
 			{icon && <span>{icon}</span>}
 			<span className="text-ink-3">{label}:</span>
-			<span className="text-ink">{value}</span>
+			<span className="text-ink">{humanise(value)}</span>
 			<button
 				onClick={onClear}
-				className="inline-flex items-center justify-center size-5 rounded hover:bg-accent/15"
+				className="inline-flex items-center justify-center size-5 rounded focus-visible:ring focus-visible:ring-primary/50 hover:bg-accent/10 transition-colors"
 				aria-label={`Clear ${label} filter`}
 			>
-				<X size={11} />
+				<X size={12} />
 			</button>
 		</span>
 	);

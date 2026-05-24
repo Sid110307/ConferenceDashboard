@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
 import { cx } from "@/lib/uiStyles";
 
 export function ProgressBar({
@@ -17,7 +21,16 @@ export function ProgressBar({
 	size?: "sm" | "md";
 	className?: string;
 }) {
-	const pct = Math.max(0, Math.min(100, (value / max) * 100));
+	const pct = Math.max(0, Math.min(100, max > 0 ? (value / max) * 100 : 0));
+	const [animatedPct, setAnimatedPct] = useState(0);
+
+	useEffect(() => {
+		const id = requestAnimationFrame(() => {
+			setAnimatedPct(pct);
+		});
+		return () => cancelAnimationFrame(id);
+	}, [pct]);
+
 	const barH = size === "sm" ? "h-1.5" : "h-2";
 	const fill: Record<typeof tone, string> = {
 		accent: "bg-accent",
@@ -26,6 +39,7 @@ export function ProgressBar({
 		danger: "bg-danger",
 		info: "bg-info",
 	};
+
 	return (
 		<div className={cx("w-full", className)}>
 			{(label || hint) && (
@@ -46,10 +60,10 @@ export function ProgressBar({
 			>
 				<div
 					className={cx(
-						"h-full rounded-full transition-[width] duration-300 ease-out",
+						"h-full rounded-full transition-[width] duration-700 ease-out",
 						fill[tone],
 					)}
-					style={{ width: `${pct}%` }}
+					style={{ width: `${animatedPct}%` }}
 				/>
 			</div>
 		</div>

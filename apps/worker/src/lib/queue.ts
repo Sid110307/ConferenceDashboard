@@ -24,5 +24,5 @@ export const JOB_NAMES = {
 	CAMPAIGN_DISPATCH_BATCH: "campaign.dispatch_batch",
 	REPORT_GENERATE: "report.generate",
 	MAINT_CLEAN_OLD_TOKENS: "maint.clean_old_tokens",
-	MAINT_REFRESH_DASHBOARD: "maint.refresh_dashboard",
+	MAINT_CLEAN_OLD_FILES: "maint.clean_old_files",
 } as const;

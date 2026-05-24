@@ -1,8 +1,7 @@
 import { env } from "@/lib/env";
 import { db } from "@/lib/tenancy";
-import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { files, invitations, verificationTokens } from "@conference/db";
-import { createLogger, s3 } from "@conference/infra";
+import { createLogger, DeleteObjectCommand, s3 } from "@conference/infra";
 import { and, eq, lt, sql } from "drizzle-orm";
 
 const logger = createLogger({
@@ -35,8 +34,12 @@ export async function processCleanOldFiles() {
 	const oldFiles = await db
 		.select()
 		.from(files)
-		.where(and(lt(files.createdAt, retentionDate), sql`file_is_unreferenced(${files.id})`));
-
+		.where(
+			and(
+				lt(files.createdAt, retentionDate),
+				sql<boolean>`file_is_unreferenced(${files.id}) = true`,
+			),
+		);
 	for (const file of oldFiles) {
 		try {
 			const deletedFromStorage = await deleteFileFromStorage(

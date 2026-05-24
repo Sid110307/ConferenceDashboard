@@ -19,6 +19,9 @@ export function useRealtime(
 	const onEventRef = useRef(onEvent);
 
 	useEffect(() => {
+		onEventRef.current = onEvent;
+	});
+	useEffect(() => {
 		if (!conferenceSlug) return;
 		const url = `${API_BASE}/api/v1/c/${conferenceSlug}/realtime/stream`;
 		const es = new EventSource(url, { withCredentials: true });
@@ -28,8 +31,8 @@ export function useRealtime(
 				const data = JSON.parse(e.data) as RealtimeEvent;
 				setLastEvent(data);
 				onEventRef.current?.(data);
-			} catch {
-				// ignore
+			} catch (err) {
+				console.warn("[realtime] invalid json", err, e.data);
 			}
 		};
 

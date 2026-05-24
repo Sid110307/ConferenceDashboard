@@ -4,7 +4,7 @@ import type { AppContext } from "@/lib/context";
 import { BadRequestError, NotFoundError } from "@/lib/errors";
 import { hashToken } from "@/lib/id";
 import { db } from "@/lib/tenancy";
-import { requireAuth } from "@/middleware/auth";
+import { loadAuthUser } from "@/middleware/auth";
 import {
 	accounts,
 	conferences,
@@ -81,7 +81,7 @@ authRouter.get("/me", async c => {
 
 authRouter.post(
 	"/password",
-	requireAuth,
+	loadAuthUser,
 	zValidator("json", z.object({ newPassword: z.string().min(8).max(512) })),
 	async c => {
 		const { newPassword } = c.req.valid("json");
@@ -93,7 +93,7 @@ authRouter.post(
 
 authRouter.post(
 	"/invite/accept",
-	requireAuth,
+	loadAuthUser,
 	zValidator("json", z.object({ token: z.string().min(8) })),
 	async c => {
 		const user = c.get("user")!;

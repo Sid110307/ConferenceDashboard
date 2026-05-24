@@ -98,7 +98,7 @@ function DashboardPage() {
 	if (isLoading || !data?.data)
 		return (
 			<div className="p-6">
-				<CenterSpinner label="Loading dashboard..." />
+				<CenterSpinner />
 			</div>
 		);
 

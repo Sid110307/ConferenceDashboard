@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtINR, humanise } from "@/lib/format";
 import { useListQuery } from "@/lib/useListQuery";
+import { useUrlState } from "@/lib/useUrlState";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
@@ -43,7 +44,7 @@ type LogisticsItem = {
 	createdAt: string;
 };
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 20;
 const CATEGORIES = [
 	"kit",
 	"printing",
@@ -59,7 +60,7 @@ const STATUSES = ["pending", "ordered", "received", "issued", "shortage", "cance
 function LogisticsPage() {
 	const { membership, conference } = useConference();
 	const canEdit = hasAtLeastRole(membership, "editor");
-	const [search, setSearch] = useState({ page: 1 });
+	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 	const list = useListQuery<LogisticsItem>({
 		key: ["logistics", conference.slug],
 		path: `/api/v1/c/${conference.slug}/logistics`,
@@ -121,7 +122,6 @@ function LogisticsPage() {
 			key: "cost",
 			header: "Unit cost",
 			cell: r => (r.unitCost ? fmtINR(Number(r.unitCost)) : "—"),
-			align: "right",
 			width: "w-28",
 		},
 	];
@@ -154,7 +154,7 @@ function LogisticsPage() {
 					emptyHint="Add stock and issue tracking here."
 				/>
 				<Pagination
-					page={search.page}
+					page={search.page ?? 1}
 					pageSize={PAGE_SIZE}
 					total={total}
 					onChange={p => setSearch({ page: p })}

@@ -4,6 +4,7 @@ import { makeCrudRouter } from "@/lib/crud-factory";
 import { NotFoundError } from "@/lib/errors";
 import { getClientIp } from "@/lib/http";
 import { codes } from "@/lib/id";
+import { notifyConference } from "@/lib/notify";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import { helpdeskIssues } from "@conference/db";
@@ -21,11 +22,11 @@ const helpdeskCreate = z.object({
 		"accommodation",
 		"food",
 		"badge",
-		"medical",
-		"safety",
 		"technical",
-		"av",
-		"general",
+		"lost_item",
+		"medical",
+		"vip",
+		"registration",
 		"other",
 	]),
 	title: z.string().min(1).max(255),
@@ -70,10 +71,10 @@ const helpdeskCrud = makeCrudRouter({
 			);
 		return parts;
 	},
+	disabledRoutes: ["create"],
 });
 
 helpdeskRouter.route("/", helpdeskCrud);
-
 helpdeskRouter.post("/", requireRole("editor"), zValidator("json", helpdeskCreate), async c => {
 	const conf = c.get("conference")!;
 	const user = c.get("user")!;
@@ -108,6 +109,17 @@ helpdeskRouter.post("/", requireRole("editor"), zValidator("json", helpdeskCreat
 			ip: getClientIp(c),
 			userAgent: c.req.header("user-agent") ?? null,
 			requestId: c.get("requestId"),
+		});
+
+		await notifyConference(tx, conf.id, {
+			type: "helpdesk.created",
+			entity: "helpdesk_issue",
+			id: created!.id,
+			meta: {
+				issueCode: created!.issueCode,
+				title: created!.title,
+				priority: created!.priority,
+			},
 		});
 		return created;
 	});
@@ -151,19 +163,36 @@ helpdeskRouter.post(
 				})
 				.where(eq(helpdeskIssues.id, id))
 				.returning();
-			await recordAudit(tx, {
-				conferenceId: conf.id,
-				userId: user.id,
-				action: "update",
-				entity: "helpdesk_issue.transition",
-				entityId: id,
-				before,
-				after: updated,
-				ip: getClientIp(c),
-				userAgent: c.req.header("user-agent") ?? null,
-				requestId: c.get("requestId"),
+		await recordAudit(tx, {
+			conferenceId: conf.id,
+			userId: user.id,
+			action: "update",
+			entity: "helpdesk_issue.transition",
+			entityId: id,
+			before,
+			after: updated,
+			ip: getClientIp(c),
+			userAgent: c.req.header("user-agent") ?? null,
+			requestId: c.get("requestId"),
+		});
+
+		if (
+			before.status !== "resolved" &&
+			before.status !== "closed" &&
+			(to === "resolved" || to === "closed")
+		) {
+			await notifyConference(tx, conf.id, {
+				type: "helpdesk.resolved",
+				entity: "helpdesk_issue",
+				id,
+				meta: {
+					issueCode: updated!.issueCode,
+					title: updated!.title,
+					status: updated!.status,
+				},
 			});
-			return updated;
+		}
+		return updated;
 		});
 		return c.json({ data: row });
 	},

@@ -1,6 +1,3 @@
-import { createHash } from "node:crypto";
-import { Readable } from "node:stream";
-
 import { recordAudit } from "@/lib/audit";
 import type { AppContext } from "@/lib/context";
 import { BadRequestError, NotFoundError } from "@/lib/errors";
@@ -8,9 +5,8 @@ import { getClientIp } from "@/lib/http";
 import { defaultJobOptions, JOB_NAMES, reportsQueue } from "@/lib/queue";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
-import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { files, reportJobs } from "@conference/db";
-import { getSignedDownloadUrl, s3 } from "@conference/infra";
+import { getSignedDownloadUrl } from "@conference/infra";
 import { reportJobCreateSchema } from "@conference/shared";
 import { zValidator } from "@hono/zod-validator";
 import { and, desc, eq } from "drizzle-orm";
@@ -124,28 +120,6 @@ reportsRouter.get(
 			return { f };
 		});
 		const url = await getSignedDownloadUrl(job.f.storageKey, 60 * 10);
-
-		if (job.f.checksum) {
-			const hash = createHash("sha256");
-			const stream = await s3
-				.send(
-					new GetObjectCommand({
-						Bucket: process.env.STORAGE_BUCKET,
-						Key: job.f.storageKey,
-					}),
-				)
-				.then(r => r.Body as Readable);
-			await new Promise((resolve, reject) => {
-				stream.on("data", chunk => hash.update(chunk));
-				stream.on("end", resolve);
-				stream.on("error", reject);
-			});
-
-			const calculatedChecksum = hash.digest("hex");
-			if (calculatedChecksum !== job.f.checksum)
-				throw new Error("File integrity check failed: checksum does not match");
-		}
-
 		return c.json({ url, filename: job.f.filename });
 	},
 );

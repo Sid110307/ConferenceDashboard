@@ -4,6 +4,7 @@ import {
 	type ActiveConference,
 	type Membership,
 } from "@/lib/ConferenceContext";
+import { queryClient } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, Outlet, redirect, useLocation } from "@tanstack/react-router";
 
@@ -19,18 +20,19 @@ type TenantRoot = {
 export const Route = createFileRoute("/c/$slug")({
 	beforeLoad: async ({ params, location }) => {
 		try {
-			await api.get<TenantRoot>(`/api/v1/c/${params.slug}/`);
+			await queryClient.ensureQueryData({
+				queryKey: ["tenant", params.slug],
+				queryFn: () => api.get<TenantRoot>(`/api/v1/c/${params.slug}/`),
+				staleTime: 60000,
+			});
 		} catch (err) {
 			if (err instanceof ApiError) {
-				if (err.status === 401) {
+				if (err.status === 401)
 					throw redirect({
 						to: "/login",
 						search: { next: `${location.pathname}${location.search}${location.hash}` },
 					});
-				}
-				if (err.status === 404) {
-					throw redirect({ to: "/" });
-				}
+				if (err.status === 404) throw redirect({ to: "/" });
 			}
 			throw err;
 		}
@@ -51,12 +53,12 @@ function ConferenceLayout() {
 	return isLoading || !data ? (
 		<div className="flex flex-col h-screen">
 			<AppHeader />
-			<CenterSpinner label="Loading conference..." />
+			<CenterSpinner />
 		</div>
 	) : error ? (
 		<div className="flex flex-col h-screen">
 			<AppHeader />
-			<div className="flex-1 flex items-center justify-center text-sm text-danger-soft-fg">
+			<div className="flex-1 flex flex-col items-center justify-center text-sm text-danger-soft-fg">
 				{error instanceof Error ? error.message : "Could not load conference data."}
 				<Link to="/" className="ml-2 underline">
 					Back to home

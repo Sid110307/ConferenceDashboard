@@ -92,7 +92,7 @@ const maintenanceWorker = new Worker(
 		switch (job.name) {
 			case JOB_NAMES.MAINT_CLEAN_OLD_TOKENS:
 				return processCleanOldTokens();
-			case JOB_NAMES.MAINT_REFRESH_DASHBOARD:
+			case JOB_NAMES.MAINT_CLEAN_OLD_FILES:
 				return processCleanOldFiles();
 			default:
 				throw new Error(`Unknown maintenance job: ${job.name}`);
@@ -136,11 +136,11 @@ async function seedRepeatableJobs() {
 		},
 	);
 	await maintenanceQueue.add(
-		JOB_NAMES.MAINT_REFRESH_DASHBOARD,
+		JOB_NAMES.MAINT_CLEAN_OLD_FILES,
 		{},
 		{
-			repeat: { pattern: "0 * * * *" },
-			jobId: "repeat:refresh_dashboard",
+			repeat: { pattern: "0 0 * * *" },
+			jobId: "repeat:clean_old_files",
 		},
 	);
 	logger.info("repeatable jobs seeded");

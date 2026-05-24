@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtDateTime } from "@/lib/format";
 import { useListQuery } from "@/lib/useListQuery";
+import { useUrlState } from "@/lib/useUrlState";
 import { type Attendee } from "@conference/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -41,12 +42,12 @@ type Feedback = {
 
 type Session = { id: string; title: string; sessionType?: string | null };
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 20;
 
 function FeedbackPage() {
 	const { membership, conference } = useConference();
 	const canEdit = hasAtLeastRole(membership, "editor");
-	const [search, setSearch] = useState({ page: 1 });
+	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 	const list = useListQuery<Feedback>({
 		key: ["feedback", conference.slug],
 		path: `/api/v1/c/${conference.slug}/feedback`,
@@ -158,7 +159,7 @@ function FeedbackPage() {
 					emptyHint="Capture session feedback here."
 				/>
 				<Pagination
-					page={search.page}
+					page={search.page ?? 1}
 					pageSize={PAGE_SIZE}
 					total={total}
 					onChange={p => setSearch({ page: p })}

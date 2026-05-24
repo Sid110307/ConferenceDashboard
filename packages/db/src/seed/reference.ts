@@ -32,7 +32,7 @@ export const DEFAULT_COMMITTEES: DefaultCommittee[] = [
 	{
 		slug: "food-dining",
 		name: "Food & Dining",
-		description: "Daily meal plans, dietary preferences, meal scanning, caterer liaison.",
+		description: "Daily meal plans, dietary preferences, meal scanning, caterer details.",
 		icon: "Utensils",
 		color: "amber",
 	},
@@ -70,14 +70,14 @@ export const DEFAULT_COMMITTEES: DefaultCommittee[] = [
 		slug: "safety-medical",
 		name: "Safety & Medical",
 		description:
-			"First aid, ambulance liaison, fire safety, emergency procedures, security coordination.",
+			"First aid, ambulance details, fire safety, emergency procedures, security coordination.",
 		icon: "HeartPulse",
 		color: "red",
 	},
 	{
 		slug: "central-coordination",
 		name: "Central Coordination",
-		description: "Cross-committee coordination, escalation point, leadership liaison.",
+		description: "Cross-committee coordination, escalation point, leadership details.",
 		icon: "Network",
 		color: "slate",
 	},
@@ -112,7 +112,7 @@ export const DEFAULT_COMMITTEES: DefaultCommittee[] = [
 	{
 		slug: "cultural-activities",
 		name: "Cultural Activities",
-		description: "Cultural performances, evening programmes, entertainment liaison.",
+		description: "Cultural performances, evening programmes, entertainment details.",
 		icon: "Music",
 		color: "fuchsia",
 	},

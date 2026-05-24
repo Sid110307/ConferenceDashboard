@@ -12,7 +12,10 @@ export const controlRoomRouter = makeCrudRouter({
 	],
 	defaultSort: dailyControlLogs.logDate,
 	createSchema: z.object({
-		logDate: z.string().datetime({ offset: true }),
+		logDate: z
+			.string()
+			.datetime({ offset: true })
+			.transform(value => new Date(value)),
 		dayLabel: z.string().max(32).optional(),
 		shiftLabel: z.string().max(32).optional(),
 		summary: z.string().min(1).max(5000),
@@ -24,7 +27,10 @@ export const controlRoomRouter = makeCrudRouter({
 	}),
 	updateSchema: z
 		.object({
-			logDate: z.string().datetime({ offset: true }),
+			logDate: z
+				.string()
+				.datetime({ offset: true })
+				.transform(value => new Date(value)),
 			dayLabel: z.string().max(32),
 			shiftLabel: z.string().max(32),
 			summary: z.string().min(1).max(5000),

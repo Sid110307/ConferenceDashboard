@@ -46,19 +46,13 @@ async function fetchAuthUser(c: Context) {
 }
 
 export const loadAuthUser = createMiddleware(async (c, next) => {
-	const u = await fetchAuthUser(c);
-	if (u) {
-		c.set("user", u);
+	try {
+		const u = await fetchAuthUser(c);
+		c.set("user", u.user);
 		c.set("sessionId", u.sessionId);
+	} catch (e) {
+		if (!(e instanceof UnauthorizedError)) throw e;
 	}
-	await next();
-});
-export const requireAuth = createMiddleware(async (c, next) => {
-	const u = await fetchAuthUser(c);
-	if (!u) throw new UnauthorizedError();
-	c.set("user", u.user);
-	c.set("sessionId", u.sessionId);
-
 	await next();
 });
 
@@ -80,6 +74,8 @@ export const resolveConference = createMiddleware<AppContext>(async (c, next) =>
 			publicStatus: conferences.publicStatus,
 			venueName: conferences.venueName,
 			venueAddress: conferences.venueAddress,
+			venueCity: conferences.venueCity,
+			logoFileId: conferences.logoFileId,
 		})
 		.from(conferences)
 		.where(and(eq(conferences.slug, slug), isNull(conferences.deletedAt)))

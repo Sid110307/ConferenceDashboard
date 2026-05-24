@@ -52,7 +52,7 @@ type Issue = {
 	resolvedAt?: string | null;
 };
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 20;
 
 const PRIORITY_VARIANT: Record<string, BadgeVariant> = {
 	low: "neutral",
@@ -340,7 +340,7 @@ function CreateIssueDrawer({ onClose }: { onClose: () => void }) {
 	const [form, setForm] = useState({
 		title: "",
 		description: "",
-		category: "general",
+		category: "other",
 		priority: "medium",
 	});
 	const create = useMutation({
@@ -394,14 +394,16 @@ function CreateIssueDrawer({ onClose }: { onClose: () => void }) {
 							onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
 						>
 							{[
-								"general",
-								"travel",
+								"transport",
 								"accommodation",
 								"food",
+								"badge",
 								"technical",
+								"lost_item",
 								"medical",
+								"vip",
 								"registration",
-								"security",
+								"other",
 							].map(c => (
 								<option key={c} value={c}>
 									{humanise(c)}

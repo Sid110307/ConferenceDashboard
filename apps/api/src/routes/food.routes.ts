@@ -3,6 +3,7 @@ import type { AppContext } from "@/lib/context";
 import { makeCrudRouter } from "@/lib/crud-factory";
 import { BadRequestError, NotFoundError } from "@/lib/errors";
 import { getClientIp } from "@/lib/http";
+import { notifyConference } from "@/lib/notify";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import { attendees, foodPlans, mealScans } from "@conference/db";
@@ -108,6 +109,18 @@ mealScansRouter.post(
 					ip: getClientIp(c),
 					userAgent: c.req.header("user-agent") ?? null,
 					requestId: c.get("requestId"),
+				});
+
+				await notifyConference(tx, conf.id, {
+					type: "meal_scan.created",
+					entity: "meal_scan",
+					id: row!.id,
+					meta: {
+						attendeeId: row!.attendeeId,
+						attendeeName: att.name,
+						mealDate: row!.mealDate,
+						mealType: row!.mealType,
+					},
 				});
 				return row;
 			} catch (err: any) {

@@ -57,7 +57,7 @@ export const messageTemplateUpdateSchema = messageTemplateCreateSchema
 export const audienceFilterSchema = z
 	.object({
 		category: z.array(z.string()).optional(),
-		gender: z.string().optional(),
+		gender: z.array(z.string()).optional(),
 		prantha: z.array(z.string()).optional(),
 		city: z.array(z.string()).optional(),
 		state: z.array(z.string()).optional(),
