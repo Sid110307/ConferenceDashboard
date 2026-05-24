@@ -46,7 +46,7 @@ const importsWorker = new Worker(
 			case JOB_NAMES.IMPORT_ROLLBACK:
 				return processImportRollback(job.data);
 			default:
-				throw new Error(`unknown imports job: ${job.name}`);
+				throw new Error(`Unknown imports job: ${job.name}`);
 		}
 	},
 	{ connection: redis, concurrency: env.WORKER_CONCURRENCY_IMPORTS },
@@ -63,7 +63,7 @@ const commsWorker = new Worker(
 			case JOB_NAMES.CAMPAIGN_DISPATCH_BATCH:
 				return processCampaignDispatchBatch(job.data);
 			default:
-				throw new Error(`unknown comms job: ${job.name}`);
+				throw new Error(`Unknown comms job: ${job.name}`);
 		}
 	},
 	{ connection: redis, concurrency: env.WORKER_CONCURRENCY_COMMS },
@@ -78,7 +78,7 @@ const reportsWorker = new Worker(
 			case JOB_NAMES.REPORT_GENERATE:
 				return processReportGenerate(job.data);
 			default:
-				throw new Error(`unknown reports job: ${job.name}`);
+				throw new Error(`Unknown reports job: ${job.name}`);
 		}
 	},
 	{ connection: redis, concurrency: env.WORKER_CONCURRENCY_REPORTS },
@@ -95,7 +95,7 @@ const maintenanceWorker = new Worker(
 			case JOB_NAMES.MAINT_REFRESH_DASHBOARD:
 				return processCleanOldFiles();
 			default:
-				throw new Error(`unknown maintenance job: ${job.name}`);
+				throw new Error(`Unknown maintenance job: ${job.name}`);
 		}
 	},
 	{ connection: redis, concurrency: env.WORKER_CONCURRENCY_MAINTENANCE },

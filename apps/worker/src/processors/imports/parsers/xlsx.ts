@@ -17,7 +17,7 @@ export async function parseXLSX(buf: Buffer): Promise<ParsedTable> {
 	ws.eachRow({ includeEmpty: false }, (row, idx) => {
 		if (idx === 1) return;
 		const out: Record<string, string> = {};
-		for (let i = 0; i < headers.length; i++) {
+		for (let i = 0; i < headers.length; ++i) {
 			const cell = row.getCell(i + 1);
 			let v: any = cell.value;
 			if (v && typeof v === "object") {

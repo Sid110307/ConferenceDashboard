@@ -280,7 +280,7 @@ export function makeCrudRouter(cfg: CrudConfig) {
 			const { purge } = c.req.valid("query");
 
 			if (purge && m.role !== "super_admin") {
-				throw new ForbiddenError("purge requires super_admin");
+				throw new ForbiddenError("Only super admins can purge records");
 			}
 
 			await withTenant(conf.id, async tx => {

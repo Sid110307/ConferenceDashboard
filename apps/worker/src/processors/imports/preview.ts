@@ -134,7 +134,7 @@ export async function processImportPreview(payload: {
 			rowsBuffer.length = 0;
 		};
 
-		for (let i = 0; i < table.rows.length; i++) {
+		for (let i = 0; i < table.rows.length; ++i) {
 			const raw = table.rows[i]!;
 			const rowNumber = i + 2;
 			const r = validate(raw, mapping);

@@ -113,7 +113,7 @@ export async function processImportStart(payload: {
 				continue;
 			}
 
-			for (let j = 0; j < batch.length; j++) {
+			for (let j = 0; j < batch.length; ++j) {
 				const targetId = inserted[j]?.id;
 				const row = batch[j]!;
 				if (targetId) {

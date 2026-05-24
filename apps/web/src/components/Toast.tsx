@@ -77,11 +77,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 						</div>
 						<div className="min-w-0 flex-1">
 							<Toast.Title className="text-sm font-semibold text-ink">
-								{t.title}
+								{t.title.charAt(0).toUpperCase() + t.title.slice(1)}
 							</Toast.Title>
 							{t.description && (
 								<Toast.Description className="mt-0.5 text-xs text-ink-2">
-									{t.description}
+									{t.description.charAt(0).toUpperCase() + t.description.slice(1)}
 								</Toast.Description>
 							)}
 						</div>

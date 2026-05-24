@@ -7,18 +7,15 @@ import { codes, prefixFromConference } from "@/lib/id";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import { attendees } from "@conference/db";
-import {
-	attendeeBulkActionSchema,
-	attendeeCreateSchema,
-	attendeeListQuerySchema,
-	attendeeUpdateSchema,
-	LIMITS,
-	paginationQuerySchema,
-} from "@conference/shared";
+import { attendeeBulkActionSchema, attendeeCreateSchema, attendeeListQuerySchema, attendeeUpdateSchema, LIMITS, paginationQuerySchema } from "@conference/shared";
 import { zValidator } from "@hono/zod-validator";
 import { and, asc, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
+
+
+
+
 
 export const attendeesRouter = new Hono<AppContext>();
 
@@ -40,7 +37,7 @@ async function createAttendeeWithCode(
 		.where(eq(attendees.conferenceId, conf.id));
 	const startSeq = (row?.n ?? 0) + 1;
 
-	for (let attempt = 0; attempt < 50; attempt++) {
+	for (let attempt = 0; attempt < 50; ++attempt) {
 		const attendeeCode = codes.attendee(prefix, startSeq + attempt);
 
 		try {
@@ -63,7 +60,7 @@ async function createAttendeeWithCode(
 		}
 	}
 
-	throw new BadRequestError("could not allocate attendee code");
+	throw new BadRequestError("Could not allocate attendee code");
 }
 
 attendeesRouter.get(
@@ -260,7 +257,7 @@ attendeesRouter.post(
 						),
 					)
 					.limit(1);
-				if (dup) throw new ConflictError("attendee with this email exists");
+				if (dup) throw new ConflictError("Attendee with this email exists");
 			}
 
 			const customFields = await validateCustomFields({
@@ -375,7 +372,7 @@ attendeesRouter.delete(
 		const { id } = c.req.valid("param");
 		const { purge } = c.req.valid("query");
 		if (purge && m.role !== "super_admin") {
-			throw new BadRequestError("purge requires super_admin");
+			throw new BadRequestError("Only super admins can purge records");
 		}
 
 		await withTenant(conf.id, async tx => {

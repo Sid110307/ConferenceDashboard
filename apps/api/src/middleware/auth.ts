@@ -147,10 +147,7 @@ export function requireRole(min: UserRole) {
 		const m = c.get("membership");
 		if (!m) throw new UnauthorizedError();
 		if (ROLE_HIERARCHY[m.role] < ROLE_HIERARCHY[min]) {
-			throw new ForbiddenError(`requires role ${min} or higher`, {
-				yourRole: m.role,
-				requiredRole: min,
-			});
+			throw new ForbiddenError(`Requires role ${min} or higher. Your role: ${m.role}`);
 		}
 		await next();
 	});

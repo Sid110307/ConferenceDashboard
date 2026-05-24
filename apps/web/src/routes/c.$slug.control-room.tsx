@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from "react";
 
 import { api } from "@/lib/api";
 import { useConference } from "@/lib/ConferenceContext";
-import { fmtDateTime, fmtNumber, fmtTime, humanise } from "@/lib/format";
+import { fmtDateTime, fmtNumber, fmtTime, humanise, slugify } from "@/lib/format";
 import { cx } from "@/lib/uiStyles";
 import { useListQuery } from "@/lib/useListQuery";
 import { useRealtime } from "@/lib/useRealtime";
@@ -10,12 +10,22 @@ import { Dashboard } from "@/routes/c.$slug.index";
 import { type Staff } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, BedDouble, LifeBuoy, Plane, Plus, UserCheck, Utensils } from "lucide-react";
+import {
+	Activity,
+	BedDouble,
+	LifeBuoy,
+	Plane,
+	Plus,
+	Trash2,
+	UserCheck,
+	Utensils,
+} from "lucide-react";
 
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { DataTable, Pagination, type Column } from "@/components/DataTable";
+import { DatePickerInput } from "@/components/DatePicker";
 import { EntityDrawer } from "@/components/EntityDrawer";
 import { FieldRow } from "@/components/FieldRow";
 import { Input, Select, Textarea } from "@/components/Input";
@@ -47,6 +57,12 @@ type DailyControlLog = {
 	pendingActions?: string | null;
 	stats?: Record<string, number> | null;
 	shiftHeadStaffId?: string | null;
+};
+
+type StatRow = {
+	id: string;
+	key: string;
+	value: string;
 };
 
 const PAGE_SIZE = 25;
@@ -85,6 +101,34 @@ function describe(ev: { type: string; entity?: string; meta?: any }): string {
 }
 
 const MAX_FEED = 60;
+
+function newStatRow(key = "", value = ""): StatRow {
+	return {
+		id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+		key,
+		value,
+	};
+}
+
+function statsToRows(stats?: Record<string, number> | null): StatRow[] {
+	const entries = Object.entries(stats ?? {});
+	return entries.length
+		? entries.map(([key, value]) => newStatRow(humanise(key), String(value)))
+		: [newStatRow()];
+}
+
+function rowsToStats(rows: StatRow[]): Record<string, number> {
+	return rows.reduce<Record<string, number>>((acc, row) => {
+		const label = row.key.trim();
+		const key = slugify(label);
+		if (!key) return acc;
+
+		const value = Number(row.value);
+		acc[key] = Number.isFinite(value) ? value : 0;
+
+		return acc;
+	}, {});
+}
 
 function ControlRoomPage() {
 	const { conference } = useConference();
@@ -345,10 +389,10 @@ function ControlLogDrawer({
 	const qc = useQueryClient();
 	const toast = useToast();
 	const isEdit = !!log;
-	const [form, setForm] = useState<Partial<DailyControlLog> & { statsText: string }>(
+	const [form, setForm] = useState<Partial<DailyControlLog> & { statsRows: StatRow[] }>(
 		log
-			? { ...log, statsText: JSON.stringify(log.stats ?? {}, null, 2) }
-			: { logDate: new Date().toISOString(), statsText: "{}" },
+			? { ...log, statsRows: statsToRows(log.stats) }
+			: { logDate: new Date().toISOString(), statsRows: [newStatRow()] },
 	);
 
 	const save = useMutation({
@@ -361,7 +405,7 @@ function ControlLogDrawer({
 				incidents: form.incidents || undefined,
 				actionsTaken: form.actionsTaken || undefined,
 				pendingActions: form.pendingActions || undefined,
-				stats: JSON.parse(form.statsText || "{}"),
+				stats: rowsToStats(form.statsRows),
 				shiftHeadStaffId: form.shiftHeadStaffId || undefined,
 			};
 			const path = `/api/v1/c/${conference.slug}/control-room`;
@@ -377,7 +421,7 @@ function ControlLogDrawer({
 		onError: (e: any) => toast.error("Save failed", e.message),
 	});
 
-	const upd = (p: Partial<DailyControlLog> & { statsText?: string }) =>
+	const upd = (p: Partial<DailyControlLog> & { statsRows?: StatRow[] }) =>
 		setForm(f => ({ ...f, ...p }));
 
 	return (
@@ -403,16 +447,11 @@ function ControlLogDrawer({
 		>
 			<div className="grid grid-cols-2 gap-3">
 				<FieldRow label="Log date" required>
-					<Input
-						type="datetime-local"
-						value={(form.logDate ?? new Date().toISOString()).slice(0, 16)}
-						onChange={e =>
-							upd({
-								logDate: e.target.value
-									? new Date(e.target.value).toISOString()
-									: undefined,
-							})
-						}
+					<DatePickerInput
+						mode="datetime"
+						value={form.logDate}
+						onChange={date => upd({ logDate: date })}
+						className="w-full"
 					/>
 				</FieldRow>
 				<FieldRow label="Day label">
@@ -469,19 +508,59 @@ function ControlLogDrawer({
 					/>
 				</FieldRow>
 				<FieldRow
-					label="Stats JSON"
+					label="Metrics"
 					className="col-span-2"
-					hint={
-						<span className="text-xs text-ink-3">
-							Use a JSON object like {`{"attendees": 120, "vehicles": 3}`}
-						</span>
-					}
+					hint="Add any relevant metrics for the day/shift, e.g. incidents count, average resolution time, etc."
 				>
-					<Textarea
-						value={form.statsText}
-						onChange={e => upd({ statsText: e.target.value })}
-						className="min-h-28 font-mono text-[13px]"
-					/>
+					<div className="space-y-2">
+						{form.statsRows.map((row, index) => (
+							<div key={row.id} className="grid grid-cols-[1fr_140px_auto] gap-2">
+								<Input
+									placeholder="Metric name"
+									value={row.key}
+									onChange={e => {
+										const next = [...form.statsRows];
+										next[index] = { ...row, key: e.target.value };
+										upd({ statsRows: next });
+									}}
+								/>
+								<Input
+									type="number"
+									placeholder="Value"
+									value={row.value}
+									onChange={e => {
+										const next = [...form.statsRows];
+										next[index] = { ...row, value: e.target.value };
+										upd({ statsRows: next });
+									}}
+								/>
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={() => {
+										const next = form.statsRows.filter(r => r.id !== row.id);
+										upd({ statsRows: next.length ? next : [newStatRow()] });
+									}}
+								>
+									<Trash2 size={14} className="text-danger" />
+								</Button>
+							</div>
+						))}
+						<div className="flex items-center gap-2">
+							<div className="h-px bg-line flex-1" />
+							<Button
+								variant="ghost"
+								size="sm"
+								leadingIcon={<Plus size={13} />}
+								onClick={() =>
+									upd({ statsRows: [...form.statsRows, newStatRow()] })
+								}
+							>
+								Add metric
+							</Button>
+							<div className="h-px bg-line flex-1" />
+						</div>
+					</div>
 				</FieldRow>
 			</div>
 		</EntityDrawer>

@@ -14,6 +14,7 @@ import { Badge, StatusBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { DataTable, Pagination, type Column } from "@/components/DataTable";
+import { DatePickerInput } from "@/components/DatePicker";
 import { EntityDrawer } from "@/components/EntityDrawer";
 import { FieldRow } from "@/components/FieldRow";
 import { Input, Select } from "@/components/Input";
@@ -283,18 +284,10 @@ function CertificateDrawer({
 				{(["generatedAt", "issuedAt", "emailedAt", "printedAt", "revokedAt"] as const).map(
 					k => (
 						<FieldRow key={k} label={humanise(k)}>
-							<Input
-								type="datetime-local"
-								value={
-									(form as any)[k] ? String((form as any)[k]).slice(0, 16) : ""
-								}
-								onChange={e =>
-									upd({
-										[k]: e.target.value
-											? new Date(e.target.value).toISOString()
-											: undefined,
-									} as any)
-								}
+							<DatePickerInput
+								mode="datetime"
+								value={(form as any)[k] ?? undefined}
+								onChange={value => upd({ [k]: value } as any)}
 							/>
 						</FieldRow>
 					),

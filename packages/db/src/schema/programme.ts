@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { auditColumns, customFieldsColumn, uuidPk } from "./_shared";
+import { attendees } from "./attendees";
 import { users } from "./auth";
 import { conferences } from "./conferences";
 import { publicStatusEnum, sessionStatusEnum, sessionTypeEnum, venueStatusEnum } from "./enums";
@@ -77,6 +78,9 @@ export const speakers = pgTable(
 		conferenceId: uuid("conference_id")
 			.notNull()
 			.references(() => conferences.id, { onDelete: "cascade" }),
+		attendeeId: uuid("attendee_id").references(() => attendees.id, {
+			onDelete: "set null",
+		}),
 		name: text("name").notNull(),
 		salutation: varchar("salutation", { length: 16 }),
 		designation: text("designation"),

@@ -6,6 +6,7 @@ export const queryClient = new QueryClient({
 		queries: {
 			staleTime: 30000,
 			gcTime: 5 * 60000,
+			throwOnError: true,
 			retry: (failureCount, err) => {
 				if (err instanceof ApiError && err.status < 500) return false;
 				return failureCount < 2;

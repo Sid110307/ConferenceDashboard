@@ -13,6 +13,7 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { DataTable, Pagination, type Column } from "@/components/DataTable";
+import { DatePickerInput } from "@/components/DatePicker";
 import { EntityDrawer } from "@/components/EntityDrawer";
 import { FieldRow } from "@/components/FieldRow";
 import { Input, Select, Textarea } from "@/components/Input";
@@ -249,29 +250,17 @@ function AnnouncementDrawer({
 						/>
 					</FieldRow>
 					<FieldRow label="Visible from">
-						<Input
-							type="datetime-local"
-							value={form.visibleFrom ? form.visibleFrom.slice(0, 16) : ""}
-							onChange={e =>
-								upd({
-									visibleFrom: e.target.value
-										? new Date(e.target.value).toISOString()
-										: undefined,
-								})
-							}
+						<DatePickerInput
+							mode="datetime"
+							value={form.visibleFrom ?? undefined}
+							onChange={value => upd({ visibleFrom: value })}
 						/>
 					</FieldRow>
 					<FieldRow label="Visible until">
-						<Input
-							type="datetime-local"
-							value={form.visibleUntil ? form.visibleUntil.slice(0, 16) : ""}
-							onChange={e =>
-								upd({
-									visibleUntil: e.target.value
-										? new Date(e.target.value).toISOString()
-										: undefined,
-								})
-							}
+						<DatePickerInput
+							mode="datetime"
+							value={form.visibleUntil ?? undefined}
+							onChange={value => upd({ visibleUntil: value })}
 						/>
 					</FieldRow>
 				</div>

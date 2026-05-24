@@ -3,10 +3,13 @@ import { DayPicker } from "react-day-picker";
 
 import { cx } from "@/lib/uiStyles";
 import * as Popover from "@radix-ui/react-popover";
-import { format, isValid, parseISO } from "date-fns";
+import { format, isValid, parseISO, setHours, setMinutes, setSeconds } from "date-fns";
 import { CalendarDays, ChevronDown, X } from "lucide-react";
 
 import { Button } from "@/components/Button";
+import { Input } from "@/components/Input";
+
+type DatePickerMode = "date" | "datetime";
 
 const parseDateValue = (value?: string): Date | undefined => {
 	if (!value) return undefined;
@@ -14,8 +17,32 @@ const parseDateValue = (value?: string): Date | undefined => {
 	return isValid(date) ? date : undefined;
 };
 
-const formatDateValue = (date?: Date): string | undefined =>
-	date ? format(date, "yyyy-MM-dd") : undefined;
+const formatDateValue = (date?: Date, mode: DatePickerMode = "date"): string | undefined => {
+	if (!date) return undefined;
+
+	if (mode === "datetime") {
+		return date.toISOString();
+	}
+
+	return format(date, "yyyy-MM-dd");
+};
+
+const formatTimeValue = (date?: Date): string => {
+	if (!date) return "09:00";
+	return format(date, "HH:mm");
+};
+
+function applyTime(date: Date, time: string): Date {
+	const [hoursRaw, minutesRaw] = time.split(":");
+	const hours = Number(hoursRaw);
+	const minutes = Number(minutesRaw);
+
+	if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+		return date;
+	}
+
+	return setSeconds(setMinutes(setHours(date, hours), minutes), 0);
+}
 
 export function DatePickerInput({
 	value,
@@ -24,6 +51,9 @@ export function DatePickerInput({
 	className,
 	disabled,
 	clearable = true,
+	mode = "date",
+	timePlaceholder = "Time",
+	defaultTime = "09:00",
 }: {
 	value?: string;
 	onChange: (value: string | undefined) => void;
@@ -31,11 +61,38 @@ export function DatePickerInput({
 	className?: string;
 	disabled?: boolean;
 	clearable?: boolean;
+	mode?: DatePickerMode;
+	timePlaceholder?: string;
+	defaultTime?: string;
 }) {
 	const [open, setOpen] = useState(false);
 	const selected = parseDateValue(value);
 
-	return (
+	const timeValue = selected ? formatTimeValue(selected) : defaultTime;
+
+	const handleDateSelect = (date?: Date) => {
+		if (!date) {
+			onChange(undefined);
+			return;
+		}
+
+		const next =
+			mode === "datetime"
+				? applyTime(date, selected ? formatTimeValue(selected) : defaultTime)
+				: date;
+
+		onChange(formatDateValue(next, mode));
+		setOpen(false);
+	};
+
+	const handleTimeChange = (time: string) => {
+		const base = selected ?? new Date();
+		const next = applyTime(base, time);
+
+		onChange(formatDateValue(next, mode));
+	};
+
+	const dateButton = (
 		<Popover.Root open={open} onOpenChange={setOpen}>
 			<Popover.Trigger asChild>
 				<Button
@@ -43,9 +100,10 @@ export function DatePickerInput({
 					variant="secondary"
 					disabled={disabled}
 					className={cx(
-						"w-full h-9 justify-start gap-2 px-3 text-left font-normal",
+						"h-9 justify-start gap-2 px-3 text-left font-normal",
+						mode === "datetime" ? "w-full min-w-0" : "w-full",
 						!selected && "text-ink-3",
-						className,
+						mode === "date" && className,
 					)}
 				>
 					<CalendarDays size={15} className="shrink-0 text-ink-3" />
@@ -68,10 +126,7 @@ export function DatePickerInput({
 					<DayPicker
 						mode="single"
 						selected={selected}
-						onSelect={date => {
-							onChange(formatDateValue(date));
-							if (date) setOpen(false);
-						}}
+						onSelect={handleDateSelect}
 						showOutsideDays
 						className="p-3"
 						classNames={{
@@ -129,5 +184,26 @@ export function DatePickerInput({
 				</Popover.Content>
 			</Popover.Portal>
 		</Popover.Root>
+	);
+
+	return mode === "datetime" ? (
+		<div className={cx("grid grid-cols-[minmax(0,1fr)_8.5rem] gap-2", className)}>
+			{dateButton}
+			<Input
+				type="time"
+				value={timeValue}
+				disabled={disabled}
+				placeholder={timePlaceholder}
+				onChange={e => handleTimeChange(e.target.value)}
+				className={cx(
+					"h-9 tabular-nums",
+					"appearance-none",
+					"[&::-webkit-calendar-picker-indicator]:hidden",
+					"[&::-webkit-calendar-picker-indicator]:appearance-none",
+				)}
+			/>
+		</div>
+	) : (
+		dateButton
 	);
 }

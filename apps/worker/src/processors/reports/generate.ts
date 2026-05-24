@@ -293,7 +293,7 @@ async function renderPDF(
 
 	const drawHeader = () => {
 		let x = margin;
-		for (let i = 0; i < columns.length; i++) {
+		for (let i = 0; i < columns.length; ++i) {
 			page.drawText(columns[i]!.toUpperCase(), {
 				x,
 				y,
@@ -314,7 +314,7 @@ async function renderPDF(
 		}
 
 		let x = margin;
-		for (let i = 0; i < columns.length; i++) {
+		for (let i = 0; i < columns.length; ++i) {
 			const v = r[columns[i]!];
 			const text =
 				v == null
