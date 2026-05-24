@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
@@ -28,6 +28,7 @@ import { useToast } from "@/components/Toast";
 
 const Search = z.object({
 	blockId: z.string().optional(),
+	roomId: z.string().optional(),
 });
 
 export const Route = createFileRoute("/c/$slug/accommodation")({
@@ -95,20 +96,37 @@ function AccommodationPage() {
 			}),
 	});
 
-	const selectedBlockId = search.blockId ?? blocks.data?.data?.[0]?.id ?? null;
+	const allRooms = useQuery<{ data: Room[] }>({
+		queryKey: ["acc-all-rooms", conference.slug],
+		queryFn: () =>
+			api.get<{ data: Room[] }>(`/api/v1/c/${conference.slug}/accommodation/rooms`, {
+				pageSize: 100,
+			}),
+	});
+
+	const roomIdFromSearch = search.roomId;
+	const roomToOpen = roomIdFromSearch
+		? ((allRooms.data?.data ?? []).find(r => r.id === roomIdFromSearch) ?? null)
+		: null;
+	const selectedBlockId =
+		(roomToOpen?.blockId || search.blockId || blocks.data?.data?.[0]?.id) ?? null;
 
 	const rooms = useQuery<{ data: Room[] }>({
 		queryKey: ["acc-rooms", conference.slug, selectedBlockId],
 		queryFn: () =>
 			api.get<{ data: Room[] }>(`/api/v1/c/${conference.slug}/accommodation/rooms`, {
-				blockId: selectedBlockId!,
+				blockId: selectedBlockId ?? undefined,
 				pageSize: 200,
 			}),
 		enabled: !!selectedBlockId,
 	});
 
-	const [openRoom, setOpenRoom] = useState<Room | null>(null);
+	const [openRoom, setOpenRoom] = useState<Room | null>(roomToOpen);
 	const [createBlockOpen, setCreateBlockOpen] = useState(false);
+
+	useEffect(() => {
+		if (roomToOpen && openRoom && selectedBlockId) setSearch({ blockId: selectedBlockId });
+	}, [roomToOpen, openRoom, selectedBlockId, setSearch]);
 
 	return (
 		<div className="p-6">

@@ -53,9 +53,7 @@ export const roomsRouter = makeCrudRouter({
 	},
 	listQuerySchema: z.object({
 		blockId: z.string().uuid().optional(),
-		status: z
-			.enum(["available", "reserved", "occupied", "maintenance", "out_of_service"])
-			.optional(),
+		status: z.enum(["available", "reserved", "occupied", "maintenance", "blocked"]).optional(),
 		genderPreference: z.enum(["male", "female", "mixed", "none"]).optional(),
 	}),
 	applyFilters: filters => {
@@ -286,33 +284,33 @@ allocationsRouter.post(
 					.where(eq(accommodationRooms.id, before.roomId));
 			}
 
-		await recordAudit(tx, {
-			conferenceId: conf.id,
-			userId: user.id,
-			action: "update",
-			entity: `room_allocation.${body.action}`,
-			entityId: id,
-			before,
-			after: row,
-			ip: getClientIp(c),
-			userAgent: c.req.header("user-agent") ?? null,
-			requestId: c.get("requestId"),
-		});
-
-		if (body.action === "check_in") {
-			await notifyConference(tx, conf.id, {
-				type: "allocation.checked_in",
-				entity: "room_allocation",
-				id,
-				meta: {
-					attendeeId: row!.attendeeId,
-					roomId: row!.roomId,
-					keyIssued: row!.keyIssued,
-				},
+			await recordAudit(tx, {
+				conferenceId: conf.id,
+				userId: user.id,
+				action: "update",
+				entity: `room_allocation.${body.action}`,
+				entityId: id,
+				before,
+				after: row,
+				ip: getClientIp(c),
+				userAgent: c.req.header("user-agent") ?? null,
+				requestId: c.get("requestId"),
 			});
-		}
 
-		return row;
+			if (body.action === "check_in") {
+				await notifyConference(tx, conf.id, {
+					type: "allocation.checked_in",
+					entity: "room_allocation",
+					id,
+					meta: {
+						attendeeId: row!.attendeeId,
+						roomId: row!.roomId,
+						keyIssued: row!.keyIssued,
+					},
+				});
+			}
+
+			return row;
 		});
 
 		return c.json({ data: updated });

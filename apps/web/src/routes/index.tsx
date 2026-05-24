@@ -4,11 +4,17 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Plus } from "lucide-react";
 
+
+
 import { AppHeader } from "@/components/AppHeader";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { CenterSpinner, EmptyState } from "@/components/EmptyState";
+
+
+
+
 
 type Me = {
 	user: { id: string; name: string; email: string; isPlatformAdmin?: boolean };
@@ -17,6 +23,7 @@ type Me = {
 		conferenceSlug: string;
 		conferenceName: string;
 		conferenceShortName: string;
+		conferenceStatus: string;
 		role: string;
 		isActive: boolean;
 		startDate?: string;
@@ -99,8 +106,19 @@ function IndexPage() {
 								>
 									<div className="flex items-start justify-between gap-2">
 										<div className="min-w-0">
-											<div className="text-[10px] font-semibold uppercase tracking-wider text-ink-3">
+											<div className="text-[10px] font-semibold uppercase tracking-wider text-ink-3 flex items-center">
 												{m.conferenceShortName}
+												<Badge
+													className="ml-2"
+													size="xs"
+													variant={
+														m.conferenceStatus === "active"
+															? "success"
+															: "neutral"
+													}
+												>
+													{humanise(m.conferenceStatus)}
+												</Badge>
 											</div>
 											<div className="mt-1 text-base font-semibold text-ink leading-tight">
 												{m.conferenceName}

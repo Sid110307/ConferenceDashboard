@@ -93,6 +93,7 @@ travelRouter.get(
 		if (q.q) {
 			whereParts.push(
 				or(
+					ilike(sql`${travelSegments.id}::text`, `%${q.q}%`),
 					ilike(travelSegments.serviceNumber, `%${q.q}%`),
 					ilike(travelSegments.pnr, `%${q.q}%`),
 					ilike(travelSegments.carrier, `%${q.q}%`),
@@ -248,7 +249,8 @@ travelRouter.get(
 					vehicleId: travelSegments.vehicleId,
 					vehicleCode: vehicles.vehicleCode,
 					vehiclePlate: vehicles.plateNumber,
-					driverName: travelSegments.driverNameOverride,
+					driverName: vehicles.driverName,
+					driverPhone: vehicles.driverPhone,
 					attendeeId: attendees.id,
 					attendeeCode: attendees.attendeeCode,
 					attendeeName: attendees.name,

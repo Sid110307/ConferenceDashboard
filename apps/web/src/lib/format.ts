@@ -64,6 +64,7 @@ export function initials(name: string | null | undefined): string {
 export function humanise(s: string | null | undefined): string {
 	if (!s) return "";
 	return s
+		.replace(/^vip/i, "VIP")
 		.replace(
 			/^(a|b|ab|o)_(plus|pos|neg)$/i,
 			(_, group, sign) => `${group.toUpperCase()}${sign.toLowerCase() === "neg" ? "-" : "+"}`,

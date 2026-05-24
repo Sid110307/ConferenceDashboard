@@ -258,6 +258,27 @@ function TravelPage() {
 			cell: r => <StatusBadge status={r.pickupStatus} />,
 			width: "w-32",
 		},
+		{
+			key: "actions",
+			header: "Actions",
+			cell: r => (
+				canEdit ? (
+					<Button
+						variant="secondary"
+						size="sm"
+						onClick={() => {
+							setSelected(new Set([r.id]));
+							setAssignOpen(true);
+						}}
+					>
+						Manage vehicle
+					</Button>
+				) : (
+					<span className="text-xs text-ink-3">—</span>
+				)
+			),
+			width: "w-32",
+		},
 	];
 
 	const activeFilters = useMemo(() => {

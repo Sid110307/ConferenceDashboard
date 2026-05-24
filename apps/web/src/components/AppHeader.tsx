@@ -31,7 +31,7 @@ export function AppHeader({ rightSlot }: { rightSlot?: React.ReactNode }) {
 				.map(n => n[0]!.toUpperCase())
 				.join("")
 		: "?";
-	const showSwitchConference = /^\/c\/[^/]+\/?$/.test(location.pathname);
+	const showSwitchConference = user && data?.memberships && data.memberships.length > 0 && location.pathname !== "/";
 
 	return (
 		<header className="h-12 shrink-0 border-b border-line bg-surface px-4 flex items-center justify-between gap-3">

@@ -53,7 +53,7 @@ export function errorHandler(err: Error, c: Context<AppContext>) {
 	return c.json(
 		{
 			error: "internal_error",
-			message: "an unexpected error occurred",
+			message: `An unexpected error occurred\nRequest ID: ${reqId}`,
 			requestId: reqId,
 		},
 		500,

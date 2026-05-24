@@ -1,7 +1,10 @@
 import { auth } from "@/auth";
+import { recordAudit } from "@/lib/audit";
 import type { AppContext } from "@/lib/context";
 import { env } from "@/lib/env";
-import { loadAuthUser, resolveConference } from "@/middleware/auth";
+import { NotFoundError } from "@/lib/errors";
+import { withTenant } from "@/lib/tenancy";
+import { loadAuthUser, requireRole, resolveConference } from "@/middleware/auth";
 import { errorHandler } from "@/middleware/error-handler";
 import { requestIdMiddleware } from "@/middleware/request-id";
 import { requestLogMiddleware } from "@/middleware/request-log";
@@ -43,6 +46,10 @@ import { sponsorsRouter } from "@/routes/sponsors.routes";
 import { assignmentsRouter, committeesRouter, staffRouter } from "@/routes/staff.routes";
 import { travelRouter, vehiclesRouter } from "@/routes/travel.routes";
 import { vipChecklistRouter, vipRouter } from "@/routes/vip.routes";
+import { conferences } from "@conference/db";
+import { conferenceUpdateSchema } from "@conference/shared";
+import { zValidator } from "@hono/zod-validator";
+import { and, eq, isNull } from "drizzle-orm";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
@@ -75,6 +82,57 @@ export function buildApp() {
 		c.json({ conference: c.get("conference"), membership: c.get("membership") });
 	api.get("/c/:conferenceSlug", loadAuthUser, resolveConference, tenantIndex);
 	api.get("/c/:conferenceSlug/", loadAuthUser, resolveConference, tenantIndex);
+	api.patch(
+		"/c/:conferenceSlug",
+		loadAuthUser,
+		resolveConference,
+		requireRole("admin"),
+		zValidator("json", conferenceUpdateSchema),
+		async c => {
+			const user = c.get("user")!;
+			const conf = c.get("conference")!;
+			const input = c.req.valid("json");
+
+			const updated = await withTenant(conf.id, async tx => {
+				const [before] = await tx
+					.select()
+					.from(conferences)
+					.where(and(eq(conferences.id, conf.id), isNull(conferences.deletedAt)))
+					.limit(1);
+				if (!before) throw new NotFoundError("conference");
+
+				const updateValues = {
+					...input,
+					updatedBy: user.id,
+					updatedAt: new Date(),
+				} as any;
+
+				const [result] = await tx
+					.update(conferences)
+					.set(updateValues)
+					.where(eq(conferences.id, conf.id))
+					.returning();
+				if (!result) throw new NotFoundError("conference");
+
+				await recordAudit(tx, {
+					conferenceId: conf.id,
+					userId: user.id,
+					action: "update",
+					entity: "conference",
+					entityId: conf.id,
+					before,
+					after: result,
+					ip: c.req.header("x-forwarded-for")?.split(",")[0] ?? null,
+					userAgent: c.req.header("user-agent") ?? null,
+					requestId: c.get("requestId"),
+				});
+
+				return result;
+			});
+
+			return c.json({ conference: updated });
+		},
+	);
 
 	const tenant = new Hono<AppContext>();
 	tenant.use("*", loadAuthUser);

@@ -54,7 +54,7 @@ export const sponsorsRouter = makeCrudRouter({
 			customFields: z.record(z.string(), z.any()).optional(),
 		})
 		.partial(),
-	searchColumns: [sponsors.name],
+	searchColumns: [sponsors.id, sponsors.name],
 	defaultSort: sponsors.sortOrder,
 	listQuerySchema: z.object({
 		tier: z.string().optional(),

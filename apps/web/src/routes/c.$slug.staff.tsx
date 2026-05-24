@@ -193,12 +193,12 @@ function CommitteesTab({ canEdit }: { canEdit: boolean }) {
 						className="text-start"
 						actions={
 							<div className="flex items-center gap-1">
-								{c.leadCount && (
+								{c.leadCount ? (
 									<Badge variant="accent" size="xs">
 										<Star size={10} className="mr-0.5" />
 										Lead
 									</Badge>
-								)}
+								) : undefined}
 								<Badge
 									variant={(c.memberCount || 0) > 0 ? "accent" : "neutral"}
 									size="xs"
@@ -276,7 +276,7 @@ function CommitteeDrawer({
 		queryKey: ["staff-all", conference.slug],
 		queryFn: () =>
 			api.get<{ data: Staff[] }>(`/api/v1/c/${conference.slug}/staff`, {
-				pageSize: 500,
+				pageSize: 100,
 			}),
 		enabled: adding,
 	});

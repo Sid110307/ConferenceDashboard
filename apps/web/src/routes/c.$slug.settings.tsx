@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { api } from "@/lib/api";
-import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
+import { ActiveConference, hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { humanise } from "@/lib/format";
 import { useUrlState } from "@/lib/useUrlState";
 import { conferenceUpdateSchema, type ConferenceUpdateInput } from "@conference/shared";
@@ -64,26 +64,16 @@ function SettingsPage() {
 	);
 }
 
-type ConferenceProfile = {
-	name: string;
-	description?: string | null;
-	startDate?: string | null;
-	endDate?: string | null;
-	venueName?: string | null;
-	venueAddress?: string | null;
-	publicStatus?: "draft" | "active" | "concluded" | "archived" | null;
-};
-
 function ProfileTab() {
 	const { conference } = useConference();
 	const qc = useQueryClient();
 	const toast = useToast();
 
 	const profile = useQuery<{ conference: ConferenceProfile }>({
-		queryKey: ["conf-profile", conference.slug],
+		queryKey: ["tenant", conference.slug],
 		queryFn: () => api.get<{ conference: ConferenceProfile }>(`/api/v1/c/${conference.slug}`),
 	});
-	const [form, setForm] = useState<Partial<ConferenceProfile>>({});
+	const [form, setForm] = useState<Partial<ActiveConference>>({});
 	const merged = { ...(profile.data?.conference ?? {}), ...form };
 
 	const save = useMutation({
@@ -93,9 +83,7 @@ function ProfileTab() {
 				conferenceUpdateSchema.parse(form) as ConferenceUpdateInput,
 			),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["conf-profile", conference.slug] }).catch(
-				console.error,
-			);
+			qc.invalidateQueries({ queryKey: ["tenant", conference.slug] }).catch(console.error);
 			qc.invalidateQueries({ queryKey: ["active-conference", conference.slug] }).catch(
 				console.error,
 			);
@@ -106,7 +94,7 @@ function ProfileTab() {
 	});
 
 	if (profile.isLoading) return <CenterSpinner />;
-	const upd = (p: Partial<ConferenceProfile>) => setForm(f => ({ ...f, ...p }));
+	const upd = (p: Partial<ActiveConference>) => setForm(f => ({ ...f, ...p }));
 
 	return (
 		<Card
@@ -132,23 +120,17 @@ function ProfileTab() {
 						onChange={e => upd({ name: e.target.value })}
 					/>
 				</FieldRow>
+				<FieldRow label="Short name" required>
+					<Input
+						value={merged.shortName ?? ""}
+						onChange={e => upd({ shortName: e.target.value })}
+					/>
+				</FieldRow>
 				<FieldRow label="Tagline / description">
 					<Input
 						value={merged.description ?? ""}
 						onChange={e => upd({ description: e.target.value })}
 					/>
-				</FieldRow>
-				<FieldRow label="Status">
-					<Select
-						value={merged.publicStatus ?? "draft"}
-						onChange={e => upd({ publicStatus: e.target.value as any })}
-					>
-						{["draft", "active", "concluded", "archived"].map(s => (
-							<option key={s} value={s}>
-								{humanise(s)}
-							</option>
-						))}
-					</Select>
 				</FieldRow>
 				<FieldRow label="Start date">
 					<DatePickerInput
@@ -162,7 +144,19 @@ function ProfileTab() {
 						onChange={e => upd({ endDate: e })}
 					/>
 				</FieldRow>
-				<FieldRow label="Venue name" className="sm:col-span-2">
+				<FieldRow label="Conference Status">
+					<Select
+						value={merged.publicStatus ?? "draft"}
+						onChange={e => upd({ publicStatus: e.target.value as any })}
+					>
+						{["draft", "active", "archived"].map(s => (
+							<option key={s} value={s}>
+								{humanise(s)}
+							</option>
+						))}
+					</Select>
+				</FieldRow>
+				<FieldRow label="Venue name">
 					<Input
 						value={merged.venueName ?? ""}
 						onChange={e => upd({ venueName: e.target.value })}

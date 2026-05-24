@@ -44,6 +44,7 @@ function buildNav(slug: string): NavSection[] {
 			items: [
 				{ to: `${base}`, label: "Dashboard", icon: <LayoutDashboard size={16} /> },
 				{ to: `${base}/control-room`, label: "Control Room", icon: <Radio size={16} /> },
+				{ to: `${base}/comms`, label: "Messaging Studio", icon: <Megaphone size={16} /> },
 			],
 		},
 		{
@@ -55,43 +56,10 @@ function buildNav(slug: string): NavSection[] {
 			],
 		},
 		{
-			label: "Operations",
+			label: "Event Management",
 			items: [
-				{ to: `${base}/travel`, label: "Travel & Vehicles", icon: <Plane size={16} /> },
-				{
-					to: `${base}/accommodation`,
-					label: "Accommodation",
-					icon: <BedDouble size={16} />,
-				},
-				{ to: `${base}/food`, label: "Food & Dining", icon: <Utensils size={16} /> },
 				{ to: `${base}/programme`, label: "Programme", icon: <CalendarDays size={16} /> },
-				{ to: `${base}/helpdesk`, label: "Helpdesk", icon: <LifeBuoy size={16} /> },
-				{
-					to: `${base}/announcements`,
-					label: "Announcements",
-					icon: <Bell size={16} />,
-				},
-				{ to: `${base}/certificates`, label: "Certificates", icon: <Award size={16} /> },
-				{ to: `${base}/feedback`, label: "Feedback", icon: <ClipboardList size={16} /> },
 				{ to: `${base}/logistics`, label: "Logistics", icon: <Box size={16} /> },
-			],
-		},
-		{
-			label: "Communications",
-			items: [
-				{ to: `${base}/comms`, label: "Messaging Studio", icon: <Megaphone size={16} /> },
-			],
-		},
-		{
-			label: "Data",
-			items: [
-				{
-					to: `${base}/imports`,
-					label: "Imports",
-					icon: <Upload size={16} />,
-					min: "editor",
-				},
-				{ to: `${base}/reports`, label: "Reports", icon: <FileBarChart2 size={16} /> },
 				{
 					to: `${base}/finance`,
 					label: "Finance & Sponsors",
@@ -101,11 +69,48 @@ function buildNav(slug: string): NavSection[] {
 			],
 		},
 		{
-			label: "Admin",
+			label: "Services",
+			items: [
+				{ to: `${base}/travel`, label: "Travel & Vehicles", icon: <Plane size={16} /> },
+				{
+					to: `${base}/accommodation`,
+					label: "Accommodation",
+					icon: <BedDouble size={16} />,
+				},
+				{ to: `${base}/food`, label: "Food & Dining", icon: <Utensils size={16} /> },
+				{ to: `${base}/helpdesk`, label: "Helpdesk", icon: <LifeBuoy size={16} /> },
+			],
+		},
+		{
+			label: "Engagement",
+			items: [
+				{
+					to: `${base}/announcements`,
+					label: "Announcements",
+					icon: <Bell size={16} />,
+				},
+				{ to: `${base}/certificates`, label: "Certificates", icon: <Award size={16} /> },
+				{ to: `${base}/feedback`, label: "Feedback", icon: <ClipboardList size={16} /> },
+			],
+		},
+		{
+			label: "Data & Reports",
+			items: [
+				{
+					to: `${base}/imports`,
+					label: "Imports",
+					icon: <Upload size={16} />,
+					min: "editor",
+				},
+				{ to: `${base}/reports`, label: "Reports", icon: <FileBarChart2 size={16} /> },
+			],
+		},
+		{
+			label: "Administration",
 			items: [
 				{
 					to: `${base}/members`,
-					label: "Members",
+					label: "Team & Access",
 					icon: <UserCog size={16} />,
 					min: "admin",
 				},

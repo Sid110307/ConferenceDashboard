@@ -15,6 +15,7 @@ export type ActiveConference = {
 	name: string;
 	shortName: string;
 	description: string;
+	publicStatus: "draft" | "active" | "archived";
 	venueName?: string | null;
 	venueAddress?: string | null;
 	venueCity?: string | null;

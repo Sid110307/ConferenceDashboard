@@ -20,7 +20,7 @@ import {
 	type AttendeeUpdateInput,
 } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
 	CheckCircle2,
 	CircleX,
@@ -37,6 +37,7 @@ import { Badge, StatusBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { CustomFieldsSection } from "@/components/CustomFieldsSection";
 import { DataTable, Pagination, type Column } from "@/components/DataTable";
 import { EntityDrawer } from "@/components/EntityDrawer";
 import { FieldRow } from "@/components/FieldRow";
@@ -102,6 +103,7 @@ const PAGE_SIZE = 20;
 
 function AttendeesPage() {
 	const { conference, membership } = useConference();
+	const navigate = useNavigate();
 	const qc = useQueryClient();
 	const toast = useToast();
 	const confirm = useConfirm();
@@ -134,9 +136,7 @@ function AttendeesPage() {
 		queryFn: () =>
 			api.get<{ data: TravelManifestEntry[] }>(
 				`/api/v1/c/${conference.slug}/travel/manifest`,
-				{
-					direction: "arrival",
-				},
+				{ direction: "arrival" },
 			),
 	});
 	const departureManifest = useQuery<{ data: TravelManifestEntry[] }>({
@@ -144,9 +144,7 @@ function AttendeesPage() {
 		queryFn: () =>
 			api.get<{ data: TravelManifestEntry[] }>(
 				`/api/v1/c/${conference.slug}/travel/manifest`,
-				{
-					direction: "departure",
-				},
+				{ direction: "departure" },
 			),
 	});
 	const accommodationAllocations = useQuery<{ data: Allocation[] }>({
@@ -361,7 +359,16 @@ function AttendeesPage() {
 				const allocation = accommodationByAttendee.get(r.id);
 				if (!allocation) return <span className="text-xs text-ink-3">-</span>;
 				return (
-					<div className="text-xs min-w-0">
+					<div
+						onClick={e => {
+							e.stopPropagation();
+							navigate({
+								to: `/c/${conference.slug}/accommodation`,
+								search: { roomId: allocation.roomId },
+							}).catch(console.error);
+						}}
+						className="text-xs min-w-0 flex flex-col gap-1 cursor-pointer p-2 rounded-md transition-colors hover:bg-surface-3"
+					>
 						<div className="flex items-center gap-2">
 							<StatusBadge status={allocation.status} />
 							<span className="text-ink truncate">
@@ -390,15 +397,24 @@ function AttendeesPage() {
 					.filter(Boolean)
 					.join(" · ");
 				return (
-					<div className="text-xs min-w-0">
-						<div className="text-ink">
+					<div
+						onClick={e => {
+							e.stopPropagation();
+							navigate({
+								to: `/c/${conference.slug}/travel`,
+								search: { q: segment.id, direction: "arrival" },
+							}).catch(console.error);
+						}}
+						className="text-xs min-w-0 flex flex-col gap-1 cursor-pointer p-2 rounded-md transition-colors hover:bg-surface-3"
+					>
+						<div className="text-ink truncate flex items-center gap-1">
+							<StatusBadge status={segment.pickupStatus} />
+							{details || "-"}
+						</div>
+						<div className="text-[11px] text-ink-3">
 							{segment.scheduledTime
 								? fmtDateTime(segment.scheduledTime)
 								: "Time TBD"}
-						</div>
-						<div className="text-[11px] text-ink-3 truncate flex items-center gap-1">
-							<StatusBadge status={segment.pickupStatus} />
-							{details || "-"}
 						</div>
 					</div>
 				);
@@ -418,15 +434,24 @@ function AttendeesPage() {
 					.filter(Boolean)
 					.join(" · ");
 				return (
-					<div className="text-xs min-w-0">
-						<div className="text-ink">
+					<div
+						onClick={e => {
+							e.stopPropagation();
+							navigate({
+								to: `/c/${conference.slug}/travel`,
+								search: { q: segment.id, direction: "departure" },
+							}).catch(console.error);
+						}}
+						className="text-xs min-w-0 flex flex-col gap-1 cursor-pointer p-2 rounded-md transition-colors hover:bg-surface-3"
+					>
+						<div className="text-ink truncate flex items-center gap-1">
+							<StatusBadge status={segment.pickupStatus} />
+							{details || "-"}
+						</div>
+						<div className="text-[11px] text-ink-3">
 							{segment.scheduledTime
 								? fmtDateTime(segment.scheduledTime)
 								: "Time TBD"}
-						</div>
-						<div className="text-[11px] text-ink-3 truncate flex items-center gap-1">
-							<StatusBadge status={segment.pickupStatus} />
-							{details || "-"}
 						</div>
 					</div>
 				);
@@ -440,7 +465,7 @@ function AttendeesPage() {
 				const segment = arrivalByAttendee.get(r.id) ?? departureByAttendee.get(r.id);
 				if (!segment) return <span className="text-xs text-ink-3">-</span>;
 				return (
-					<div className="text-xs min-w-0">
+					<div className="text-xs min-w-0 flex flex-col gap-1">
 						<div className="text-ink truncate">
 							{[segment.vehicleCode, segment.vehiclePlate]
 								.filter(Boolean)
@@ -954,11 +979,6 @@ function AttendeeDrawer({
 			onOpenChange={v => !v && onClose()}
 			title={isEdit ? (form.name ?? "Attendee") : "Add attendee"}
 			subtitle={isEdit ? attendee?.attendeeCode : "New record: code will be auto-assigned"}
-			status={
-				isEdit && attendee ? (
-					<StatusBadge status={attendee.registrationStatus} />
-				) : undefined
-			}
 			width="lg"
 			footer={
 				<>
@@ -1151,6 +1171,21 @@ function AttendeeDrawer({
 						placeholder="day1, vip-dinner"
 					/>
 				</FieldRow>
+				<div className="sm:col-span-2">
+					<CustomFieldsSection
+						entity="attendees"
+						conferenceSlug={conference.slug}
+						customFields={form.customFields ?? {}}
+						onUpdate={(key, value) =>
+							update({
+								customFields: {
+									...(form.customFields ?? {}),
+									[key]: value,
+								},
+							})
+						}
+					/>
+				</div>
 			</div>
 		</EntityDrawer>
 	);
@@ -1160,8 +1195,23 @@ function cleanForApi(o: Partial<Attendee>): Partial<Attendee> {
 	const out: any = {};
 	for (const [k, v] of Object.entries(o)) {
 		if (v === "" || v === undefined) continue;
-		if (k === "tags" || Array.isArray(v)) {
+		if (k === "tags") {
 			out[k] = Array.isArray(v) ? v.filter(s => s.trim() !== "") : (v ?? []);
+			continue;
+		}
+		if (k === "customFields") {
+			const cleaned: Record<string, unknown> = {};
+			for (const [fieldKey, fieldValue] of Object.entries(v as Record<string, unknown>)) {
+				if (fieldValue !== "" && fieldValue !== undefined && fieldValue !== null)
+					cleaned[fieldKey] = fieldValue;
+			}
+			if (Object.keys(cleaned).length > 0) {
+				out[k] = cleaned;
+			}
+			continue;
+		}
+		if (Array.isArray(v)) {
+			out[k] = v;
 			continue;
 		}
 		out[k] = v;

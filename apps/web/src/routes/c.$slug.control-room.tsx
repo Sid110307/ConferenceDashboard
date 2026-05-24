@@ -276,7 +276,10 @@ function ControlRoomPage() {
 					hint={`of ${fmtNumber(c?.attendees.total ?? 0)}`}
 					tone="success"
 					onClick={() =>
-						navigate({ to: "attendees", search: { checkinStatus: "checked_in" } })
+						navigate({
+							to: `/c/${conference.slug}/attendees`,
+							search: { checkinStatus: "checked_in" },
+						})
 					}
 				/>
 				<StatCard
@@ -286,7 +289,10 @@ function ControlRoomPage() {
 					hint={`${c?.travel.arrivalsPending ?? 0} en route`}
 					tone="neutral"
 					onClick={() =>
-						navigate({ to: "travel", search: { pickupStatus: "completed" } })
+						navigate({
+							to: `/c/${conference.slug}/travel`,
+							search: { pickupStatus: "completed" },
+						})
 					}
 				/>
 				<StatCard
@@ -295,14 +301,14 @@ function ControlRoomPage() {
 					value={c?.accommodation.occupied ?? 0}
 					hint={`of ${fmtNumber(c?.accommodation.capacity ?? 0)}`}
 					tone="accent"
-					onClick={() => navigate({ to: "accommodation" })}
+					onClick={() => navigate({ to: `/c/${conference.slug}/accommodation` })}
 				/>
 				<StatCard
 					icon={<Utensils size={20} />}
 					label="Meal scans today"
 					value={meals}
 					tone="neutral"
-					onClick={() => navigate({ to: "food" })}
+					onClick={() => navigate({ to: `/c/${conference.slug}/food` })}
 				/>
 				<StatCard
 					icon={<LifeBuoy size={20} />}
@@ -310,7 +316,12 @@ function ControlRoomPage() {
 					value={(c?.helpdesk.open ?? 0) + (c?.helpdesk.inProgress ?? 0)}
 					hint={c?.helpdesk.urgent ? `${c.helpdesk.urgent} urgent` : "none urgent"}
 					tone={c?.helpdesk.urgent ? "danger" : "neutral"}
-					onClick={() => navigate({ to: "helpdesk", search: { status: "open" } })}
+					onClick={() =>
+						navigate({
+							to: `/c/${conference.slug}/helpdesk`,
+							search: { status: "open" },
+						})
+					}
 				/>
 			</div>
 			<Card
