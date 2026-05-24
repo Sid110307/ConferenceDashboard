@@ -94,7 +94,7 @@ function VipPage() {
 					className="capitalize"
 					variant={r.protocolLevel === "a_plus" ? "success" : "neutral"}
 				>
-					{r.protocolLevel === "a_plus" ? "A+" : (r.protocolLevel ?? "none")}
+					{humanise(r.protocolLevel ?? "none")}
 				</Badge>
 			),
 			width: "w-32",
@@ -239,7 +239,7 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 			subtitle={[vip.designation, vip.institution].filter(Boolean).join(" · ")}
 			status={
 				<Badge variant="warn" className="capitalize">
-					{vip.protocolLevel === "a_plus" ? "A+" : (vip.protocolLevel ?? "none")}
+					{humanise(vip.protocolLevel ?? "none")}
 				</Badge>
 			}
 			width="md"

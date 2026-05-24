@@ -203,15 +203,60 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
 	const after = entry.changes?.after ?? {};
 	const fields = new Set([...Object.keys(before), ...Object.keys(after)]);
 
-	const diffs = Array.from(fields)
+	const changedDiffs = Array.from(fields)
 		.map(field => ({
 			field,
 			from: before[field],
 			to: after[field],
+			kind: "change" as const,
 		}))
 		.filter(diff => JSON.stringify(diff.from) !== JSON.stringify(diff.to));
 
-	const hasChanges = diffs.length > 0;
+	const mandatory = [
+		"name",
+		"email",
+		"tier",
+		"contact_name",
+		"contact_email",
+		"driver_name",
+		"driver_phone",
+		"scheduled_time",
+		"room_number",
+		"address",
+		"title",
+		"reported_by_name",
+		"reported_by_phone",
+		"summary",
+		"lead_name",
+		"lead_phone",
+		"role_in_committee",
+		"role",
+		"session_type",
+		"location",
+		"item_name",
+		"item_type",
+		"vendor_or_source",
+		"invoice_number",
+		"vendor_name",
+		"meal_type",
+		"channel",
+		"subject",
+		"recipient_name",
+		"target_entity",
+		"filename",
+	];
+	const fallbackDiffs = mandatory
+		.filter(field => !changedDiffs.some(diff => diff.field === field))
+		.map(field => ({
+			field,
+			from: before[field] ?? after[field],
+			to: before[field] ?? after[field],
+			kind: "context" as const,
+		}))
+		.filter(diff => diff.from !== undefined && diff.from !== null);
+
+	const diffs = [...changedDiffs, ...fallbackDiffs];
+	const hasChanges = changedDiffs.length > 0;
 
 	return (
 		<div className="py-3">
@@ -252,31 +297,64 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
 								className="mt-1 inline-flex items-center gap-1 text-xs text-accent hover:underline"
 							>
 								{expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-								{diffs.length} field change{diffs.length > 1 ? "s" : ""}
+								{expanded ? "Hide changes" : "View changes"}
 							</button>
 							{expanded && (
 								<div className="mt-2 rounded-md border border-line bg-surface-2 divide-y divide-line">
-									{diffs.map(diff => (
-										<div key={diff.field} className="px-3 py-1.5 text-xs">
-											<span className="font-mono text-ink-2">
-												{humanise(diff.field)}
-											</span>
-											<div className="mt-0.5 flex items-center gap-2">
-												<span
-													className={cx(
-														"text-danger-soft-fg truncate max-w-[40%]",
-														diff.from !== null && "line-through",
-													)}
-												>
-													{fmtVal(diff.from)}
+									{diffs
+										.filter(
+											diff =>
+												!(
+													diff.from === null ||
+													diff.from === undefined ||
+													diff.from === "" ||
+													(Array.isArray(diff.from) &&
+														diff.from.length === 0)
+												) ||
+												!(
+													diff.to === null ||
+													diff.to === undefined ||
+													diff.to === "" ||
+													(Array.isArray(diff.to) && diff.to.length === 0)
+												),
+										)
+										.map(diff => (
+											<div
+												key={diff.field}
+												className="font-mono px-3 py-1.5 text-xs"
+											>
+												<span className="text-ink-2">
+													{humanise(diff.field)}
 												</span>
-												<span className="text-ink-3">→</span>
-												<span className="text-success-soft-fg truncate max-w-[40%]">
-													{fmtVal(diff.to)}
-												</span>
+												{diff.kind === "context" ? (
+													<div className="mt-0.5 flex items-center gap-2 text-ink-3">
+														{fmtVal(diff.from)}
+													</div>
+												) : (
+													<div className="mt-0.5 flex items-center gap-2">
+														{diff.from !== null &&
+															diff.from !== undefined &&
+															diff.from !== "" && (
+																<>
+																	<span
+																		className={cx(
+																			"text-danger-soft-fg truncate max-w-[40%] line-through",
+																		)}
+																	>
+																		{fmtVal(diff.from)}
+																	</span>
+																	<span className="text-ink-3">
+																		→
+																	</span>
+																</>
+															)}
+														<span className="text-success-soft-fg truncate max-w-[40%]">
+															{fmtVal(diff.to)}
+														</span>
+													</div>
+												)}
 											</div>
-										</div>
-									))}
+										))}
 								</div>
 							)}
 						</>
@@ -288,9 +366,14 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
 }
 
 function fmtVal(v: unknown): string {
-	if (v === null || v === undefined) return "∅";
+	if (v === null || v === undefined || v === "") return "∅";
 	if (Array.isArray(v)) return v.join(", ");
 	if (typeof v === "object") return JSON.stringify(v);
 	if (typeof v === "boolean") return v ? "Yes" : "No";
-	return String(v);
+
+	return typeof v === "string" &&
+		(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v) ||
+			/^[A-Za-z0-9]{32}$/.test(v))
+		? String(v)
+		: humanise(String(v));
 }

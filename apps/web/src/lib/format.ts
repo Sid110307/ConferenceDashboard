@@ -64,9 +64,13 @@ export function initials(name: string | null | undefined): string {
 export function humanise(s: string | null | undefined): string {
 	if (!s) return "";
 	return s
+		.replace(
+			/^(a|b|ab|o)_(plus|pos|neg)$/i,
+			(_, group, sign) => `${group.toUpperCase()}${sign.toLowerCase() === "neg" ? "-" : "+"}`,
+		)
 		.replace(/([a-z0-9])([A-Z])/g, "$1 $2")
 		.replace(/[_-]+/g, " ")
 		.replace(/\s+/g, " ")
 		.trim()
-		.replace(/\b\w/g, c => c.toUpperCase());
+		.replace(/^\w/, c => c.toUpperCase());
 }
