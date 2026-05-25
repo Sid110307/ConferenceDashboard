@@ -7,12 +7,13 @@ import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { CheckSquare, Plus, Square } from "lucide-react";
+import { CheckSquare, Plus, Square, Trash2 } from "lucide-react";
 import { z } from "zod";
 
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { DataTable, Pagination, type Column } from "@/components/DataTable";
 import { CenterSpinner } from "@/components/EmptyState";
 import { EntityDrawer } from "@/components/EntityDrawer";
@@ -201,6 +202,7 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 	const { conference } = useConference();
 	const qc = useQueryClient();
 	const toast = useToast();
+	const confirm = useConfirm();
 	const [newItem, setNewItem] = useState("");
 
 	const checklist = useQuery<{ data: ChecklistItem[] }>({
@@ -228,6 +230,16 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 			qc.invalidateQueries({ queryKey: ["vip-checklist", conference.slug, vip.id] }),
 	});
 
+	const del = useMutation({
+		mutationFn: () => api.del(`/api/v1/c/${conference.slug}/vip/${vip.id}`),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["vip", conference.slug] }).catch(console.error);
+			toast.success("VIP guest deleted");
+			onClose();
+		},
+		onError: (e: any) => toast.error("Delete failed", e.message),
+	});
+
 	const items = checklist.data?.data ?? [];
 	const done = items.filter(i => i.isDone).length;
 
@@ -243,6 +255,35 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 				</Badge>
 			}
 			width="md"
+			footer={
+				canEdit ? (
+					<div className="flex items-center gap-2">
+						<Button
+							variant="danger"
+							leadingIcon={<Trash2 size={14} />}
+							loading={del.isPending}
+							onClick={async () => {
+								const ok = await confirm({
+									title: `Delete VIP guest?`,
+									description: `"${vip.name}" will be permanently deleted.`,
+									tone: "danger",
+									confirmLabel: "Delete",
+								});
+								if (ok) del.mutate();
+							}}
+						>
+							Delete
+						</Button>
+						<Button variant="ghost" onClick={onClose}>
+							Close
+						</Button>
+					</div>
+				) : (
+					<Button variant="ghost" onClick={onClose}>
+						Close
+					</Button>
+				)
+			}
 		>
 			<div className="space-y-4">
 				{vip.arrivalTime && (

@@ -1,6 +1,8 @@
+import { recordAudit } from "@/lib/audit";
 import type { AppContext } from "@/lib/context";
 import { makeCrudRouter } from "@/lib/crud-factory";
 import { NotFoundError } from "@/lib/errors";
+import { getClientIp } from "@/lib/http";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import { vipChecklist, vipGuests } from "@conference/db";
@@ -123,5 +125,46 @@ vipChecklistRouter.patch(
 		);
 		if (!row) throw new NotFoundError("checklist item");
 		return c.json({ data: row });
+	},
+);
+
+vipChecklistRouter.delete(
+	"/:vipId/:itemId",
+	requireRole("editor"),
+	zValidator("param", z.object({ vipId: z.string().uuid(), itemId: z.string().uuid() })),
+	async c => {
+		const conf = c.get("conference")!;
+		const user = c.get("user")!;
+		const { vipId, itemId } = c.req.valid("param");
+		await withTenant(conf.id, async tx => {
+			const [before] = await tx
+				.select()
+				.from(vipChecklist)
+				.where(
+					and(
+						eq(vipChecklist.id, itemId),
+						eq(vipChecklist.vipGuestId, vipId),
+						eq(vipChecklist.conferenceId, conf.id),
+					),
+				)
+				.limit(1);
+			if (!before) throw new NotFoundError("checklist item");
+			await tx
+				.update(vipChecklist)
+				.set({ deletedAt: new Date(), deletedBy: user.id })
+				.where(eq(vipChecklist.id, itemId));
+			await recordAudit(tx, {
+				conferenceId: conf.id,
+				userId: user.id,
+				action: "delete",
+				entity: "vip_checklist_item",
+				entityId: itemId,
+				before,
+				ip: getClientIp(c),
+				userAgent: c.req.header("user-agent") ?? null,
+				requestId: c.get("requestId"),
+			});
+		});
+		return c.json({ deleted: true });
 	},
 );

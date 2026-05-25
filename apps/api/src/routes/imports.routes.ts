@@ -277,3 +277,38 @@ importsRouter.post(
 		return c.json({ action, queued: !!dispatch });
 	},
 );
+
+importsRouter.delete(
+	"/:id",
+	requireRole("editor"),
+	zValidator("param", z.object({ id: z.string().uuid() })),
+	async c => {
+		const conf = c.get("conference")!;
+		const user = c.get("user")!;
+		const { id } = c.req.valid("param");
+		await withTenant(conf.id, async tx => {
+			const [before] = await tx
+				.select()
+				.from(importJobs)
+				.where(and(eq(importJobs.id, id), eq(importJobs.conferenceId, conf.id)))
+				.limit(1);
+			if (!before) throw new NotFoundError("import job");
+			await tx
+				.update(importJobs)
+				.set({ deletedAt: new Date(), deletedBy: user.id })
+				.where(eq(importJobs.id, id));
+			await recordAudit(tx, {
+				conferenceId: conf.id,
+				userId: user.id,
+				action: "delete",
+				entity: "import_job",
+				entityId: id,
+				before,
+				ip: getClientIp(c),
+				userAgent: c.req.header("user-agent") ?? null,
+				requestId: c.get("requestId"),
+			});
+		});
+		return c.json({ deleted: true });
+	},
+);

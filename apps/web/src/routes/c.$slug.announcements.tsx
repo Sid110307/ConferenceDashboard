@@ -7,12 +7,13 @@ import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { z } from "zod";
 
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { DataTable, Pagination, type Column } from "@/components/DataTable";
 import { DatePickerInput } from "@/components/DatePicker";
 import { EntityDrawer } from "@/components/EntityDrawer";
@@ -131,7 +132,7 @@ function AnnouncementsPage() {
 					onRowClick={r => setEditing(r)}
 					selectedKey={editing?.id ?? null}
 					emptyTitle="No announcements yet"
-					emptyHint="Pin a notice to keep it visible on the dashboard."
+					emptyHint="Create announcements to share important information."
 				/>
 				<Pagination
 					page={search.page ?? 1}
@@ -163,6 +164,7 @@ function AnnouncementDrawer({
 	const { conference } = useConference();
 	const qc = useQueryClient();
 	const toast = useToast();
+	const confirm = useConfirm();
 	const isEdit = !!announcement;
 	const [form, setForm] = useState<Partial<Announcement>>(
 		announcement ?? { priority: "medium", isPublic: true, isPinned: false, sortOrder: 0 },
@@ -193,6 +195,18 @@ function AnnouncementDrawer({
 		onError: (e: any) => toast.error("Save failed", e.message),
 	});
 
+	const del = useMutation({
+		mutationFn: () => api.del(`/api/v1/c/${conference.slug}/announcements/${announcement!.id}`),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["announcements", conference.slug] }).catch(
+				console.error,
+			);
+			toast.success("Announcement deleted");
+			onClose();
+		},
+		onError: (e: any) => toast.error("Delete failed", e.message),
+	});
+
 	const upd = (p: Partial<Announcement>) => setForm(f => ({ ...f, ...p }));
 
 	return (
@@ -203,16 +217,38 @@ function AnnouncementDrawer({
 			width="lg"
 			footer={
 				<>
-					<Button variant="ghost" onClick={onClose}>
-						Cancel
-					</Button>
-					<Button
-						variant="primary"
-						loading={save.isPending}
-						onClick={() => save.mutate()}
-					>
-						Save
-					</Button>
+					<div className={isEdit ? "flex items-center gap-2" : ""}>
+						{isEdit && (
+							<Button
+								variant="danger"
+								leadingIcon={<Trash2 size={14} />}
+								loading={del.isPending}
+								onClick={async () => {
+									const ok = await confirm({
+										title: `Delete announcement?`,
+										description: `"${announcement!.title}" will be permanently deleted.`,
+										tone: "danger",
+										confirmLabel: "Delete",
+									});
+									if (ok) del.mutate();
+								}}
+							>
+								Delete
+							</Button>
+						)}
+					</div>
+					<div className="flex gap-2">
+						<Button variant="ghost" onClick={onClose}>
+							Cancel
+						</Button>
+						<Button
+							variant="primary"
+							loading={save.isPending}
+							onClick={() => save.mutate()}
+						>
+							Save
+						</Button>
+					</div>
 				</>
 			}
 		>

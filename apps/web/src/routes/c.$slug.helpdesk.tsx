@@ -9,12 +9,13 @@ import { useRealtime } from "@/lib/useRealtime";
 import { useUrlState } from "@/lib/useUrlState";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { z } from "zod";
 
 import { Badge, StatusBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { DataTable, Pagination, type Column } from "@/components/DataTable";
 import { EntityDrawer } from "@/components/EntityDrawer";
 import { FieldRow } from "@/components/FieldRow";
@@ -224,6 +225,7 @@ function IssueDrawer({
 	const { conference } = useConference();
 	const qc = useQueryClient();
 	const toast = useToast();
+	const confirm = useConfirm();
 	const [notes, setNotes] = useState(issue.resolutionNotes ?? "");
 
 	const transition = useMutation({
@@ -239,6 +241,16 @@ function IssueDrawer({
 			onClose();
 		},
 		onError: (e: any) => toast.error("Update failed", e.message),
+	});
+
+	const del = useMutation({
+		mutationFn: () => api.del(`/api/v1/c/${conference.slug}/helpdesk/${issue.id}`),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["helpdesk", conference.slug] }).catch(console.error);
+			toast.success("Issue deleted");
+			onClose();
+		},
+		onError: (e: any) => toast.error("Delete failed", e.message),
 	});
 
 	const NEXT: Record<string, { to: string; label: string }[]> = {
@@ -274,21 +286,39 @@ function IssueDrawer({
 			width="md"
 			footer={
 				canEdit && (
-					<div className="flex gap-2">
-						{(NEXT[issue.status] ?? []).map(t => (
-							<Button
-								key={t.to}
-								variant={
-									t.to === "resolved" || t.to === "closed"
-										? "primary"
-										: "secondary"
-								}
-								loading={transition.isPending}
-								onClick={() => transition.mutate(t.to)}
-							>
-								{t.label}
-							</Button>
-						))}
+					<div className="flex items-center gap-2">
+						<Button
+							variant="danger"
+							leadingIcon={<Trash2 size={14} />}
+							loading={del.isPending}
+							onClick={async () => {
+								const ok = await confirm({
+									title: `Delete issue?`,
+									description: `"${issue.title}" (${issue.issueCode}) will be permanently deleted.`,
+									tone: "danger",
+									confirmLabel: "Delete",
+								});
+								if (ok) del.mutate();
+							}}
+						>
+							Delete
+						</Button>
+						<div className="flex gap-2">
+							{(NEXT[issue.status] ?? []).map(t => (
+								<Button
+									key={t.to}
+									variant={
+										t.to === "resolved" || t.to === "closed"
+											? "primary"
+											: "secondary"
+									}
+									loading={transition.isPending}
+									onClick={() => transition.mutate(t.to)}
+								>
+									{t.label}
+								</Button>
+							))}
+						</div>
 					</div>
 				)
 			}

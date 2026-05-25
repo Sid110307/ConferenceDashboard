@@ -317,6 +317,45 @@ allocationsRouter.post(
 	},
 );
 
+allocationsRouter.delete(
+	"/:id",
+	requireRole("editor"),
+	zValidator("param", z.object({ id: z.string().uuid() })),
+	async c => {
+		const conf = c.get("conference")!;
+		const user = c.get("user")!;
+		const { id } = c.req.valid("param");
+
+		await withTenant(conf.id, async tx => {
+			const [before] = await tx
+				.select()
+				.from(roomAllocations)
+				.where(and(eq(roomAllocations.id, id), eq(roomAllocations.conferenceId, conf.id)))
+				.limit(1);
+			if (!before) throw new NotFoundError("allocation");
+
+			await tx
+				.update(roomAllocations)
+				.set({ deletedAt: new Date(), deletedBy: user.id })
+				.where(eq(roomAllocations.id, id));
+
+			await recordAudit(tx, {
+				conferenceId: conf.id,
+				userId: user.id,
+				action: "delete",
+				entity: "room_allocation",
+				entityId: id,
+				before,
+				ip: getClientIp(c),
+				userAgent: c.req.header("user-agent") ?? null,
+				requestId: c.get("requestId"),
+			});
+		});
+
+		return c.json({ deleted: true });
+	},
+);
+
 export const accommodationIssuesRouter = makeCrudRouter({
 	table: accommodationIssues as any,
 	entity: "accommodation_issue",

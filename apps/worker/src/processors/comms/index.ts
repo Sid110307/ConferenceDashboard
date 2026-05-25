@@ -183,7 +183,9 @@ export async function processCampaignDispatchBatch(payload: {
 		.where(eq(messagingProviders.id, providerId))
 		.limit(1);
 	if (!provider) throw new Error(`provider ${providerId} not found`);
-	const creds = decryptJSON(provider.configEncrypted) as Record<string, any>;
+	const creds = decryptJSON(provider.configEncrypted, {
+		encryptionKey: env.ENCRYPTION_KEY,
+	}) as Record<string, any>;
 
 	let subject = camp.subject ?? null;
 	let body = camp.body;

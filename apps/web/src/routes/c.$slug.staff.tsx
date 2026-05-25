@@ -439,7 +439,7 @@ function CommitteeDrawer({
 			}
 		>
 			{isEditing ? (
-				<div className="flex flex-col gap-4 mb-5 rounded-lg border border-line bg-surface-1 p-4">
+				<div className="space-y-4">
 					<FieldRow label="Committee name" required>
 						<Input
 							value={form.name ?? ""}
@@ -513,7 +513,7 @@ function CommitteeDrawer({
 											</Button>
 										)}
 										<Button
-											variant="ghost"
+											variant="danger"
 											size="xs"
 											leadingIcon={<UserMinus size={12} />}
 											onClick={async () => {

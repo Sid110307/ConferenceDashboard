@@ -9,11 +9,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
-import { Camera, Plus, QrCode, Utensils, X } from "lucide-react";
+import { Camera, Plus, QrCode, Trash2, Utensils, X } from "lucide-react";
 import { z } from "zod";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { DatePickerInput } from "@/components/DatePicker";
 import { CenterSpinner, EmptyState } from "@/components/EmptyState";
 import { EntityDrawer } from "@/components/EntityDrawer";
@@ -65,6 +66,7 @@ function FoodPage() {
 	});
 
 	const [planOpen, setPlanOpen] = useState(false);
+	const [editingPlan, setEditingPlan] = useState<FoodPlan | null>(null);
 	const [scanOpen, setScanOpen] = useState(false);
 
 	const statFor = (date: string, meal: string) =>
@@ -88,7 +90,10 @@ function FoodPage() {
 							<Button
 								variant="primary"
 								leadingIcon={<Plus size={14} />}
-								onClick={() => setPlanOpen(true)}
+								onClick={() => {
+									setPlanOpen(true);
+									setEditingPlan(null);
+								}}
 							>
 								Add meal plan
 							</Button>
@@ -110,88 +115,151 @@ function FoodPage() {
 
 			<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 				{(plans.data?.data ?? []).map(p => (
-					<Card key={p.id} title={fmtDate(p.mealDate, "EEEE, d MMM")}>
-						<div className="space-y-2.5">
-							{MEALS.map(meal => {
-								const scanned = statFor(p.mealDate, meal);
-								const expected = p[`${meal}Count` as keyof FoodPlan] as
-									| number
-									| null;
-								const pct = expected ? Math.round((scanned / expected) * 100) : 0;
-								return (
-									<div key={meal} className="flex items-center gap-3">
-										<div className="w-20 text-xs capitalize text-ink-2">
-											{meal}
+					<button
+						key={p.id}
+						onClick={() => {
+							setEditingPlan(p);
+							setPlanOpen(true);
+						}}
+						className="group hover:cursor-pointer"
+					>
+						<Card
+							title={fmtDate(p.mealDate, "EEEE, d MMM")}
+							className="hover:border-accent transition-colors"
+						>
+							<div className="space-y-2.5">
+								{MEALS.map(meal => {
+									const scanned = statFor(p.mealDate, meal);
+									const expected = p[`${meal}Count` as keyof FoodPlan] as
+										| number
+										| null;
+									const pct = expected
+										? Math.round((scanned / expected) * 100)
+										: 0;
+									return (
+										<div key={meal} className="flex items-center gap-3">
+											<div className="w-20 text-xs capitalize text-ink-2">
+												{meal}
+											</div>
+											<div className="flex-1 h-1.5 rounded-full bg-line/70 overflow-hidden">
+												<div
+													className="h-full bg-accent rounded-full"
+													style={{ width: `${Math.min(100, pct)}%` }}
+												/>
+											</div>
+											<div className="text-xs tabular-nums text-ink-2 w-16 text-right">
+												{scanned}
+												{expected ? ` / ${expected}` : ""}
+											</div>
 										</div>
-										<div className="flex-1 h-1.5 rounded-full bg-line/70 overflow-hidden">
-											<div
-												className="h-full bg-accent rounded-full"
-												style={{ width: `${Math.min(100, pct)}%` }}
-											/>
-										</div>
-										<div className="text-xs tabular-nums text-ink-2 w-16 text-right">
-											{scanned}
-											{expected ? ` / ${expected}` : ""}
-										</div>
-									</div>
-								);
-							})}
-						</div>
-					</Card>
+									);
+								})}
+							</div>
+						</Card>
+					</button>
 				))}
 			</div>
 
-			{planOpen && <PlanDrawer onClose={() => setPlanOpen(false)} />}
+			{(planOpen || editingPlan) && (
+				<PlanDrawer
+					plan={editingPlan}
+					onClose={() => {
+						setPlanOpen(false);
+						setEditingPlan(null);
+					}}
+				/>
+			)}
 			{scanOpen && <ScanDrawer onClose={() => setScanOpen(false)} />}
 		</div>
 	);
 }
 
-function PlanDrawer({ onClose }: { onClose: () => void }) {
+function PlanDrawer({ plan, onClose }: { plan: FoodPlan | null; onClose: () => void }) {
 	const { conference } = useConference();
 	const qc = useQueryClient();
 	const toast = useToast();
+	const confirm = useConfirm();
+	const isEdit = !!plan;
 	const [form, setForm] = useState({
-		mealDate: "",
-		expectedHeadcount: "",
-		notes: "",
+		mealDate: plan?.mealDate ?? "",
+		expectedHeadcount: plan?.expectedHeadcount?.toString() ?? "",
+		notes: plan?.notes ?? "",
 	});
-	const create = useMutation({
-		mutationFn: () =>
-			api.post(`/api/v1/c/${conference.slug}/food/plans`, {
+	const save = useMutation({
+		mutationFn: () => {
+			const body = {
 				mealDate: form.mealDate,
 				expectedHeadcount: form.expectedHeadcount
 					? Number(form.expectedHeadcount)
 					: undefined,
 				notes: form.notes || undefined,
-			}),
+			};
+			return isEdit
+				? api.patch(`/api/v1/c/${conference.slug}/food/plans/${plan!.id}`, body)
+				: api.post(`/api/v1/c/${conference.slug}/food/plans`, body);
+		},
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["food-plans", conference.slug] }).catch(
 				console.error,
 			);
-			toast.success("Meal plan added");
+			toast.success(isEdit ? "Meal plan updated" : "Meal plan added");
 			onClose();
 		},
-		onError: (e: any) => toast.error("Create failed", e.message),
+		onError: (e: any) => toast.error("Save failed", e.message),
 	});
+
+	const del = useMutation({
+		mutationFn: () => api.del(`/api/v1/c/${conference.slug}/food/plans/${plan!.id}`),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["food-plans", conference.slug] }).catch(
+				console.error,
+			);
+			toast.success("Meal plan deleted");
+			onClose();
+		},
+		onError: (e: any) => toast.error("Delete failed", e.message),
+	});
+
 	return (
 		<EntityDrawer
 			open
 			onOpenChange={v => !v && onClose()}
-			title="Add meal plan"
+			title={isEdit ? `Edit meal plan` : "Add meal plan"}
 			width="sm"
 			footer={
 				<>
-					<Button variant="ghost" onClick={onClose}>
-						Cancel
-					</Button>
-					<Button
-						variant="primary"
-						loading={create.isPending}
-						onClick={() => create.mutate()}
-					>
-						Create
-					</Button>
+					<div className={isEdit ? "flex items-center gap-2" : ""}>
+						{isEdit && (
+							<Button
+								variant="danger"
+								leadingIcon={<Trash2 size={14} />}
+								loading={del.isPending}
+								onClick={async () => {
+									const ok = await confirm({
+										title: `Delete meal plan?`,
+										description: `The meal plan for ${form.mealDate} will be permanently deleted.`,
+										tone: "danger",
+										confirmLabel: "Delete",
+									});
+									if (ok) del.mutate();
+								}}
+							>
+								Delete
+							</Button>
+						)}
+					</div>
+					<div className="flex gap-2">
+						<Button variant="ghost" onClick={onClose}>
+							Cancel
+						</Button>
+						<Button
+							variant="primary"
+							loading={save.isPending}
+							onClick={() => save.mutate()}
+						>
+							{isEdit ? "Update" : "Create"}
+						</Button>
+					</div>
 				</>
 			}
 		>

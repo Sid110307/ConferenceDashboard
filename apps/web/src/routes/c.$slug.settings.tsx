@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { api } from "@/lib/api";
 import { ActiveConference, hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { humanise } from "@/lib/format";
 import { useUrlState } from "@/lib/useUrlState";
-import { conferenceUpdateSchema, type ConferenceUpdateInput } from "@conference/shared";
+import { AppSetting, conferenceUpdateSchema, type ConferenceUpdateInput } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Building, Palette, Save, SlidersHorizontal, Trash2, Upload } from "lucide-react";
@@ -189,6 +189,8 @@ function AppearanceTab() {
 		queryKey: ["conf-theme", conference.slug],
 		queryFn: () => api.get<{ data: Theme }>(`/api/v1/c/${conference.slug}/settings/theme`),
 	});
+	const logoInputRef = useRef<HTMLInputElement>(null);
+
 	const [form, setForm] = useState<Partial<Theme>>({});
 	const [uploadingLogo, setUploadingLogo] = useState(false);
 	const merged = { ...(theme.data?.data ?? {}), ...form };
@@ -332,6 +334,7 @@ function AppearanceTab() {
 					<div className="flex flex-wrap items-center gap-2">
 						<label className="inline-flex items-center">
 							<input
+								ref={logoInputRef}
 								type="file"
 								accept="image/png,image/jpeg,image/webp,image/svg+xml"
 								className="hidden"
@@ -346,7 +349,7 @@ function AppearanceTab() {
 								size="sm"
 								loading={uploadingLogo}
 								leadingIcon={<Upload size={13} />}
-								onClick={e => e.currentTarget.previousElementSibling?.click()}
+								onClick={() => logoInputRef.current?.click()}
 							>
 								Upload logo
 							</Button>
@@ -376,8 +379,6 @@ function AppearanceTab() {
 		</Card>
 	);
 }
-
-type AppSetting = { key: string; value: string };
 
 function AdvancedTab() {
 	const { conference } = useConference();
@@ -422,16 +423,20 @@ function AdvancedTab() {
 								{s[0]}
 							</span>
 							<Input
-								value={draft[s[0]] ?? s[1]}
+								value={draft[s[0]] ?? (s[1] as string)}
 								onChange={e => setDraft(d => ({ ...d, [s[0]]: e.target.value }))}
-								className="w-full flex-1"
+								className="flex-1 font-mono text-[13px]"
+								placeholder="value"
 							/>
 							<Button
 								variant="secondary"
 								size="sm"
 								disabled={(draft[s[0]] ?? s[1]) === s[1]}
 								onClick={() =>
-									put.mutate({ key: s[0], value: draft[s[0]] ?? s[1] })
+									put.mutate({
+										key: s[0],
+										value: draft[s[0]] ?? (s[1] as string),
+									})
 								}
 							>
 								Save
@@ -439,7 +444,6 @@ function AdvancedTab() {
 						</div>
 					))}
 				</div>
-
 				<div className="flex items-center gap-2 pt-3 border-t border-line">
 					<Input
 						value={newKey}
@@ -451,7 +455,7 @@ function AdvancedTab() {
 						value={newValue}
 						onChange={e => setNewValue(e.target.value)}
 						placeholder="value"
-						className="flex-1"
+						className="flex-1 font-mono text-[13px]"
 					/>
 					<Button
 						variant="primary"

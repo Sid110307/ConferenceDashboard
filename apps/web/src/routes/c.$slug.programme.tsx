@@ -6,12 +6,13 @@ import { fmtDate, fmtTime, humanise } from "@/lib/format";
 import { useUrlState } from "@/lib/useUrlState";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { CalendarDays, Layers, MapPin, Mic2, Plus } from "lucide-react";
+import { CalendarDays, Layers, MapPin, Mic2, Plus, Trash2 } from "lucide-react";
 import { z } from "zod";
 
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { DatePickerInput } from "@/components/DatePicker";
 import { CenterSpinner, EmptyState } from "@/components/EmptyState";
 import { EntityDrawer } from "@/components/EntityDrawer";
@@ -233,6 +234,7 @@ function SessionDrawer({ session, onClose }: { session: Session | null; onClose:
 	const { conference } = useConference();
 	const qc = useQueryClient();
 	const toast = useToast();
+	const confirm = useConfirm();
 	const isEdit = !!session;
 	const [form, setForm] = useState<Partial<Session>>(session ?? {});
 
@@ -268,6 +270,17 @@ function SessionDrawer({ session, onClose }: { session: Session | null; onClose:
 		},
 		onError: (e: any) => toast.error("Save failed", e.message),
 	});
+
+	const del = useMutation({
+		mutationFn: () => api.del(`/api/v1/c/${conference.slug}/programme/sessions/${session!.id}`),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["sessions", conference.slug] }).catch(console.error);
+			toast.success("Session deleted");
+			onClose();
+		},
+		onError: (e: any) => toast.error("Delete failed", e.message),
+	});
+
 	const upd = (p: Partial<Session>) => setForm(f => ({ ...f, ...p }));
 
 	return (
@@ -278,16 +291,38 @@ function SessionDrawer({ session, onClose }: { session: Session | null; onClose:
 			width="md"
 			footer={
 				<>
-					<Button variant="ghost" onClick={onClose}>
-						Cancel
-					</Button>
-					<Button
-						variant="primary"
-						loading={save.isPending}
-						onClick={() => save.mutate()}
-					>
-						{isEdit ? "Save" : "Create"}
-					</Button>
+					<div className={isEdit ? "flex items-center gap-2" : ""}>
+						{isEdit && (
+							<Button
+								variant="danger"
+								leadingIcon={<Trash2 size={14} />}
+								loading={del.isPending}
+								onClick={async () => {
+									const ok = await confirm({
+										title: `Delete session?`,
+										description: `"${session!.title}" will be permanently deleted.`,
+										tone: "danger",
+										confirmLabel: "Delete",
+									});
+									if (ok) del.mutate();
+								}}
+							>
+								Delete
+							</Button>
+						)}
+					</div>
+					<div className="flex gap-2">
+						<Button variant="ghost" onClick={onClose}>
+							Cancel
+						</Button>
+						<Button
+							variant="primary"
+							loading={save.isPending}
+							onClick={() => save.mutate()}
+						>
+							{isEdit ? "Save" : "Create"}
+						</Button>
+					</div>
 				</>
 			}
 		>
@@ -416,6 +451,7 @@ function SimpleCrudTab<T extends { id: string; name: string }>({
 	const { conference } = useConference();
 	const qc = useQueryClient();
 	const toast = useToast();
+	const confirm = useConfirm();
 	const list = useQuery<{ data: T[] }>({
 		queryKey: [queryKey, conference.slug],
 		queryFn: () =>
@@ -445,6 +481,20 @@ function SimpleCrudTab<T extends { id: string; name: string }>({
 			setCreating(false);
 		},
 		onError: (e: any) => toast.error("Save failed", e.message),
+	});
+
+	const del = useMutation({
+		mutationFn: () => {
+			const path = `/api/v1/c/${conference.slug}/programme/${entityPath}`;
+			return api.del(`${path}/${editing!.id}`);
+		},
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: [queryKey, conference.slug] }).catch(console.error);
+			toast.success("Deleted");
+			setEditing(null);
+			setCreating(false);
+		},
+		onError: (e: any) => toast.error("Delete failed", e.message),
 	});
 
 	return (
@@ -511,22 +561,44 @@ function SimpleCrudTab<T extends { id: string; name: string }>({
 					width="sm"
 					footer={
 						<>
-							<Button
-								variant="ghost"
-								onClick={() => {
-									setEditing(null);
-									setCreating(false);
-								}}
-							>
-								Cancel
-							</Button>
-							<Button
-								variant="primary"
-								loading={save.isPending}
-								onClick={() => save.mutate()}
-							>
-								Save
-							</Button>
+							<div className={editing ? "flex items-center gap-2" : ""}>
+								{editing && (
+									<Button
+										variant="danger"
+										leadingIcon={<Trash2 size={14} />}
+										loading={del.isPending}
+										onClick={async () => {
+											const ok = await confirm({
+												title: `Delete ${label}?`,
+												description: `"${editing.name}" will be permanently deleted.`,
+												tone: "danger",
+												confirmLabel: "Delete",
+											});
+											if (ok) del.mutate();
+										}}
+									>
+										Delete
+									</Button>
+								)}
+							</div>
+							<div className="flex gap-2">
+								<Button
+									variant="ghost"
+									onClick={() => {
+										setEditing(null);
+										setCreating(false);
+									}}
+								>
+									Cancel
+								</Button>
+								<Button
+									variant="primary"
+									loading={save.isPending}
+									onClick={() => save.mutate()}
+								>
+									Save
+								</Button>
+							</div>
 						</>
 					}
 				>

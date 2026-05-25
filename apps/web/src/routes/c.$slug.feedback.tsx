@@ -8,12 +8,13 @@ import { useUrlState } from "@/lib/useUrlState";
 import { type Attendee } from "@conference/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, Star } from "lucide-react";
+import { Plus, Star, Trash2 } from "lucide-react";
 import { z } from "zod";
 
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { DataTable, Pagination, type Column } from "@/components/DataTable";
 import { EntityDrawer } from "@/components/EntityDrawer";
 import { FieldRow } from "@/components/FieldRow";
@@ -194,6 +195,7 @@ function FeedbackDrawer({
 	const { conference } = useConference();
 	const qc = useQueryClient();
 	const toast = useToast();
+	const confirm = useConfirm();
 	const isEdit = !!feedback;
 	const [form, setForm] = useState<Partial<Feedback>>(feedback ?? { isPublic: false });
 	const save = useMutation({
@@ -215,6 +217,17 @@ function FeedbackDrawer({
 		},
 		onError: (e: any) => toast.error("Save failed", e.message),
 	});
+
+	const del = useMutation({
+		mutationFn: () => api.del(`/api/v1/c/${conference.slug}/feedback/${feedback!.id}`),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["feedback", conference.slug] }).catch(console.error);
+			toast.success("Feedback deleted");
+			onClose();
+		},
+		onError: (e: any) => toast.error("Delete failed", e.message),
+	});
+
 	const upd = (p: Partial<Feedback>) => setForm(f => ({ ...f, ...p }));
 	return (
 		<EntityDrawer
@@ -224,16 +237,38 @@ function FeedbackDrawer({
 			width="lg"
 			footer={
 				<>
-					<Button variant="ghost" onClick={onClose}>
-						Cancel
-					</Button>
-					<Button
-						variant="primary"
-						loading={save.isPending}
-						onClick={() => save.mutate()}
-					>
-						Save
-					</Button>
+					<div className={isEdit ? "flex items-center gap-2" : ""}>
+						{isEdit && (
+							<Button
+								variant="danger"
+								leadingIcon={<Trash2 size={14} />}
+								loading={del.isPending}
+								onClick={async () => {
+									const ok = await confirm({
+										title: `Delete feedback?`,
+										description: `This feedback entry will be permanently deleted.`,
+										tone: "danger",
+										confirmLabel: "Delete",
+									});
+									if (ok) del.mutate();
+								}}
+							>
+								Delete
+							</Button>
+						)}
+					</div>
+					<div className="flex gap-2">
+						<Button variant="ghost" onClick={onClose}>
+							Cancel
+						</Button>
+						<Button
+							variant="primary"
+							loading={save.isPending}
+							onClick={() => save.mutate()}
+						>
+							Save
+						</Button>
+					</div>
 				</>
 			}
 		>

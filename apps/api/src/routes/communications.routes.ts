@@ -88,7 +88,9 @@ providersRouter.post(
 					name: input.name,
 					channel: input.channel,
 					provider: input.provider,
-					configEncrypted: encryptJSON(input.config),
+					configEncrypted: encryptJSON(input.config, {
+						encryptionKey: env.ENCRYPTION_KEY,
+					}),
 					configPublic: input.configPublic ?? {},
 					fromAddress: input.fromAddress,
 					fromName: input.fromName,
@@ -169,7 +171,10 @@ providersRouter.patch(
 			if (typeof input.configPublic === "object") next.configPublic = input.configPublic;
 			if (typeof input.isActive === "boolean") next.isActive = input.isActive;
 			if (typeof input.isDefault === "boolean") next.isDefault = input.isDefault;
-			if (input.config !== undefined) next.configEncrypted = encryptJSON(input.config);
+			if (input.config !== undefined)
+				next.configEncrypted = encryptJSON(input.config, {
+					encryptionKey: env.ENCRYPTION_KEY,
+				});
 
 			const [row] = await tx
 				.update(messagingProviders)
@@ -652,5 +657,40 @@ campaignsRouter.get(
 				hasNextPage: q.page * q.pageSize < result.total,
 			},
 		});
+	},
+);
+
+campaignsRouter.delete(
+	"/:id",
+	requireRole("admin"),
+	zValidator("param", z.object({ id: z.string().uuid() })),
+	async c => {
+		const conf = c.get("conference")!;
+		const user = c.get("user")!;
+		const { id } = c.req.valid("param");
+		await withTenant(conf.id, async tx => {
+			const [before] = await tx
+				.select()
+				.from(messageCampaigns)
+				.where(and(eq(messageCampaigns.id, id), eq(messageCampaigns.conferenceId, conf.id)))
+				.limit(1);
+			if (!before) throw new NotFoundError("campaign");
+			await tx
+				.update(messageCampaigns)
+				.set({ deletedAt: new Date(), deletedBy: user.id })
+				.where(eq(messageCampaigns.id, id));
+			await recordAudit(tx, {
+				conferenceId: conf.id,
+				userId: user.id,
+				action: "delete",
+				entity: "message_campaign",
+				entityId: id,
+				before,
+				ip: getClientIp(c),
+				userAgent: c.req.header("user-agent") ?? null,
+				requestId: c.get("requestId"),
+			});
+		});
+		return c.json({ deleted: true });
 	},
 );

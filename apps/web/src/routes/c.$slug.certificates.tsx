@@ -8,12 +8,13 @@ import { useUrlState } from "@/lib/useUrlState";
 import { type Attendee } from "@conference/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { z } from "zod";
 
 import { Badge, StatusBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { DataTable, Pagination, type Column } from "@/components/DataTable";
 import { DatePickerInput } from "@/components/DatePicker";
 import { EntityDrawer } from "@/components/EntityDrawer";
@@ -185,6 +186,7 @@ function CertificateDrawer({
 	const { conference } = useConference();
 	const qc = useQueryClient();
 	const toast = useToast();
+	const confirm = useConfirm();
 	const isEdit = !!certificate;
 	const [form, setForm] = useState<Partial<Certificate>>(
 		certificate ?? { certificateType: "participation", status: "not_issued" },
@@ -216,6 +218,19 @@ function CertificateDrawer({
 		},
 		onError: (e: any) => toast.error("Save failed", e.message),
 	});
+
+	const del = useMutation({
+		mutationFn: () => api.del(`/api/v1/c/${conference.slug}/certificates/${certificate!.id}`),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["certificates", conference.slug] }).catch(
+				console.error,
+			);
+			toast.success("Certificate deleted");
+			onClose();
+		},
+		onError: (e: any) => toast.error("Delete failed", e.message),
+	});
+
 	const upd = (p: Partial<Certificate>) => setForm(f => ({ ...f, ...p }));
 	return (
 		<EntityDrawer
@@ -225,16 +240,38 @@ function CertificateDrawer({
 			width="lg"
 			footer={
 				<>
-					<Button variant="ghost" onClick={onClose}>
-						Cancel
-					</Button>
-					<Button
-						variant="primary"
-						loading={save.isPending}
-						onClick={() => save.mutate()}
-					>
-						Save
-					</Button>
+					<div className={isEdit ? "flex items-center gap-2" : ""}>
+						{isEdit && (
+							<Button
+								variant="danger"
+								leadingIcon={<Trash2 size={14} />}
+								loading={del.isPending}
+								onClick={async () => {
+									const ok = await confirm({
+										title: `Delete certificate?`,
+										description: `Certificate ${certificate!.certificateCode} will be permanently deleted.`,
+										tone: "danger",
+										confirmLabel: "Delete",
+									});
+									if (ok) del.mutate();
+								}}
+							>
+								Delete
+							</Button>
+						)}
+					</div>
+					<div className="flex gap-2">
+						<Button variant="ghost" onClick={onClose}>
+							Cancel
+						</Button>
+						<Button
+							variant="primary"
+							loading={save.isPending}
+							onClick={() => save.mutate()}
+						>
+							Save
+						</Button>
+					</div>
 				</>
 			}
 		>
