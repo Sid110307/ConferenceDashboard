@@ -177,7 +177,9 @@ function LedgerTab({
 			key: "itemType",
 			header: "Type",
 			cell: r => (
-				<Badge variant={r.itemType === "income" ? "success" : "danger"}>{r.itemType}</Badge>
+				<Badge variant={r.itemType === "income" ? "success" : "danger"}>
+					{humanise(r.itemType)}
+				</Badge>
 			),
 			width: "w-28",
 		},
@@ -205,7 +207,7 @@ function LedgerTab({
 						leadingIcon={<Plus size={13} />}
 						onClick={() => setCreating(true)}
 					>
-						Add line item
+						Add item
 					</Button>
 				)}
 			</div>

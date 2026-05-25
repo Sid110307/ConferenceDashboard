@@ -40,9 +40,6 @@ type Block = {
 	id: string;
 	name: string;
 	address?: string | null;
-	capacity?: number | null;
-	occupiedCount?: number | null;
-	roomCount?: number | null;
 	notes?: string | null;
 };
 type Room = {
@@ -183,13 +180,6 @@ function AccommodationPage() {
 									</div>
 									{active && <Badge variant="accent">Active</Badge>}
 								</div>
-								<div className="mt-2 flex items-center gap-3 text-[11px] text-ink-3">
-									<span>{b.roomCount ?? 0} rooms</span>
-									<span>·</span>
-									<span>
-										{b.occupiedCount ?? 0}/{b.capacity ?? 0} beds
-									</span>
-								</div>
 							</button>
 						);
 					})}
@@ -318,7 +308,8 @@ function RoomDrawer({
 			width="md"
 		>
 			<div className="space-y-3">
-				{rows.length === 0 && (
+				{allocs.isLoading && <CenterSpinner />}
+				{rows.length === 0 && !allocs.isLoading && (
 					<EmptyState
 						title="No allocations yet"
 						hint="Allocate attendees from the attendee list."
@@ -352,65 +343,63 @@ function RoomDrawer({
 									<span className="italic">No check-in info</span>
 								)}
 							</div>
-						</div>
-						<div className="flex flex-col gap-1">
-							<div className="flex items-center gap-1">
+							<div className="flex items-center gap-1 mt-1">
 								<StatusBadge status={a.status} />
 							</div>
-							{canEdit && (
-								<div className="flex flex-wrap gap-1 justify-end">
-									{a.status === "pending" && (
-										<Button
-											variant="secondary"
-											size="xs"
-											onClick={() =>
-												action.mutate({ allocId: a.id, action: "check_in" })
-											}
-										>
-											Check in
-										</Button>
-									)}
-									{a.status === "checked_in" && (
-										<Button
-											variant="secondary"
-											size="xs"
-											onClick={() =>
+						</div>
+						{canEdit && (
+							<div className="flex flex-col items-end gap-1">
+								{a.status === "pending" && (
+									<Button
+										variant="primary"
+										size="xs"
+										onClick={() =>
+											action.mutate({ allocId: a.id, action: "check_in" })
+										}
+									>
+										Check in
+									</Button>
+								)}
+								{a.status === "checked_in" && (
+									<Button
+										variant="primary"
+										size="xs"
+										onClick={() =>
+											action.mutate({
+												allocId: a.id,
+												action: "check_out",
+											})
+										}
+									>
+										Check out
+									</Button>
+								)}
+								{a.status === "pending" && (
+									<Button
+										variant="danger"
+										size="xs"
+										onClick={async () => {
+											const ok = await confirm({
+												title: "Cancel allocation?",
+												tone: "danger",
+											});
+											if (ok)
 												action.mutate({
 													allocId: a.id,
-													action: "check_out",
-												})
-											}
-										>
-											Check out
-										</Button>
-									)}
-									{a.status === "pending" && (
-										<Button
-											variant="danger"
-											size="xs"
-											onClick={async () => {
-												const ok = await confirm({
-													title: "Cancel allocation?",
-													tone: "danger",
+													action: "cancel",
 												});
-												if (ok)
-													action.mutate({
-														allocId: a.id,
-														action: "cancel",
-													});
-											}}
-										>
-											Cancel
-										</Button>
-									)}
-									{a.status === "cancelled" && (
-										<Badge variant="warn" size="xs">
-											Cancelled
-										</Badge>
-									)}
-								</div>
-							)}
-						</div>
+										}}
+									>
+										Cancel allocation
+									</Button>
+								)}
+								{a.status === "cancelled" && (
+									<Badge variant="warn" size="xs">
+										Cancelled
+									</Badge>
+								)}
+							</div>
+						)}
 					</div>
 				))}
 			</div>

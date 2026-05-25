@@ -27,6 +27,8 @@ import {
 	Wallet,
 } from "lucide-react";
 
+import { ConferenceLogo } from "@/components/ConferenceLogo";
+
 type NavItem = {
 	to: string;
 	label: string;
@@ -145,13 +147,17 @@ export function Sidebar() {
 
 	return (
 		<aside className="w-60 shrink-0 border-r border-line bg-surface-2 flex flex-col h-full">
-			<div className="px-4 py-2 border-b border-line">
-				<div className="mt-1 text-sm font-semibold text-ink leading-tight">
-					{conference.name}
+			<div className="px-4 py-2 border-b border-line flex items-center gap-2">
+				<div className="shrink-0">
+					<ConferenceLogo className="size-10" alt={`${conference.name} sidebar logo`} />
 				</div>
-				<div className="mt-0.5 text-xs text-ink-3 truncate">{conference.shortName}</div>
+				<div className="min-w-0">
+					<div className="mt-1 text-sm font-semibold text-ink leading-tight">
+						{conference.name}
+					</div>
+					<div className="mt-0.5 text-xs text-ink-3 truncate">{conference.shortName}</div>
+				</div>
 			</div>
-
 			<nav className="flex-1 overflow-y-auto px-2 py-3 space-y-3">
 				{sections.map(sec => {
 					const items = sec.items.filter(

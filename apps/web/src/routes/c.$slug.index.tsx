@@ -21,6 +21,7 @@ import {
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { ConferenceLogo } from "@/components/ConferenceLogo";
 import { CenterSpinner } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { ProgressBar } from "@/components/ProgressBar";
@@ -77,7 +78,7 @@ function DashboardPage() {
 	const navigate = useNavigate();
 	const qc = useQueryClient();
 
-	const { data, isLoading, dataUpdatedAt } = useQuery<{ data: Dashboard }>({
+	const { data, isLoading } = useQuery<{ data: Dashboard }>({
 		queryKey: ["dashboard", conference.slug],
 		queryFn: () => api.get<{ data: Dashboard }>(`/api/v1/c/${conference.slug}/dashboard`),
 		refetchInterval: 60000,
@@ -134,10 +135,13 @@ function DashboardPage() {
 
 	return (
 		<div className="p-6 space-y-6">
-			<PageHeader
-				title={conference.name}
-				description={`${conference.venueName} · ${fmtDateTime(conference.startDate)} - ${fmtDateTime(conference.endDate)}\n${conference.venueAddress}`}
-			/>
+			<div className="flex items-start justify-between gap-4">
+				<PageHeader
+					title={conference.name}
+					description={`${conference.venueName} · ${fmtDateTime(conference.startDate)} - ${fmtDateTime(conference.endDate)}\n${conference.venueAddress}`}
+				/>
+				<ConferenceLogo className="size-20 shrink-0 rounded-md border border-line bg-surface p-1" />
+			</div>
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 				<StatCard
 					label="Attendees"
@@ -174,7 +178,7 @@ function DashboardPage() {
 					}
 				/>
 				<StatCard
-					label="VIP guests"
+					label="VIP attendees"
 					value={fmtNumber(data.data?.attendees.vip)}
 					icon={<Crown size={18} />}
 					tone="warn"
@@ -351,9 +355,6 @@ function DashboardPage() {
 						</div>
 					</div>
 				</Card>
-			</div>
-			<div className="text-xs text-ink-3 text-center pt-2">
-				Last updated: {fmtDateTime(dataUpdatedAt ? new Date(dataUpdatedAt) : null)}
 			</div>
 		</div>
 	);

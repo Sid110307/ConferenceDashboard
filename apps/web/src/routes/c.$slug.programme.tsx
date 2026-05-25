@@ -169,26 +169,12 @@ function SessionsTab({ canEdit }: { canEdit: boolean }) {
 										{s.endTime && ` - ${fmtTime(s.endTime)}`}
 									</div>
 									<div className="min-w-0 flex-1">
-										<div className="text-sm font-medium text-ink truncate">
+										<div className="text-sm font-medium text-ink truncate flex justify-between gap-1">
 											{s.title}
-										</div>
-										<div className="mt-0.5 text-xs text-ink-3 flex items-center gap-1 flex-wrap">
-											{s.sessionType && (
-												<Badge size="xs">{humanise(s.sessionType)}</Badge>
-											)}
-											{s.venueName && (
-												<Badge size="xs" variant="accent">
-													{humanise(s.venueName)}
-												</Badge>
-											)}
-											{s.trackName && (
-												<Badge size="xs" variant="accent">
-													{humanise(s.trackName)}
-												</Badge>
-											)}
 											{s.status && (
 												<Badge
-													size="xs"
+													className="ml-2"
+													size="sm"
 													variant={
 														s.status === "ongoing"
 															? "accent"
@@ -200,6 +186,21 @@ function SessionsTab({ canEdit }: { canEdit: boolean }) {
 													}
 												>
 													{humanise(s.status)}
+												</Badge>
+											)}
+										</div>
+										<div className="mt-1 text-xs text-ink-3 flex items-center gap-1 flex-wrap">
+											{s.sessionType && (
+												<Badge size="xs">{humanise(s.sessionType)}</Badge>
+											)}
+											{s.venueName && (
+												<Badge size="xs" variant="accent">
+													{humanise(s.venueName)}
+												</Badge>
+											)}
+											{s.trackName && (
+												<Badge size="xs" variant="accent">
+													{humanise(s.trackName)}
 												</Badge>
 											)}
 											{!s.isPublic && (
@@ -476,7 +477,24 @@ function SimpleCrudTab<T extends { id: string; name: string }>({
 						<div className="size-9 rounded-md bg-accent-soft text-accent-soft-fg flex items-center justify-center shrink-0">
 							{icon}
 						</div>
-						<div className="text-sm font-medium text-ink truncate">{item.name}</div>
+						<div className="min-w-0">
+							<div className="text-sm font-medium text-ink truncate">
+								{(item as any).salutation && (item as any).salutation} {item.name}
+							</div>
+							<div className="mt-0.5 text-xs text-ink-3 flex items-center gap-1 flex-wrap">
+								{(item as any).designation && (
+									<Badge size="xs">{(item as any).designation}</Badge>
+								)}
+								{(item as any).phone && (
+									<Badge size="xs">{(item as any).phone}</Badge>
+								)}
+								{(item as any).description && (
+									<div className="w-full text-ink-3">
+										{(item as any).description}
+									</div>
+								)}
+							</div>
+						</div>
 					</button>
 				))}
 			</div>

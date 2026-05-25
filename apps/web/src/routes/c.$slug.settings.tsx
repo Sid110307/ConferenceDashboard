@@ -7,7 +7,7 @@ import { useUrlState } from "@/lib/useUrlState";
 import { conferenceUpdateSchema, type ConferenceUpdateInput } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Building, Palette, Save, SlidersHorizontal } from "lucide-react";
+import { Building, Palette, Save, SlidersHorizontal, Trash2, Upload } from "lucide-react";
 import { z } from "zod";
 
 import { Button } from "@/components/Button";
@@ -69,9 +69,9 @@ function ProfileTab() {
 	const qc = useQueryClient();
 	const toast = useToast();
 
-	const profile = useQuery<{ conference: ConferenceProfile }>({
+	const profile = useQuery<{ conference: ActiveConference }>({
 		queryKey: ["tenant", conference.slug],
-		queryFn: () => api.get<{ conference: ConferenceProfile }>(`/api/v1/c/${conference.slug}`),
+		queryFn: () => api.get<{ conference: ActiveConference }>(`/api/v1/c/${conference.slug}`),
 	});
 	const [form, setForm] = useState<Partial<ActiveConference>>({});
 	const merged = { ...(profile.data?.conference ?? {}), ...form };
@@ -177,7 +177,7 @@ type Theme = {
 	primaryColor?: string | null;
 	secondaryColor?: string | null;
 	accentColor?: string | null;
-	logoUrl?: string | null;
+	logoFileId?: string | null;
 };
 
 function AppearanceTab() {
@@ -190,10 +190,26 @@ function AppearanceTab() {
 		queryFn: () => api.get<{ data: Theme }>(`/api/v1/c/${conference.slug}/settings/theme`),
 	});
 	const [form, setForm] = useState<Partial<Theme>>({});
+	const [uploadingLogo, setUploadingLogo] = useState(false);
 	const merged = { ...(theme.data?.data ?? {}), ...form };
+	const logoFileId = merged.logoFileId ?? null;
+
+	const logoPreview = useQuery<{ url: string }>({
+		queryKey: ["conf-theme-logo", conference.slug, logoFileId],
+		queryFn: () =>
+			api.get<{ url: string }>(`/api/v1/c/${conference.slug}/files/${logoFileId}/download`),
+		enabled: !!logoFileId,
+		staleTime: 1000 * 60 * 10,
+	});
 
 	const save = useMutation({
-		mutationFn: () => api.put(`/api/v1/c/${conference.slug}/settings/theme`, merged),
+		mutationFn: () =>
+			api.put(`/api/v1/c/${conference.slug}/settings/theme`, {
+				primaryColor: merged.primaryColor,
+				secondaryColor: merged.secondaryColor,
+				accentColor: merged.accentColor,
+				logoFileId: merged.logoFileId,
+			}),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["conf-theme", conference.slug] }).catch(
 				console.error,
@@ -207,10 +223,65 @@ function AppearanceTab() {
 	if (theme.isLoading) return <CenterSpinner />;
 	const upd = (p: Partial<Theme>) => setForm(f => ({ ...f, ...p }));
 
+	const uploadLogo = async (file: File) => {
+		setUploadingLogo(true);
+		try {
+			const ext = file.name.toLowerCase().split(".").pop() ?? "";
+			const contentType =
+				file.type && file.type !== "application/octet-stream"
+					? file.type
+					: ext === "svg"
+						? "image/svg+xml"
+						: ext === "jpg" || ext === "jpeg"
+							? "image/jpeg"
+							: ext === "webp"
+								? "image/webp"
+								: "image/png";
+
+			const presign = await api.post<{ fileId: string; uploadUrl: string }>(
+				`/api/v1/c/${conference.slug}/files/presign`,
+				{
+					filename: file.name,
+					contentType,
+					size: file.size,
+					purpose: "conference_logo",
+				},
+			);
+
+			const put = await fetch(presign.uploadUrl, {
+				method: "PUT",
+				body: file,
+				headers: { "Content-Type": contentType },
+			});
+			if (!put.ok) throw new Error("logo upload failed");
+
+			await api.post(`/api/v1/c/${conference.slug}/files/${presign.fileId}/commit`, {});
+			upd({ logoFileId: presign.fileId });
+			toast.success("Logo uploaded", "Save theme to apply it.");
+		} catch (e: any) {
+			toast.error("Logo upload failed", e.message);
+		} finally {
+			setUploadingLogo(false);
+		}
+	};
+
+	const styles = getComputedStyle(document.documentElement);
 	const swatches: { key: keyof Theme; label: string; fallback: string }[] = [
-		{ key: "primaryColor", label: "Primary", fallback: "#1f6feb" },
-		{ key: "secondaryColor", label: "Secondary", fallback: "#6b7280" },
-		{ key: "accentColor", label: "Accent", fallback: "#0ea5e9" },
+		{
+			key: "primaryColor",
+			label: "Primary",
+			fallback: styles.getPropertyValue("--color-accent").trim() || "#000000",
+		},
+		{
+			key: "secondaryColor",
+			label: "Secondary",
+			fallback: styles.getPropertyValue("--color-accent-soft").trim() || "#000000",
+		},
+		{
+			key: "accentColor",
+			label: "Accent",
+			fallback: styles.getPropertyValue("--color-info").trim() || "#000000",
+		},
 	];
 
 	return (
@@ -248,27 +319,57 @@ function AppearanceTab() {
 										upd({ [s.key]: e.target.value } as Partial<Theme>)
 									}
 									placeholder={s.fallback}
-									className="font-mono text-[13px]"
+									className="font-mono text-[13px] lowercase"
 								/>
 							</div>
 						</FieldRow>
 					))}
 				</div>
-				<FieldRow label="Logo URL" hint="A square PNG or SVG works best.">
-					<Input
-						value={merged.logoUrl ?? ""}
-						onChange={e => upd({ logoUrl: e.target.value })}
-						placeholder="https://..."
-					/>
+				<FieldRow
+					label="Conference logo"
+					hint="Supported formats: PNG, JPEG, WEBP, SVG. Max size: 5MB"
+				>
+					<div className="flex flex-wrap items-center gap-2">
+						<label className="inline-flex items-center">
+							<input
+								type="file"
+								accept="image/png,image/jpeg,image/webp,image/svg+xml"
+								className="hidden"
+								onChange={e => {
+									const f = e.target.files?.[0];
+									if (f) void uploadLogo(f);
+									e.currentTarget.value = "";
+								}}
+							/>
+							<Button
+								variant="secondary"
+								size="sm"
+								loading={uploadingLogo}
+								leadingIcon={<Upload size={13} />}
+								onClick={e => e.currentTarget.previousElementSibling?.click()}
+							>
+								Upload logo
+							</Button>
+						</label>
+						<Button
+							variant="ghost"
+							size="sm"
+							disabled={!logoFileId}
+							onClick={() => upd({ logoFileId: null })}
+							leadingIcon={<Trash2 size={13} />}
+						>
+							Clear
+						</Button>
+						{!logoFileId && <span className="text-xs text-ink-3">No logo set</span>}
+					</div>
 				</FieldRow>
-				{merged.logoUrl && (
-					<div className="rounded-md border border-line p-4 bg-surface-2 flex items-center gap-3">
+				{logoFileId && logoPreview.data?.url && (
+					<div className="pt-2">
 						<img
-							src={merged.logoUrl}
+							src={logoPreview.data.url}
 							alt="Logo preview"
-							className="size-12 object-contain"
+							className="h-32 object-contain border border-line rounded-md"
 						/>
-						<span className="text-xs text-ink-3">Logo preview</span>
 					</div>
 				)}
 			</div>
@@ -311,8 +412,8 @@ function AdvancedTab() {
 		<Card title="Advanced settings" icon={<SlidersHorizontal size={16} />}>
 			<div className="space-y-3">
 				<p className="text-xs text-ink-3">
-					Configuration consumed by integrations and feature flags. Change these only if
-					you know what they do.
+					These settings are for advanced users only. Change these only if you know what
+					they do.
 				</p>
 				<div className="divide-y divide-line">
 					{(Object.entries(settings.data?.data || {}) ?? []).map(s => (

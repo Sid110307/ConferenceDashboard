@@ -261,7 +261,7 @@ function TravelPage() {
 		{
 			key: "actions",
 			header: "Actions",
-			cell: r => (
+			cell: r =>
 				canEdit ? (
 					<Button
 						variant="secondary"
@@ -275,8 +275,7 @@ function TravelPage() {
 					</Button>
 				) : (
 					<span className="text-xs text-ink-3">—</span>
-				)
-			),
+				),
 			width: "w-32",
 		},
 	];

@@ -4,17 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Plus } from "lucide-react";
 
-
-
 import { AppHeader } from "@/components/AppHeader";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { CenterSpinner, EmptyState } from "@/components/EmptyState";
-
-
-
-
 
 type Me = {
 	user: { id: string; name: string; email: string; isPlatformAdmin?: boolean };

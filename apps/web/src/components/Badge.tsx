@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
-import { BADGE_VARIANTS, cx, type BadgeVariant } from "@/lib/uiStyles";
 import { humanise } from "@/lib/format";
+import { BADGE_VARIANTS, cx, type BadgeVariant } from "@/lib/uiStyles";
 
 type Size = "xs" | "sm" | "md";
 

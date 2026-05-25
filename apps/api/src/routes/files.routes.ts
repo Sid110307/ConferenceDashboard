@@ -38,6 +38,7 @@ const PURPOSES = [
 	"avatar",
 	"speaker_photo",
 	"sponsor_logo",
+	"conference_logo",
 	"banner",
 	"document",
 	"mou",
@@ -78,12 +79,7 @@ filesRouter.post(
 			filename: input.filename,
 		});
 
-		const uploadUrl = await presignUploadUrl({
-			key,
-			contentType: input.contentType,
-			expiresInSeconds: 60 * 10,
-		});
-
+		const uploadUrl = await presignUploadUrl(key, input.contentType, 60 * 10);
 		const fileRow = await withTenant(conf.id, async tx => {
 			const [row] = await tx
 				.insert(files)

@@ -84,8 +84,8 @@ function LogisticsPage() {
 			width: "w-28",
 		},
 		{
-			key: "qty",
-			header: "Qty",
+			key: "quantity",
+			header: "Quantity",
 			cell: r => `${r.issuedQuantity}/${r.totalQuantity}`,
 			width: "w-28",
 		},

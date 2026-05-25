@@ -8,7 +8,6 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 
 import { applyRowLevelSecurity } from "./schema/rls";
 
-
 loadEnv({ path: resolve(import.meta.dirname, "../../../.env") });
 
 async function main() {

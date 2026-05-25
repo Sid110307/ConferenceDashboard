@@ -1,5 +1,6 @@
 import { recordAudit } from "@/lib/audit";
 import type { AppContext } from "@/lib/context";
+import { getClientIp } from "@/lib/http";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import { appSettings, themeSettings } from "@conference/db";
@@ -81,13 +82,13 @@ settingsRouter.put(
 	zValidator(
 		"json",
 		z.object({
-			primaryColor: z.string().max(16).optional(),
-			secondaryColor: z.string().max(16).optional(),
-			accentColor: z.string().max(16).optional(),
+			primaryColor: z.string().max(16).nullable().optional(),
+			secondaryColor: z.string().max(16).nullable().optional(),
+			accentColor: z.string().max(16).nullable().optional(),
 			logoFileId: z.string().uuid().nullable().optional(),
 			faviconFileId: z.string().uuid().nullable().optional(),
 			heroImageFileId: z.string().uuid().nullable().optional(),
-			tokens: z.record(z.string(), z.any()).optional(),
+			tokens: z.record(z.string(), z.any()).nullable().optional(),
 		}),
 	),
 	async c => {

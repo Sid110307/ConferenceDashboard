@@ -14,9 +14,9 @@
     --color-line: oklch(0.92 0.005 260);
     --color-line-2: oklch(0.88 0.006 260);
 
-    --color-accent: oklch(0.62 0.13 160);
+    --color-accent: #3F9F77;
     --color-accent-fg: oklch(0.99 0 0);
-    --color-accent-soft: oklch(0.95 0.04 160);
+    --color-accent-soft: #E1F8EC;
     --color-accent-soft-fg: oklch(0.35 0.1 160);
 
     --color-success: oklch(0.7 0.14 150);
@@ -31,7 +31,7 @@
     --color-danger-soft: oklch(0.96 0.04 25);
     --color-danger-soft-fg: oklch(0.42 0.15 25);
 
-    --color-info: oklch(0.7 0.12 240);
+    --color-info: #4A9FE6;
     --color-info-soft: oklch(0.96 0.03 240);
     --color-info-soft-fg: oklch(0.4 0.13 240);
 
@@ -58,6 +58,12 @@
     --shadow-pop: 0 8px 24px -8px oklch(0.55 0.02 260 / 0.18),
     0 2px 6px -2px oklch(0.5 0.02 260 / 0.15);
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.conference-theme {
+    --color-accent: var(--conference-primary-color, #3F9F77);
+    --color-accent-soft: var(--conference-secondary-color, #E1F8EC);
+    --color-info: var(--conference-accent-color, #4A9FE6);
 }
 
 html, body, #root {

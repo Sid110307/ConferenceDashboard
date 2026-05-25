@@ -540,6 +540,14 @@ function CommitteeDrawer({
 					>
 						<div className="space-y-1.5">
 							{allStaff.isLoading && <CenterSpinner />}
+							{!allStaff.isLoading &&
+								(allStaff.data?.data ?? []).filter(s => !assignedIds.has(s.id))
+									.length === 0 && (
+									<EmptyState
+										title="No staff available"
+										hint="All staff members are already assigned to this committee."
+									/>
+								)}
 							{(allStaff.data?.data ?? [])
 								.filter(s => !assignedIds.has(s.id))
 								.map(s => (

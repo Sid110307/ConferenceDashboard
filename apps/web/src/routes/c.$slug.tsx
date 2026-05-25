@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 import { api, ApiError } from "@/lib/api";
 import {
 	ConferenceProvider,
@@ -15,6 +17,12 @@ import { Sidebar } from "@/components/Sidebar";
 type TenantRoot = {
 	conference: ActiveConference;
 	membership: Membership;
+};
+
+type ThemeSettings = {
+	primaryColor?: string | null;
+	secondaryColor?: string | null;
+	accentColor?: string | null;
 };
 
 export const Route = createFileRoute("/c/$slug")({
@@ -49,6 +57,17 @@ function ConferenceLayout() {
 		queryFn: () => api.get<TenantRoot>(`/api/v1/c/${slug}/`),
 		staleTime: 60000,
 	});
+	const { data: themeData } = useQuery<{ data: ThemeSettings }>({
+		queryKey: ["conf-theme", slug],
+		queryFn: () => api.get<{ data: ThemeSettings }>(`/api/v1/c/${slug}/settings/theme`),
+		staleTime: 60000,
+	});
+
+	const themeStyle = {
+		"--conference-primary-color": themeData?.data?.primaryColor ?? undefined,
+		"--conference-secondary-color": themeData?.data?.secondaryColor ?? undefined,
+		"--conference-accent-color": themeData?.data?.accentColor ?? undefined,
+	} as CSSProperties;
 
 	return isLoading || !data ? (
 		<div className="flex flex-col h-screen">
@@ -67,7 +86,10 @@ function ConferenceLayout() {
 		</div>
 	) : (
 		<ConferenceProvider conference={data.conference} membership={data.membership}>
-			<div className="flex flex-col h-screen overflow-hidden">
+			<div
+				className="conference-theme flex flex-col h-screen overflow-hidden"
+				style={themeStyle}
+			>
 				<AppHeader />
 				<div className="flex-1 flex overflow-hidden">
 					<Sidebar />

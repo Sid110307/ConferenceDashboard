@@ -163,36 +163,36 @@ helpdeskRouter.post(
 				})
 				.where(eq(helpdeskIssues.id, id))
 				.returning();
-		await recordAudit(tx, {
-			conferenceId: conf.id,
-			userId: user.id,
-			action: "update",
-			entity: "helpdesk_issue.transition",
-			entityId: id,
-			before,
-			after: updated,
-			ip: getClientIp(c),
-			userAgent: c.req.header("user-agent") ?? null,
-			requestId: c.get("requestId"),
-		});
-
-		if (
-			before.status !== "resolved" &&
-			before.status !== "closed" &&
-			(to === "resolved" || to === "closed")
-		) {
-			await notifyConference(tx, conf.id, {
-				type: "helpdesk.resolved",
-				entity: "helpdesk_issue",
-				id,
-				meta: {
-					issueCode: updated!.issueCode,
-					title: updated!.title,
-					status: updated!.status,
-				},
+			await recordAudit(tx, {
+				conferenceId: conf.id,
+				userId: user.id,
+				action: "update",
+				entity: "helpdesk_issue.transition",
+				entityId: id,
+				before,
+				after: updated,
+				ip: getClientIp(c),
+				userAgent: c.req.header("user-agent") ?? null,
+				requestId: c.get("requestId"),
 			});
-		}
-		return updated;
+
+			if (
+				before.status !== "resolved" &&
+				before.status !== "closed" &&
+				(to === "resolved" || to === "closed")
+			) {
+				await notifyConference(tx, conf.id, {
+					type: "helpdesk.resolved",
+					entity: "helpdesk_issue",
+					id,
+					meta: {
+						issueCode: updated!.issueCode,
+						title: updated!.title,
+						status: updated!.status,
+					},
+				});
+			}
+			return updated;
 		});
 		return c.json({ data: row });
 	},

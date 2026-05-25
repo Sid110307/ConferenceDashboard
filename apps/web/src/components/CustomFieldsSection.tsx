@@ -75,9 +75,7 @@ export function CustomFieldsSection({
 
 	return Object.entries(grouped).map(([groupName, groupFields]) => (
 		<div key={groupName} className="space-y-4 mb-6">
-			{groupName !== "General" && (
-				<h3 className="text-sm font-semibold">{groupName}</h3>
-			)}
+			{groupName !== "General" && <h3 className="text-sm font-semibold">{groupName}</h3>}
 			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 				{groupFields
 					.sort((a, b) => a.sortOrder - b.sortOrder)
