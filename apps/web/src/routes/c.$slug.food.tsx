@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, humanise } from "@/lib/format";
 import { queryKeys } from "@/lib/queryKeys";
 import { useRealtime } from "@/lib/useRealtime";
 import { type FoodPlan } from "@conference/shared";
@@ -20,7 +20,7 @@ import { DatePickerInput } from "@/components/DatePicker";
 import { CenterSpinner, EmptyState } from "@/components/EmptyState";
 import { EntityDrawer } from "@/components/EntityDrawer";
 import { FieldRow } from "@/components/FieldRow";
-import { Input, Select } from "@/components/Input";
+import { Input, Select, Textarea } from "@/components/Input";
 import { PageHeader } from "@/components/PageHeader";
 import { useToast } from "@/components/Toast";
 
@@ -37,7 +37,7 @@ type ScanStat = {
 	count: number;
 };
 
-const MEALS = ["breakfast", "lunch", "dinner", "snacks"] as const;
+const MEALS = ["breakfast", "lunch", "tea", "dinner", "snacks"] as const;
 
 function FoodPage() {
 	const { conference, membership } = useConference();
@@ -77,7 +77,7 @@ function FoodPage() {
 		<div className="p-6">
 			<PageHeader
 				title="Food & Dining"
-				description="Meal plans and live scan headcounts per dining session."
+				description="Meal plans and scan records per dining session."
 				actions={
 					canEdit && (
 						<>
@@ -113,8 +113,7 @@ function FoodPage() {
 					/>
 				</Card>
 			)}
-
-			<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+			<div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 				{(plans.data?.data ?? []).map(p => (
 					<button
 						key={p.id}
@@ -156,6 +155,11 @@ function FoodPage() {
 									);
 								})}
 							</div>
+							{p.notes && (
+								<p className="mt-2 text-start text-sm text-ink-2 whitespace-pre-wrap">
+									{p.notes}
+								</p>
+							)}
 						</Card>
 					</button>
 				))}
@@ -181,34 +185,44 @@ function PlanDrawer({ plan, onClose }: { plan: FoodPlan | null; onClose: () => v
 	const toast = useToast();
 	const confirm = useConfirm();
 	const isEdit = !!plan;
-	const initialExpected = plan
-		? Math.max(
-				plan.breakfastCount,
-				plan.lunchCount,
-				plan.teaCount,
-				plan.dinnerCount,
-				plan.snacksCount,
-			)
-		: 0;
+
 	const [form, setForm] = useState({
 		mealDate: plan?.mealDate ?? "",
-		expectedHeadcount: initialExpected > 0 ? String(initialExpected) : "",
+		breakfastCount: plan?.breakfastCount ? String(plan.breakfastCount) : "",
+		lunchCount: plan?.lunchCount ? String(plan.lunchCount) : "",
+		teaCount: plan?.teaCount ? String(plan.teaCount) : "",
+		dinnerCount: plan?.dinnerCount ? String(plan.dinnerCount) : "",
+		snacksCount: plan?.snacksCount ? String(plan.snacksCount) : "",
 		notes: plan?.notes ?? "",
 	});
+
+	useEffect(() => {
+		setForm({
+			mealDate: plan?.mealDate ?? "",
+			breakfastCount: plan?.breakfastCount ? String(plan.breakfastCount) : "",
+			lunchCount: plan?.lunchCount ? String(plan.lunchCount) : "",
+			teaCount: plan?.teaCount ? String(plan.teaCount) : "",
+			dinnerCount: plan?.dinnerCount ? String(plan.dinnerCount) : "",
+			snacksCount: plan?.snacksCount ? String(plan.snacksCount) : "",
+			notes: plan?.notes ?? "",
+		});
+	}, [plan]);
 	const save = useMutation({
 		mutationFn: () => {
-			const parsedExpected = Number(form.expectedHeadcount);
-			const expectedHeadcount =
-				form.expectedHeadcount.trim() === "" || Number.isNaN(parsedExpected)
-					? undefined
-					: Math.max(0, Math.trunc(parsedExpected));
+			const parseCount = (s: string) => {
+				if (!s || s.trim() === "") return undefined;
+				const n = Number(s);
+				if (Number.isNaN(n)) return undefined;
+				return Math.max(0, Math.trunc(n));
+			};
+
 			const body = {
 				mealDate: form.mealDate,
-				breakfastCount: expectedHeadcount,
-				lunchCount: expectedHeadcount,
-				teaCount: expectedHeadcount,
-				dinnerCount: expectedHeadcount,
-				snacksCount: expectedHeadcount,
+				breakfastCount: parseCount(form.breakfastCount),
+				lunchCount: parseCount(form.lunchCount),
+				teaCount: parseCount(form.teaCount),
+				dinnerCount: parseCount(form.dinnerCount),
+				snacksCount: parseCount(form.snacksCount),
 				notes: form.notes || undefined,
 			};
 			return isEdit
@@ -272,6 +286,7 @@ function PlanDrawer({ plan, onClose }: { plan: FoodPlan | null; onClose: () => v
 						<Button
 							variant="primary"
 							loading={save.isPending}
+							disabled={!form.mealDate.trim()}
 							onClick={() => save.mutate()}
 						>
 							{isEdit ? "Update" : "Create"}
@@ -287,11 +302,47 @@ function PlanDrawer({ plan, onClose }: { plan: FoodPlan | null; onClose: () => v
 						onChange={e => setForm(p => ({ ...p, mealDate: e || p.mealDate }))}
 					/>
 				</FieldRow>
-				<FieldRow label="Expected headcount">
-					<Input
-						type="number"
-						value={form.expectedHeadcount}
-						onChange={e => setForm(p => ({ ...p, expectedHeadcount: e.target.value }))}
+				<div className="grid grid-cols-2 gap-2">
+					<FieldRow label="Breakfast">
+						<Input
+							type="number"
+							value={form.breakfastCount}
+							onChange={e => setForm(p => ({ ...p, breakfastCount: e.target.value }))}
+						/>
+					</FieldRow>
+					<FieldRow label="Lunch">
+						<Input
+							type="number"
+							value={form.lunchCount}
+							onChange={e => setForm(p => ({ ...p, lunchCount: e.target.value }))}
+						/>
+					</FieldRow>
+					<FieldRow label="Tea">
+						<Input
+							type="number"
+							value={form.teaCount}
+							onChange={e => setForm(p => ({ ...p, teaCount: e.target.value }))}
+						/>
+					</FieldRow>
+					<FieldRow label="Dinner">
+						<Input
+							type="number"
+							value={form.dinnerCount}
+							onChange={e => setForm(p => ({ ...p, dinnerCount: e.target.value }))}
+						/>
+					</FieldRow>
+					<FieldRow label="Snacks">
+						<Input
+							type="number"
+							value={form.snacksCount}
+							onChange={e => setForm(p => ({ ...p, snacksCount: e.target.value }))}
+						/>
+					</FieldRow>
+				</div>
+				<FieldRow label="Notes">
+					<Textarea
+						value={form.notes}
+						onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
 					/>
 				</FieldRow>
 			</div>
@@ -307,9 +358,11 @@ function ScanDrawer({ onClose }: { onClose: () => void }) {
 	const videoRef = useRef<HTMLVideoElement | null>(null);
 	const controlsRef = useRef<IScannerControls | null>(null);
 	const submittingRef = useRef(false);
+	const lastScanRef = useRef<{ code: string; at: number } | null>(null);
 
 	const [cameraOpen, setCameraOpen] = useState(false);
 	const [cameraError, setCameraError] = useState<string | null>(null);
+	const [scanFeedback, setScanFeedback] = useState<string | null>(null);
 
 	const [form, setForm] = useState({
 		attendeeCode: "",
@@ -329,16 +382,20 @@ function ScanDrawer({ onClose }: { onClose: () => void }) {
 		},
 		onSuccess: (_data, overrideCode) => {
 			const scannedCode = overrideCode ?? form.attendeeCode;
+			lastScanRef.current = { code: scannedCode, at: Date.now() };
 
 			qc.invalidateQueries({ queryKey: queryKeys.mealScanStats(conference.slug) }).catch(
 				console.error,
 			);
 			toast.success("Scan recorded", `${scannedCode} · ${form.mealType}`);
+			setScanFeedback(`Added ${scannedCode} · ${form.mealType}`);
 			setForm(p => ({ ...p, attendeeCode: "" }));
 		},
 		onError: (err: any) => {
 			if (err instanceof ApiError && err.status === 409) {
 				toast.warn("Already scanned", "This attendee was already scanned for this meal.");
+			} else if (err instanceof ApiError && err.status === 400) {
+				toast.error("Invalid code", "The attendee code is not valid.");
 			} else {
 				toast.error("Scan failed", err.message);
 				return;
@@ -359,10 +416,15 @@ function ScanDrawer({ onClose }: { onClose: () => void }) {
 		const attendeeCode = code.trim();
 		if (!attendeeCode || submittingRef.current) return;
 
+		const lastScan = lastScanRef.current;
+		if (lastScan && lastScan.code === attendeeCode && Date.now() - lastScan.at < 2500) {
+			return;
+		}
+
 		submittingRef.current = true;
+		setScanFeedback(null);
 		setForm(p => ({ ...p, attendeeCode }));
 
-		stopCamera();
 		scan.mutate(attendeeCode);
 	};
 
@@ -381,7 +443,11 @@ function ScanDrawer({ onClose }: { onClose: () => void }) {
 
 			const reader = new BrowserMultiFormatReader(hints);
 			await new Promise(requestAnimationFrame);
-			if (!videoRef.current) throw new Error("Scanner is not ready.");
+			if (!videoRef.current) {
+				setCameraError("Scanner is not ready.");
+				stopCamera();
+				return;
+			}
 
 			controlsRef.current = await reader.decodeFromConstraints(
 				{ video: { facingMode: { ideal: "environment" } }, audio: false },
@@ -398,6 +464,9 @@ function ScanDrawer({ onClose }: { onClose: () => void }) {
 	};
 
 	useEffect(() => {
+		setCameraError(null);
+		setScanFeedback(null);
+
 		return () => {
 			stopCamera();
 		};
@@ -441,6 +510,11 @@ function ScanDrawer({ onClose }: { onClose: () => void }) {
 			<div className="space-y-4">
 				<FieldRow label="Camera">
 					<div className="space-y-3">
+						{scanFeedback && (
+							<div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+								{scanFeedback}
+							</div>
+						)}
 						{cameraOpen && (
 							<div className="overflow-hidden rounded-xl border bg-black">
 								<video
@@ -455,11 +529,11 @@ function ScanDrawer({ onClose }: { onClose: () => void }) {
 							{cameraOpen ? (
 								<Button
 									type="button"
-									variant="ghost"
+									variant="secondary"
 									onClick={stopCamera}
 									leadingIcon={<X size={13} />}
 								>
-									Stop camera
+									Close camera
 								</Button>
 							) : (
 								<Button
@@ -484,7 +558,7 @@ function ScanDrawer({ onClose }: { onClose: () => void }) {
 							if (e.key === "Enter" && form.attendeeCode.trim())
 								submitCode(form.attendeeCode);
 						}}
-						placeholder="DNC26-00042"
+						placeholder="XYZ26-12345"
 					/>
 				</FieldRow>
 				<FieldRow label="Date" required>
@@ -500,7 +574,7 @@ function ScanDrawer({ onClose }: { onClose: () => void }) {
 					>
 						{MEALS.map(m => (
 							<option key={m} value={m}>
-								{m}
+								{humanise(m)}
 							</option>
 						))}
 					</Select>

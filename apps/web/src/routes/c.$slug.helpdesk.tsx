@@ -126,6 +126,27 @@ function HelpdeskPage() {
 			width: "w-28",
 		},
 		{
+			key: "category",
+			header: "Category",
+			cell: r => (
+				<Badge variant="info" className="capitalize">
+					{r.category ?? "Uncategorised"}
+				</Badge>
+			),
+			width: "w-32",
+		},
+		{
+			key: "attendee",
+			header: "Raised by",
+			cell: r =>
+				r.attendeeId ? (
+					<span>Attendee #{r.attendeeId}</span>
+				) : (
+					<span className="text-ink-3">Unknown</span>
+				),
+			width: "w-40",
+		},
+		{
 			key: "status",
 			header: "Status",
 			cell: r => <StatusBadge status={r.status} />,
@@ -158,17 +179,16 @@ function HelpdeskPage() {
 			/>
 
 			<Card pad="sm">
-				<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-4">
+				<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-4">
 					<SearchField
 						value={search.q ?? ""}
 						onChange={q => setSearch({ q, page: 1 })}
 						placeholder="Search issues..."
-						className="min-w-60 md:col-span-2 lg:col-span-1"
+						className="min-w-60"
 					/>
 					<Select
 						value={search.status ?? ""}
 						onChange={e => setSearch({ status: e.target.value || undefined, page: 1 })}
-						className="w-40"
 					>
 						<option value="">Any status</option>
 						{["open", "in_progress", "resolved", "closed"].map(s => (
@@ -182,7 +202,6 @@ function HelpdeskPage() {
 						onChange={e =>
 							setSearch({ priority: e.target.value || undefined, page: 1 })
 						}
-						className="w-36"
 					>
 						<option value="">Any priority</option>
 						{["low", "medium", "high", "urgent"].map(s => (
@@ -191,8 +210,31 @@ function HelpdeskPage() {
 							</option>
 						))}
 					</Select>
+					<Select
+						value={search.category ?? ""}
+						onChange={e =>
+							setSearch({ category: e.target.value || undefined, page: 1 })
+						}
+					>
+						<option value="">Any category</option>
+						{[
+							"transport",
+							"accommodation",
+							"food",
+							"badge",
+							"technical",
+							"lost_item",
+							"medical",
+							"vip",
+							"registration",
+							"other",
+						].map(s => (
+							<option key={s} value={s}>
+								{humanise(s)}
+							</option>
+						))}
+					</Select>
 				</div>
-
 				<DataTable
 					columns={cols}
 					rows={rows}

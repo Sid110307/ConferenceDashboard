@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
@@ -711,15 +711,19 @@ function VenuesTab({ canEdit }: { canEdit: boolean }) {
 	const [editing, setEditing] = useState<Venue | null>(null);
 	const [creating, setCreating] = useState(false);
 	const [form, setForm] = useState<Record<string, any>>({});
-
-	useEffect(() => {
-		setForm(editing ?? {});
-	}, [editing]);
+	const [markerClickMode, setMarkerClickMode] = useState(false);
+	const [beforeMarkerClickMode, setBeforeMarkerClickMode] = useState<{
+		editing: Venue | null;
+		creating: boolean;
+		form: Record<string, any>;
+	} | null>(null);
 
 	const open = (item: Venue | null) => {
 		setEditing(item);
 		setCreating(!item);
 		setForm(item ?? { location: "" });
+		setMarkerClickMode(false);
+		setBeforeMarkerClickMode(null);
 	};
 
 	const save = useMutation({
@@ -758,7 +762,7 @@ function VenuesTab({ canEdit }: { canEdit: boolean }) {
 
 	return (
 		<>
-			<div className="mb-3">
+			<div className="mb-3 flex items-center gap-2">
 				<VenuesMap
 					venues={venues}
 					activeVenueId={editing?.id ?? null}
@@ -770,6 +774,44 @@ function VenuesTab({ canEdit }: { canEdit: boolean }) {
 					onEditVenue={venueId => {
 						const venue = venues.find(v => v.id === venueId);
 						if (venue) open(venue);
+					}}
+					enableMarkerClick={markerClickMode}
+					onMarkerClick={venueId => {
+						const venue = venues.find(v => v.id === venueId);
+						if (venue && venue.location) {
+							setMarkerClickMode(false);
+
+							if (beforeMarkerClickMode) {
+								setEditing(beforeMarkerClickMode.editing);
+								setCreating(beforeMarkerClickMode.creating);
+								setForm({
+									...beforeMarkerClickMode.form,
+									location: venue.location,
+								});
+								setBeforeMarkerClickMode(null);
+							}
+						}
+					}}
+					onCenterMarkerConfirm={() => {
+						setMarkerClickMode(false);
+						if (beforeMarkerClickMode) {
+							setEditing(beforeMarkerClickMode.editing);
+							setCreating(beforeMarkerClickMode.creating);
+							setForm({
+								...beforeMarkerClickMode.form,
+								location: form.location,
+							});
+							setBeforeMarkerClickMode(null);
+						}
+					}}
+					onCenterMarkerCancel={() => {
+						setMarkerClickMode(false);
+						if (beforeMarkerClickMode) {
+							setEditing(beforeMarkerClickMode.editing);
+							setCreating(beforeMarkerClickMode.creating);
+							setForm(beforeMarkerClickMode.form);
+							setBeforeMarkerClickMode(null);
+						}
 					}}
 				/>
 			</div>
@@ -785,11 +827,14 @@ function VenuesTab({ canEdit }: { canEdit: boolean }) {
 					</Button>
 				)}
 			</div>
-			{list.isLoading && <CenterSpinner />}
-			{venues.length === 0 && (
-				<Card>
-					<EmptyState title={`No venues yet`} />
-				</Card>
+			{list.isLoading ? (
+				<CenterSpinner />
+			) : (
+				venues.length === 0 && (
+					<Card>
+						<EmptyState title="No venues yet" />
+					</Card>
+				)
 			)}
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 				{venues.map(item => (
@@ -803,13 +848,22 @@ function VenuesTab({ canEdit }: { canEdit: boolean }) {
 						</div>
 						<div className="min-w-0">
 							<div className="text-sm font-medium text-ink truncate">{item.name}</div>
-							<div className="mt-0.5 text-xs text-ink-3 flex items-center gap-1 flex-wrap">
+							<div className="mt-1 text-xs text-ink-3 flex items-center gap-1 flex-wrap">
 								{item.description && (
 									<div className="w-full text-ink-3">{item.description}</div>
 								)}
-								{item.location && (
+								{item.capacity && (
 									<Badge size="xs" variant="accent">
-										{item.location}
+										Capacity: {item.capacity}
+									</Badge>
+								)}
+								{item.hasProjector && <Badge size="xs">Projector</Badge>}
+								{item.hasMic && <Badge size="xs">Microphone</Badge>}
+								{item.hasAc && <Badge size="xs">Air conditioning</Badge>}
+								{item.hasRecording && <Badge size="xs">Can be recorded</Badge>}
+								{!item.isPublic && (
+									<Badge size="xs" variant="warn">
+										Private
 									</Badge>
 								)}
 							</div>
@@ -824,6 +878,8 @@ function VenuesTab({ canEdit }: { canEdit: boolean }) {
 						if (!v) {
 							setEditing(null);
 							setCreating(false);
+							setMarkerClickMode(false);
+							setBeforeMarkerClickMode(null);
 						}
 					}}
 					title={editing ? editing.name : `New venue`}
@@ -856,6 +912,8 @@ function VenuesTab({ canEdit }: { canEdit: boolean }) {
 									onClick={() => {
 										setEditing(null);
 										setCreating(false);
+										setMarkerClickMode(false);
+										setBeforeMarkerClickMode(null);
 									}}
 								>
 									Cancel
@@ -901,13 +959,49 @@ function VenuesTab({ canEdit }: { canEdit: boolean }) {
 									}
 								/>
 							</FieldRow>
-							<FieldRow label="Location (lat,lng)">
-								<Input
-									value={form.location ?? ""}
-									onChange={e =>
-										setForm(p => ({ ...p, location: e.target.value }))
-									}
-								/>
+							<FieldRow label="Location (lat, lng)">
+								<div className="flex gap-2">
+									<Input
+										value={form.location ?? ""}
+										onChange={e =>
+											setForm(p => ({ ...p, location: e.target.value }))
+										}
+										placeholder="e.g. 51.503364, -0.127625"
+										disabled={markerClickMode}
+										className="flex-1"
+									/>
+									<Button
+										variant={markerClickMode ? "primary" : "secondary"}
+										onClick={() => {
+											if (markerClickMode) {
+												setMarkerClickMode(false);
+												if (beforeMarkerClickMode) {
+													setEditing(beforeMarkerClickMode.editing);
+													setCreating(beforeMarkerClickMode.creating);
+													setForm(beforeMarkerClickMode.form);
+													setBeforeMarkerClickMode(null);
+												}
+											} else {
+												setBeforeMarkerClickMode({
+													editing,
+													creating,
+													form,
+												});
+												setEditing(null);
+												setCreating(false);
+												setMarkerClickMode(true);
+											}
+										}}
+										title={
+											markerClickMode
+												? "Click is enabled - click a venue marker on the map (or click again to cancel)"
+												: "Set location by clicking on the map"
+										}
+										className="p-2!"
+									>
+										<MapPin size={14} />
+									</Button>
+								</div>
 							</FieldRow>
 							<FieldRow label="Has projector">
 								<Select

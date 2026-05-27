@@ -238,7 +238,7 @@ function CustomFieldInput({
 							const selected = Array.from(e.target.selectedOptions, opt => opt.value);
 							onChange(selected.length > 0 ? selected : undefined);
 						}}
-						className="flex h-9 w-full rounded border border-ui-3 bg-white px-3 py-1 text-sm placeholder:text-ui-2 focus:border-focus focus:outline-none"
+						className="flex h-9 w-full rounded border border-ui-3 bg-white px-3 py-1 text-sm placeholder:text-ui-2"
 					>
 						{field.options?.map(opt => (
 							<option key={opt.value} value={opt.value}>

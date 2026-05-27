@@ -16,6 +16,7 @@ export const venuesRouter = makeCrudRouter({
 	entity: "venue",
 	createSchema: z.object({
 		name: z.string().min(1).max(255),
+		description: z.string().max(2000).optional(),
 		location: z.string().max(255).optional(),
 		floor: z.string().max(32).optional(),
 		capacity: z.number().int().min(1).max(50000).optional(),
@@ -24,10 +25,12 @@ export const venuesRouter = makeCrudRouter({
 		hasAc: z.boolean().default(false),
 		hasRecording: z.boolean().default(false),
 		notes: z.string().max(2000).optional(),
+		isPublic: z.boolean().default(true),
 	}),
 	updateSchema: z
 		.object({
 			name: z.string().min(1).max(255),
+			description: z.string().max(2000),
 			location: z.string().max(255),
 			floor: z.string().max(32),
 			capacity: z.number().int().min(1).max(50000),
@@ -36,6 +39,7 @@ export const venuesRouter = makeCrudRouter({
 			hasAc: z.boolean(),
 			hasRecording: z.boolean(),
 			notes: z.string().max(2000),
+			isPublic: z.boolean(),
 		})
 		.partial(),
 	searchColumns: [venues.name, venues.location],

@@ -1,6 +1,3 @@
-
-
-
 import "dotenv/config";
 
 import { dbAdmin } from "@/client";
@@ -22,7 +19,6 @@ import { addHours, addMinutes } from "date-fns";
 import { eq, sql } from "drizzle-orm";
 
 import { DEFAULT_COMMITTEES, DEFAULT_CUSTOM_FIELDS } from "./reference";
-
 
 faker.seed(69420);
 

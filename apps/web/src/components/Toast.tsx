@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
 import { cx } from "@/lib/uiStyles";
 import * as Toast from "@radix-ui/react-toast";
@@ -6,6 +6,7 @@ import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from "lucide-react"
 
 type ToastItem = {
 	id: string;
+	open: boolean;
 	variant: "success" | "error" | "info" | "warn";
 	title: string;
 	description?: string;
@@ -13,7 +14,7 @@ type ToastItem = {
 };
 
 type ToastCtx = {
-	push: (t: Omit<ToastItem, "id">) => void;
+	push: (t: Omit<ToastItem, "id" | "open">) => void;
 	success: (title: string, description?: string) => void;
 	error: (title: string, description?: string) => void;
 	info: (title: string, description?: string) => void;
@@ -27,19 +28,26 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 	const push = useCallback<ToastCtx["push"]>(t => {
 		const id = Math.random().toString(36).slice(2);
-		setItems(prev => [...prev, { ...t, id }]);
+		setItems(prev => [...prev, { ...t, id, open: true }]);
+	}, []);
+	const close = useCallback((id: string) => {
+		setItems(prev => prev.map(t => (t.id === id ? { ...t, open: false } : t)));
+	}, []);
+	const remove = useCallback((id: string) => {
+		setItems(prev => prev.filter(t => t.id !== id));
 	}, []);
 
-	const remove = (id: string) => setItems(prev => prev.filter(t => t.id !== id));
-
-	const api: ToastCtx = {
-		push,
-		success: (title, description) => push({ variant: "success", title, description }),
-		error: (title, description) =>
-			push({ variant: "error", title, description, duration: 8000 }),
-		info: (title, description) => push({ variant: "info", title, description }),
-		warn: (title, description) => push({ variant: "warn", title, description }),
-	};
+	const api: ToastCtx = useMemo(
+		() => ({
+			push,
+			success: (title, description) => push({ variant: "success", title, description }),
+			error: (title, description) =>
+				push({ variant: "error", title, description, duration: 8000 }),
+			info: (title, description) => push({ variant: "info", title, description }),
+			warn: (title, description) => push({ variant: "warn", title, description }),
+		}),
+		[push],
+	);
 
 	return (
 		<Ctx.Provider value={api}>
@@ -48,8 +56,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 				{items.map(t => (
 					<Toast.Root
 						key={t.id}
+						open={t.open}
 						duration={t.duration ?? 5000}
-						onOpenChange={open => !open && remove(t.id)}
+						onOpenChange={open => {
+							if (!open) close(t.id);
+						}}
+						onAnimationEnd={e => {
+							if (e.currentTarget.dataset.state === "closed") {
+								remove(t.id);
+							}
+						}}
 						className={cx(
 							"bg-surface border rounded-lg shadow-pop p-3.5 pr-2.5",
 							"flex items-start gap-3 min-w-[320px] max-w-[440px]",

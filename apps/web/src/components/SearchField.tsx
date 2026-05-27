@@ -47,7 +47,6 @@ export function SearchField({
 				className={cx(
 					"h-9 w-full pl-8 pr-8 text-sm bg-surface text-ink rounded-md",
 					"border border-line shadow-card placeholder:text-ink-3",
-					"focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent",
 				)}
 			/>
 			{local && (

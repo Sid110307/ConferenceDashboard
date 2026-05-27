@@ -61,14 +61,12 @@ export const input =
 	"h-9 w-full px-3 text-sm bg-surface text-ink rounded-md " +
 	"border border-line shadow-card " +
 	"placeholder:text-ink-3 " +
-	"focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent " +
 	"disabled:opacity-50 disabled:cursor-not-allowed";
 
 export const textarea =
 	"min-h-[88px] w-full px-3 py-2 text-sm bg-surface text-ink rounded-md " +
 	"border border-line shadow-card " +
-	"placeholder:text-ink-3 leading-relaxed " +
-	"focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent";
+	"placeholder:text-ink-3 leading-relaxed";
 
 export const label = "text-[11px] font-semibold uppercase tracking-wider text-ink-3";
 

@@ -658,14 +658,14 @@ function VehicleDrawer({ mode, vehicle, onClose, onSaved }: VehicleDrawerProps) 
 					<Input
 						value={form.vehicleCode ?? ""}
 						onChange={e => update({ vehicleCode: e.target.value })}
-						placeholder="e.g., VH-001"
+						placeholder="e.g. VH-001"
 					/>
 				</FieldRow>
 				<FieldRow label="Vehicle type">
 					<Input
 						value={form.vehicleType ?? ""}
 						onChange={e => update({ vehicleType: e.target.value })}
-						placeholder="e.g., Car, Bus, SUV"
+						placeholder="e.g. Car, Bus, SUV"
 					/>
 				</FieldRow>
 				<FieldRow label="Plate number">
