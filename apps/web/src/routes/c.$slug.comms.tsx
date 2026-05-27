@@ -3,6 +3,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtRelative, humanise } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { useRealtime } from "@/lib/useRealtime";
 import { useUrlState } from "@/lib/useUrlState";
 import {
@@ -133,7 +134,7 @@ const PROVIDER_KINDS: Record<string, { provider: string; label: string; fields: 
 function ProvidersTab({ canEdit }: { canEdit: boolean }) {
 	const { conference } = useConference();
 	const list = useQuery<{ data: Provider[] }>({
-		queryKey: ["providers", conference.slug],
+		queryKey: queryKeys.providers(conference.slug),
 		queryFn: () =>
 			api.get<{ data: Provider[] }>(`/api/v1/c/${conference.slug}/comms/providers`),
 	});
@@ -230,7 +231,9 @@ function ProviderDrawer({ onClose }: { onClose: () => void }) {
 				}) as MessagingProviderInput,
 			),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["providers", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.providers(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success("Provider added");
 			onClose();
 		},
@@ -345,7 +348,7 @@ function ProviderDrawer({ onClose }: { onClose: () => void }) {
 function TemplatesTab({ canEdit }: { canEdit: boolean }) {
 	const { conference } = useConference();
 	const list = useQuery<{ data: Template[] }>({
-		queryKey: ["templates", conference.slug],
+		queryKey: queryKeys.templates(conference.slug),
 		queryFn: () =>
 			api.get<{ data: Template[] }>(`/api/v1/c/${conference.slug}/comms/templates`),
 	});
@@ -430,7 +433,9 @@ function TemplateDrawer({ template, onClose }: { template: Template | null; onCl
 			return api.post(path, body);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["templates", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.templates(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success(isEdit ? "Template updated" : "Template created");
 			onClose();
 		},
@@ -541,7 +546,7 @@ function CampaignsTab({ canEdit }: { canEdit: boolean }) {
 	const { conference } = useConference();
 	const qc = useQueryClient();
 	const list = useQuery<{ data: Campaign[] }>({
-		queryKey: ["campaigns", conference.slug],
+		queryKey: queryKeys.campaigns(conference.slug),
 		queryFn: () =>
 			api.get<{ data: Campaign[] }>(`/api/v1/c/${conference.slug}/comms/campaigns`),
 		refetchInterval: 5000,
@@ -549,7 +554,9 @@ function CampaignsTab({ canEdit }: { canEdit: boolean }) {
 
 	useRealtime(conference.slug, ev => {
 		if (ev.type.startsWith("campaign.")) {
-			qc.invalidateQueries({ queryKey: ["campaigns", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.campaigns(conference.slug) }).catch(
+				console.error,
+			);
 		}
 	});
 
@@ -645,7 +652,9 @@ function CampaignSendButton({ campaign }: { campaign: Campaign }) {
 				messageCampaignActionSchema.parse({ action: "send_now" }),
 			),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["campaigns", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.campaigns(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success("Campaign sending", "The campaign is now being sent to recipients.");
 		},
 		onError: (e: any) => toast.error("Could not send", e.message),
@@ -684,12 +693,12 @@ function CampaignBuilder({ onClose }: { onClose: () => void }) {
 	const [previewCount, setPreviewCount] = useState<number | null>(null);
 
 	const templates = useQuery<{ data: Template[] }>({
-		queryKey: ["templates", conference.slug],
+		queryKey: queryKeys.templates(conference.slug),
 		queryFn: () =>
 			api.get<{ data: Template[] }>(`/api/v1/c/${conference.slug}/comms/templates`),
 	});
 	const providers = useQuery<{ data: Provider[] }>({
-		queryKey: ["providers", conference.slug],
+		queryKey: queryKeys.providers(conference.slug),
 		queryFn: () =>
 			api.get<{ data: Provider[] }>(`/api/v1/c/${conference.slug}/comms/providers`),
 	});
@@ -720,7 +729,9 @@ function CampaignBuilder({ onClose }: { onClose: () => void }) {
 				}) as MessageCampaignInput,
 			),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["campaigns", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.campaigns(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success("Campaign created", "Saved as draft for review.");
 			onClose();
 		},

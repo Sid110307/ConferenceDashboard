@@ -75,7 +75,7 @@ customFieldsRouter.post(
 				.limit(1);
 			if (existing) {
 				throw new ConflictError(
-					`field "${input.fieldKey}" already exists for ${input.entity}`,
+					`Field "${input.fieldKey}" already exists for ${input.entity}`,
 				);
 			}
 

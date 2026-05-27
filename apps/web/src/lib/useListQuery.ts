@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import { useQuery } from "@tanstack/react-query";
 
 export interface PaginationType {
@@ -22,7 +23,7 @@ export function useListQuery<T>(opts: {
 	staleTime?: number;
 }) {
 	return useQuery<ListEnvelope<T>>({
-		queryKey: [...opts.key, opts.params ?? {}],
+		queryKey: queryKeys.list(opts.key, opts.params),
 		queryFn: () => api.get<ListEnvelope<T>>(opts.path, opts.params),
 		enabled: opts.enabled ?? true,
 		staleTime: opts.staleTime ?? 15000,

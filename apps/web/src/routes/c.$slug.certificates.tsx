@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtDateTime, humanise } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
 import { type Attendee } from "@conference/shared";
@@ -210,7 +211,7 @@ function CertificateDrawer({
 			return isEdit ? api.patch(`${path}/${certificate!.id}`, body) : api.post(path, body);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["certificates", conference.slug] })
+			qc.invalidateQueries({ queryKey: queryKeys.certificates(conference.slug) })
 				.catch(console.error)
 				.catch(console.error);
 			toast.success(isEdit ? "Certificate updated" : "Certificate created");
@@ -222,7 +223,7 @@ function CertificateDrawer({
 	const del = useMutation({
 		mutationFn: () => api.del(`/api/v1/c/${conference.slug}/certificates/${certificate!.id}`),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["certificates", conference.slug] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.certificates(conference.slug) }).catch(
 				console.error,
 			);
 			toast.success("Certificate deleted");

@@ -3,6 +3,7 @@ import CountUp from "react-countup";
 import { api } from "@/lib/api";
 import { useConference } from "@/lib/ConferenceContext";
 import { fmtDateTime, fmtINR, fmtNumber } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { cx } from "@/lib/uiStyles";
 import { useRealtime } from "@/lib/useRealtime";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -79,7 +80,7 @@ function DashboardPage() {
 	const qc = useQueryClient();
 
 	const { data, isLoading } = useQuery<{ data: Dashboard }>({
-		queryKey: ["dashboard", conference.slug],
+		queryKey: queryKeys.dashboard(conference.slug),
 		queryFn: () => api.get<{ data: Dashboard }>(`/api/v1/c/${conference.slug}/dashboard`),
 		refetchInterval: 60000,
 	});
@@ -92,7 +93,9 @@ function DashboardPage() {
 			ev.type.startsWith("allocation.") ||
 			ev.type === "meal_scan.created"
 		) {
-			qc.invalidateQueries({ queryKey: ["dashboard", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.dashboard(conference.slug) }).catch(
+				console.error,
+			);
 		}
 	});
 

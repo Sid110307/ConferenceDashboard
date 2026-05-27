@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
 import { initials } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, KeyRound, LogOut } from "lucide-react";
@@ -51,7 +52,7 @@ function AccountPage() {
 	const toast = useToast();
 
 	const me = useQuery<Me>({
-		queryKey: ["me"],
+		queryKey: queryKeys.me(),
 		queryFn: () => api.get<Me>("/api/v1/auth/me"),
 	});
 
@@ -67,7 +68,7 @@ function AccountPage() {
 	const saveProfile = useMutation({
 		mutationFn: () => api.patch("/api/v1/auth/me", { name }),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["me"] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.me() }).catch(console.error);
 			toast.success("Profile updated");
 		},
 		onError: (e: any) => toast.error("Update failed", e.message),
@@ -92,7 +93,7 @@ function AccountPage() {
 		},
 		onSuccess: () => {
 			setPw({ current: "", next: "", confirm: "" });
-			qc.invalidateQueries({ queryKey: ["me"] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.me() }).catch(console.error);
 			toast.success(
 				me.data?.user.hasPassword === false ? "Password added" : "Password changed",
 				"Your password has been successfully updated.",

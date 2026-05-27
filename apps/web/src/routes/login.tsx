@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
+import { queryKeys } from "@/lib/queryKeys";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Google } from "iconoir-react";
@@ -45,7 +46,7 @@ function LoginPage() {
 				{ email: email.trim(), password },
 				{
 					onSuccess: () => {
-						queryClient.removeQueries({ queryKey: ["me"] });
+						queryClient.removeQueries({ queryKey: queryKeys.me() });
 						navigate({ to: next });
 					},
 					onError: err => {

@@ -73,11 +73,11 @@ auditRouter.get(
 				.orderBy(desc(auditLog.createdAt))
 				.limit(q.pageSize)
 				.offset(offset);
-			const [{ n }] = await tx
+			const countRows = await tx
 				.select({ n: sql<number>`count(*)::int` })
 				.from(auditLog)
 				.where(and(...parts));
-			return { data, total: n };
+			return { data, total: countRows[0]?.n ?? 0 };
 		});
 
 		return c.json({

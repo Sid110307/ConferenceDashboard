@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import { useQuery } from "@tanstack/react-query";
 
 import { DatePickerInput } from "@/components/DatePicker";
@@ -50,7 +51,7 @@ export function CustomFieldsSection({
 	onUpdate,
 }: CustomFieldsProps) {
 	const { data, isLoading, error } = useQuery<{ data: CustomFieldDefinition[] }>({
-		queryKey: ["custom-fields", conferenceSlug, entity],
+		queryKey: queryKeys.customFields(conferenceSlug, entity),
 		queryFn: () =>
 			api.get<{ data: CustomFieldDefinition[] }>(
 				`/api/v1/c/${conferenceSlug}/custom-fields?entity=${entity}`,

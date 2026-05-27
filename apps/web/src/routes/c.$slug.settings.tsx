@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { ActiveConference, hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { humanise } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { useUrlState } from "@/lib/useUrlState";
 import { AppSetting, conferenceUpdateSchema, type ConferenceUpdateInput } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -70,7 +71,7 @@ function ProfileTab() {
 	const toast = useToast();
 
 	const profile = useQuery<{ conference: ActiveConference }>({
-		queryKey: ["tenant", conference.slug],
+		queryKey: queryKeys.tenant(conference.slug),
 		queryFn: () => api.get<{ conference: ActiveConference }>(`/api/v1/c/${conference.slug}`),
 	});
 	const [form, setForm] = useState<Partial<ActiveConference>>({});
@@ -83,8 +84,10 @@ function ProfileTab() {
 				conferenceUpdateSchema.parse(form) as ConferenceUpdateInput,
 			),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["tenant", conference.slug] }).catch(console.error);
-			qc.invalidateQueries({ queryKey: ["active-conference", conference.slug] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.tenant(conference.slug) }).catch(
+				console.error,
+			);
+			qc.invalidateQueries({ queryKey: queryKeys.activeConference(conference.slug) }).catch(
 				console.error,
 			);
 			toast.success("Conference profile saved");
@@ -186,7 +189,7 @@ function AppearanceTab() {
 	const toast = useToast();
 
 	const theme = useQuery<{ data: Theme }>({
-		queryKey: ["conf-theme", conference.slug],
+		queryKey: queryKeys.confTheme(conference.slug),
 		queryFn: () => api.get<{ data: Theme }>(`/api/v1/c/${conference.slug}/settings/theme`),
 	});
 	const logoInputRef = useRef<HTMLInputElement>(null);
@@ -197,7 +200,7 @@ function AppearanceTab() {
 	const logoFileId = merged.logoFileId ?? null;
 
 	const logoPreview = useQuery<{ url: string }>({
-		queryKey: ["conf-theme-logo", conference.slug, logoFileId],
+		queryKey: queryKeys.confThemeLogo(conference.slug, logoFileId ?? ""),
 		queryFn: () =>
 			api.get<{ url: string }>(`/api/v1/c/${conference.slug}/files/${logoFileId}/download`),
 		enabled: !!logoFileId,
@@ -213,7 +216,7 @@ function AppearanceTab() {
 				logoFileId: merged.logoFileId,
 			}),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["conf-theme", conference.slug] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.confTheme(conference.slug) }).catch(
 				console.error,
 			);
 			toast.success("Theme saved");
@@ -386,7 +389,7 @@ function AdvancedTab() {
 	const toast = useToast();
 
 	const settings = useQuery<{ data: AppSetting }>({
-		queryKey: ["app-settings", conference.slug],
+		queryKey: queryKeys.appSettings(conference.slug),
 		queryFn: () => api.get<{ data: AppSetting }>(`/api/v1/c/${conference.slug}/settings/app`),
 	});
 
@@ -400,7 +403,7 @@ function AdvancedTab() {
 				value: input.value,
 			}),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["app-settings", conference.slug] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.appSettings(conference.slug) }).catch(
 				console.error,
 			);
 			toast.success("Setting saved");

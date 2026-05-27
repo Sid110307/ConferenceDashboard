@@ -43,11 +43,14 @@ export async function processImportStart(payload: {
 
 		for (let i = 0; i < rows.length; i += batchSize) {
 			const batch = rows.slice(i, i + batchSize);
-			const inserts = batch.map(r => ({
-				...(r.validatedData as Record<string, any>),
-				conferenceId,
-				createdBy: userId,
-				updatedBy: userId,
+			const inserts = batch.map(sourceRow => ({
+				sourceRow,
+				data: {
+					...(sourceRow.validatedData as Record<string, any>),
+					conferenceId,
+					createdBy: userId,
+					updatedBy: userId,
+				} as Record<string, any>,
 			}));
 
 			let inserted: { id: string }[] = [];
@@ -59,23 +62,24 @@ export async function processImportStart(payload: {
 						.from(attendees)
 						.where(eq(attendees.conferenceId, conferenceId));
 					const start = (baseRows[0]?.n ?? 0) + 1;
-					inserts.forEach((row, idx) => {
-						if (!row.attendeeCode) {
-							row.attendeeCode = `IMP-${String(start + idx).padStart(5, "0")}`;
+					inserts.forEach((entry, idx) => {
+						if (!entry.data.attendeeCode) {
+							entry.data.attendeeCode = `IMP-${String(start + idx).padStart(5, "0")}`;
 						}
 					});
 					inserted = await tx
 						.insert(attendees)
-						.values(inserts as any)
+						.values(inserts.map(entry => entry.data) as any)
 						.onConflictDoNothing({ target: attendees.attendeeCode })
 						.returning({ id: attendees.id });
 				} else if (targetEntity === "staff") {
 					inserted = await tx
 						.insert(staff)
-						.values(inserts as any)
+						.values(inserts.map(entry => entry.data) as any)
 						.returning({ id: staff.id });
 				} else {
-					for (const row of inserts) {
+					for (const entry of inserts) {
+						const row = entry.data;
 						try {
 							const [insertedRow] = await tx
 								.insert(attendees)
@@ -86,14 +90,17 @@ export async function processImportStart(payload: {
 								inserted.push({ id: insertedRow.id });
 							}
 						} catch (err) {
-							logger.error({ err, jobId, rowId: row.id }, "failed to insert row");
+							logger.error(
+								{ err, jobId, rowId: entry.sourceRow.id },
+								"failed to insert row",
+							);
 							await tx
 								.update(importRows)
 								.set({
 									status: "failed",
 									errors: { _insert: (err as Error).message },
 								})
-								.where(eq(importRows.id, row.id));
+								.where(eq(importRows.id, entry.sourceRow.id));
 							failed++;
 						}
 					}

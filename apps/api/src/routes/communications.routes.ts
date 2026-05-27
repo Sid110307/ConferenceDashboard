@@ -3,7 +3,7 @@ import type { AppContext } from "@/lib/context";
 import { env } from "@/lib/env";
 import { BadRequestError, NotFoundError } from "@/lib/errors";
 import { getClientIp } from "@/lib/http";
-import { commsQueue, defaultJobOptions, JOB_NAMES } from "@/lib/queue";
+import { commsQueue, enqueueJob, JOB_NAMES } from "@/lib/queue";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import {
@@ -460,7 +460,7 @@ campaignsRouter.post(
 				parts = parts.concat([inArray(attendees.id, input.audienceAttendeeIds)]);
 			}
 			const where = and(...parts);
-			const [{ n }] = await tx
+			const countRows = await tx
 				.select({ n: sql<number>`count(*)::int` })
 				.from(attendees)
 				.where(where);
@@ -478,7 +478,7 @@ campaignsRouter.post(
 				.from(attendees)
 				.where(where)
 				.limit(input.limit);
-			return { count: n, sample };
+			return { count: countRows[0]?.n ?? 0, sample };
 		});
 		return c.json(result);
 	},
@@ -505,7 +505,7 @@ campaignsRouter.post(
 
 			if (action === "cancel") {
 				if (camp.status === "completed" || camp.status === "cancelled") {
-					throw new BadRequestError(`cannot cancel ${camp.status} campaign`);
+					throw new BadRequestError(`Cannot cancel ${camp.status} campaign`);
 				}
 				await tx
 					.update(messageCampaigns)
@@ -520,7 +520,7 @@ campaignsRouter.post(
 			}
 
 			if (action === "schedule") {
-				if (!scheduledAt) throw new BadRequestError("scheduledAt is required");
+				if (!scheduledAt) throw new BadRequestError("ScheduledAt is required");
 				await tx
 					.update(messageCampaigns)
 					.set({
@@ -535,7 +535,7 @@ campaignsRouter.post(
 
 			if (action === "send_now") {
 				if (camp.status !== "draft" && camp.status !== "scheduled") {
-					throw new BadRequestError(`cannot send a ${camp.status} campaign`);
+					throw new BadRequestError(`Cannot send a ${camp.status} campaign`);
 				}
 				await tx
 					.update(messageCampaigns)
@@ -578,11 +578,10 @@ campaignsRouter.post(
 		});
 
 		if ("enqueue" in result && result.enqueue) {
-			await commsQueue.add(
-				JOB_NAMES.CAMPAIGN_MATERIALISE,
-				{ campaignId: id, conferenceId: conf.id },
-				defaultJobOptions,
-			);
+			await enqueueJob(commsQueue, JOB_NAMES.CAMPAIGN_MATERIALISE, {
+				campaignId: id,
+				conferenceId: conf.id,
+			});
 			await recordAudit(c.get("conference") ? (undefined as any) : (undefined as any), {
 				conferenceId: conf.id,
 				userId: user.id,
@@ -641,11 +640,11 @@ campaignsRouter.get(
 				.orderBy(desc(messageRecipients.createdAt))
 				.limit(q.pageSize)
 				.offset(offset);
-			const [{ n }] = await tx
+			const countRows = await tx
 				.select({ n: sql<number>`count(*)::int` })
 				.from(messageRecipients)
 				.where(and(...parts));
-			return { data, total: n };
+			return { data, total: countRows[0]?.n ?? 0 };
 		});
 		return c.json({
 			data: result.data,

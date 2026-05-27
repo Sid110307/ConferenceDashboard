@@ -3,6 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { useConference } from "@/lib/ConferenceContext";
 import { fmtDateTime, fmtNumber, fmtTime, humanise, slugify } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { cx } from "@/lib/uiStyles";
 import { useListQuery } from "@/lib/useListQuery";
 import { useRealtime } from "@/lib/useRealtime";
@@ -144,7 +145,7 @@ function ControlRoomPage() {
 	const [logPage, setLogPage] = useState(1);
 
 	const counters = useQuery<{ data: Dashboard }>({
-		queryKey: ["dashboard", conference.slug],
+		queryKey: queryKeys.dashboard(conference.slug),
 		queryFn: () => api.get<{ data: Dashboard }>(`/api/v1/c/${conference.slug}/dashboard`),
 		refetchInterval: 30000,
 	});
@@ -186,8 +187,10 @@ function ControlRoomPage() {
 			ev.type.startsWith("import.") ||
 			ev.type.startsWith("daily_control.")
 		) {
-			qc.invalidateQueries({ queryKey: ["dashboard", conference.slug] }).catch(console.error);
-			qc.invalidateQueries({ queryKey: ["control-room-logs", conference.slug] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.dashboard(conference.slug) }).catch(
+				console.error,
+			);
+			qc.invalidateQueries({ queryKey: queryKeys.controlRoomLogs(conference.slug) }).catch(
 				console.error,
 			);
 		}
@@ -438,7 +441,7 @@ function ControlLogDrawer({
 			return isEdit ? api.patch(`${path}/${log!.id}`, body) : api.post(path, body);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["control-room-logs", conference.slug] })
+			qc.invalidateQueries({ queryKey: queryKeys.controlRoomLogs(conference.slug) })
 				.catch(console.error)
 				.catch(console.error);
 			toast.success(isEdit ? "Log updated" : "Log created");

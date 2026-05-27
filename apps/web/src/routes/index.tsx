@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import { humanise } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Plus } from "lucide-react";
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/")({
 function IndexPage() {
 	const navigate = useNavigate();
 	const { data, isLoading, error } = useQuery<Me>({
-		queryKey: ["me"],
+		queryKey: queryKeys.me(),
 		queryFn: () => api.get<Me>("/api/v1/auth/me"),
 		retry: false,
 	});

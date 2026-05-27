@@ -8,7 +8,7 @@ import globals from "globals";
 import tsEslint from "typescript-eslint";
 
 export default defineConfig([
-	globalIgnores(["**/dist", "**/node_modules", "**/build"]),
+	globalIgnores(["**/dist", "**/node_modules", "**/build", "**/routeTree.gen.ts"]),
 	js.configs.recommended,
 	...tsEslint.configs.recommended,
 	{

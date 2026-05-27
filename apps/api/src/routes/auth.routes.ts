@@ -113,11 +113,11 @@ authRouter.post(
 				.limit(1);
 
 			if (!inv) throw new NotFoundError("invitation");
-			if (inv.acceptedAt) throw new BadRequestError("already accepted");
-			if (inv.revokedAt) throw new BadRequestError("invitation revoked");
+			if (inv.acceptedAt) throw new BadRequestError("Already accepted");
+			if (inv.revokedAt) throw new BadRequestError("Invitation revoked");
 
 			if (inv.email.toLowerCase() !== user.email.toLowerCase()) {
-				throw new BadRequestError("invitation email mismatch");
+				throw new BadRequestError("Invitation email mismatch");
 			}
 
 			await tx

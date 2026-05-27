@@ -81,11 +81,11 @@ helpdeskRouter.post("/", requireRole("editor"), zValidator("json", helpdeskCreat
 	const input = c.req.valid("json");
 
 	const row = await withTenant(conf.id, async tx => {
-		const [{ n }] = await tx
+		const countRows = await tx
 			.select({ n: sql<number>`count(*)::int` })
 			.from(helpdeskIssues)
 			.where(eq(helpdeskIssues.conferenceId, conf.id));
-		const issueCode = codes.issue((n ?? 0) + 1);
+		const issueCode = codes.issue((countRows[0]?.n ?? 0) + 1);
 
 		const [created] = await tx
 			.insert(helpdeskIssues)

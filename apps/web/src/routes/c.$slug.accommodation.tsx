@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtRelative, slugify } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { cx } from "@/lib/uiStyles";
 import { useUrlState } from "@/lib/useUrlState";
 import {
@@ -86,7 +87,7 @@ function AccommodationPage() {
 	const [search, setSearch] = useUrlState<z.infer<typeof Search>>();
 
 	const blocks = useQuery<{ data: Block[] }>({
-		queryKey: ["acc-blocks", conference.slug],
+		queryKey: queryKeys.accBlocks(conference.slug),
 		queryFn: () =>
 			api.get<{ data: Block[] }>(`/api/v1/c/${conference.slug}/accommodation/blocks`, {
 				pageSize: 100,
@@ -94,7 +95,7 @@ function AccommodationPage() {
 	});
 
 	const allRooms = useQuery<{ data: Room[] }>({
-		queryKey: ["acc-all-rooms", conference.slug],
+		queryKey: queryKeys.accAllRooms(conference.slug),
 		queryFn: () =>
 			api.get<{ data: Room[] }>(`/api/v1/c/${conference.slug}/accommodation/rooms`, {
 				pageSize: 100,
@@ -109,7 +110,7 @@ function AccommodationPage() {
 		(roomToOpen?.blockId || search.blockId || blocks.data?.data?.[0]?.id) ?? null;
 
 	const rooms = useQuery<{ data: Room[] }>({
-		queryKey: ["acc-rooms", conference.slug, selectedBlockId],
+		queryKey: queryKeys.accRooms(conference.slug, selectedBlockId),
 		queryFn: () =>
 			api.get<{ data: Room[] }>(`/api/v1/c/${conference.slug}/accommodation/rooms`, {
 				blockId: selectedBlockId ?? undefined,
@@ -272,7 +273,7 @@ function RoomDrawer({
 	const confirm = useConfirm();
 
 	const allocs = useQuery<{ data: Allocation[] }>({
-		queryKey: ["acc-allocs", conference.slug, room.id],
+		queryKey: queryKeys.accAllocs(conference.slug, room.id),
 		queryFn: () =>
 			api.get<{ data: Allocation[] }>(
 				`/api/v1/c/${conference.slug}/accommodation/allocations`,
@@ -287,11 +288,15 @@ function RoomDrawer({
 				allocationCheckActionSchema.parse({ action: input.action }),
 			),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["acc-allocs", conference.slug, room.id] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.accAllocs(conference.slug, room.id) }).catch(
 				console.error,
 			);
-			qc.invalidateQueries({ queryKey: ["acc-rooms", conference.slug] }).catch(console.error);
-			qc.invalidateQueries({ queryKey: ["dashboard", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.accRooms(conference.slug) }).catch(
+				console.error,
+			);
+			qc.invalidateQueries({ queryKey: queryKeys.dashboard(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success("Allocation updated");
 		},
 		onError: (e: any) => toast.error("Update failed", e.message),
@@ -423,7 +428,7 @@ function BlockDrawer({ onClose }: { onClose: () => void }) {
 			return api.post(`/api/v1/c/${conference.slug}/accommodation/blocks`, payload);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["acc-blocks", conference.slug] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.accBlocks(conference.slug) }).catch(
 				console.error,
 			);
 			toast.success("Block created");

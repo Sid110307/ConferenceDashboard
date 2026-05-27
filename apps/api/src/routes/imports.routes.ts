@@ -2,7 +2,7 @@ import { recordAudit } from "@/lib/audit";
 import type { AppContext } from "@/lib/context";
 import { BadRequestError, ForbiddenError, NotFoundError } from "@/lib/errors";
 import { getClientIp } from "@/lib/http";
-import { defaultJobOptions, importsQueue, JOB_NAMES } from "@/lib/queue";
+import { enqueueJob, importsQueue, JOB_NAMES } from "@/lib/queue";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import { files, importJobs, importRows } from "@conference/db";
@@ -98,7 +98,7 @@ importsRouter.post(
 			const [f] = await tx.select().from(files).where(eq(files.id, input.fileId)).limit(1);
 			if (!f) throw new NotFoundError("file");
 			if (f.conferenceId && f.conferenceId !== conf.id) {
-				throw new ForbiddenError("file does not belong to this conference");
+				throw new ForbiddenError("File does not belong to this conference");
 			}
 
 			const [job] = await tx
@@ -155,7 +155,7 @@ importsRouter.post(
 					job.status,
 				)
 			) {
-				throw new BadRequestError(`cannot edit mapping in status ${job.status}`);
+				throw new BadRequestError(`Cannot edit mapping in status ${job.status}`);
 			}
 
 			const [updated] = await tx
@@ -197,7 +197,7 @@ importsRouter.post(
 
 			if (action === "preview") {
 				if (!["uploaded", "mapping", "previewing"].includes(job.status)) {
-					throw new BadRequestError(`cannot preview in status ${job.status}`);
+					throw new BadRequestError(`Cannot preview in status ${job.status}`);
 				}
 				await tx
 					.update(importJobs)
@@ -215,7 +215,7 @@ importsRouter.post(
 					!["mapping", "previewing", "previewed", "with_errors"].includes(job.status) ||
 					!job.columnMapping
 				) {
-					throw new BadRequestError("mapping required before start");
+					throw new BadRequestError("Mapping required before start");
 				}
 				await tx
 					.update(importJobs)
@@ -231,7 +231,7 @@ importsRouter.post(
 
 			if (action === "cancel") {
 				if (["completed", "cancelled", "rolled_back"].includes(job.status)) {
-					throw new BadRequestError(`cannot cancel ${job.status} job`);
+					throw new BadRequestError(`Cannot cancel ${job.status} job`);
 				}
 				await tx
 					.update(importJobs)
@@ -247,10 +247,10 @@ importsRouter.post(
 
 			if (action === "rollback") {
 				if (m.role !== "admin" && m.role !== "super_admin") {
-					throw new ForbiddenError("rollback requires admin");
+					throw new ForbiddenError("Rollback requires admin");
 				}
 				if (job.status !== "completed" && job.status !== "with_errors") {
-					throw new BadRequestError(`cannot rollback ${job.status} job`);
+					throw new BadRequestError(`Cannot rollback ${job.status} job`);
 				}
 				await tx
 					.update(importJobs)
@@ -266,15 +266,16 @@ importsRouter.post(
 			return null;
 		});
 
+		let queued = false;
 		if (dispatch?.jobName) {
-			await importsQueue.add(
-				dispatch.jobName,
-				{ jobId: id, conferenceId: conf.id, userId: user.id },
-				defaultJobOptions,
-			);
+			queued = await enqueueJob(importsQueue, dispatch.jobName, {
+				jobId: id,
+				conferenceId: conf.id,
+				userId: user.id,
+			});
 		}
 
-		return c.json({ action, queued: !!dispatch });
+		return c.json({ action, queued });
 	},
 );
 

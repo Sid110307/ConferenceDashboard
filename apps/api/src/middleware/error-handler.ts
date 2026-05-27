@@ -36,7 +36,7 @@ export function errorHandler(err: Error, c: Context<AppContext>) {
 		return c.json(
 			{
 				error: "bad_request",
-				message: "validation failed",
+				message: "Validation failed",
 				details: {
 					issues: err.issues.map(i => ({
 						path: i.path.join("."),

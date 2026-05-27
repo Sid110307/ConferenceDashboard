@@ -3,6 +3,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { humanise, slugify } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
 import {
@@ -158,7 +159,7 @@ function StaffPage() {
 function CommitteesTab({ canEdit }: { canEdit: boolean }) {
 	const { conference } = useConference();
 	const committees = useQuery<{ data: CommitteeType[] }>({
-		queryKey: ["committees", conference.slug],
+		queryKey: queryKeys.committees(conference.slug),
 		queryFn: () =>
 			api.get<{ data: CommitteeType[] }>(`/api/v1/c/${conference.slug}/committees`, {
 				pageSize: 100,
@@ -261,7 +262,7 @@ function CommitteeDrawer({
 	const upd = (p: Partial<Committee>) => setForm(f => ({ ...f, ...p }));
 
 	const assignments = useQuery<{ data: Assignment[] }>({
-		queryKey: ["assignments", conference.slug, committee?.id],
+		queryKey: queryKeys.assignments(conference.slug, committee?.id),
 		queryFn: () =>
 			api.get<{ data: Assignment[] }>(`/api/v1/c/${conference.slug}/assignments`, {
 				committeeId: committee!.id,
@@ -273,7 +274,7 @@ function CommitteeDrawer({
 	const assignedIds = new Set(assigned.map(a => a.staffId));
 
 	const allStaff = useQuery<{ data: Staff[] }>({
-		queryKey: ["staff-all", conference.slug],
+		queryKey: queryKeys.staffAll(conference.slug),
 		queryFn: () =>
 			api.get<{ data: Staff[] }>(`/api/v1/c/${conference.slug}/staff`, {
 				pageSize: 100,
@@ -300,14 +301,16 @@ function CommitteeDrawer({
 			return api.patch(`${path}/${committee!.id}`, body);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["committees", conference.slug] })
+			qc.invalidateQueries({ queryKey: queryKeys.committees(conference.slug) })
 				.catch(console.error)
 				.catch(console.error);
-			qc.invalidateQueries({ queryKey: ["staff", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.staff(conference.slug) }).catch(
+				console.error,
+			);
 
 			if (committee) {
 				qc.invalidateQueries({
-					queryKey: ["assignments", conference.slug, committee.id],
+					queryKey: queryKeys.assignments(conference.slug, committee.id),
 				}).catch(console.error);
 			}
 
@@ -337,13 +340,17 @@ function CommitteeDrawer({
 			),
 		onSuccess: () => {
 			qc.invalidateQueries({
-				queryKey: ["assignments", conference.slug, committee!.id],
+				queryKey: queryKeys.assignments(conference.slug, committee!.id),
 			}).catch(console.error);
-			qc.invalidateQueries({ queryKey: ["committees", conference.slug] })
+			qc.invalidateQueries({ queryKey: queryKeys.committees(conference.slug) })
 				.catch(console.error)
 				.catch(console.error);
-			qc.invalidateQueries({ queryKey: ["staff", conference.slug] }).catch(console.error);
-			qc.invalidateQueries({ queryKey: ["staff-all", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.staff(conference.slug) }).catch(
+				console.error,
+			);
+			qc.invalidateQueries({ queryKey: queryKeys.staffAll(conference.slug) }).catch(
+				console.error,
+			);
 
 			setAdding(false);
 			toast.success("Member added");
@@ -355,13 +362,17 @@ function CommitteeDrawer({
 		mutationFn: (id: string) => api.del(`/api/v1/c/${conference.slug}/assignments/${id}`),
 		onSuccess: () => {
 			qc.invalidateQueries({
-				queryKey: ["assignments", conference.slug, committee!.id],
+				queryKey: queryKeys.assignments(conference.slug, committee!.id),
 			}).catch(console.error);
-			qc.invalidateQueries({ queryKey: ["committees", conference.slug] })
+			qc.invalidateQueries({ queryKey: queryKeys.committees(conference.slug) })
 				.catch(console.error)
 				.catch(console.error);
-			qc.invalidateQueries({ queryKey: ["staff", conference.slug] }).catch(console.error);
-			qc.invalidateQueries({ queryKey: ["staff-all", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.staff(conference.slug) }).catch(
+				console.error,
+			);
+			qc.invalidateQueries({ queryKey: queryKeys.staffAll(conference.slug) }).catch(
+				console.error,
+			);
 
 			toast.success("Member removed");
 		},
@@ -374,12 +385,14 @@ function CommitteeDrawer({
 				isLead,
 			}),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["committees", conference.slug] })
+			qc.invalidateQueries({ queryKey: queryKeys.committees(conference.slug) })
 				.catch(console.error)
 				.catch(console.error);
-			qc.invalidateQueries({ queryKey: ["staff", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.staff(conference.slug) }).catch(
+				console.error,
+			);
 			qc.invalidateQueries({
-				queryKey: ["assignments", conference.slug, committee!.id],
+				queryKey: queryKeys.assignments(conference.slug, committee!.id),
 			}).catch(console.error);
 
 			toast.success("Committee lead updated");
@@ -702,7 +715,9 @@ function StaffTab({
 						setEditing(null);
 						setCreating(false);
 					}}
-					onSaved={() => qc.invalidateQueries({ queryKey: ["staff", conference.slug] })}
+					onSaved={() =>
+						qc.invalidateQueries({ queryKey: queryKeys.staff(conference.slug) })
+					}
 				/>
 			)}
 		</>

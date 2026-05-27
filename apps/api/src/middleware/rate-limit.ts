@@ -4,7 +4,7 @@ import { RateLimitedError } from "@/lib/errors";
 import { createRedis } from "@conference/infra";
 import { createMiddleware } from "hono/factory";
 
-const redis = createRedis({ url: env.REDIS_URL, lazyConnect: false });
+const redis = createRedis({ url: env.REDIS_URL });
 
 export type RateLimitOptions = {
 	key: string;
@@ -24,17 +24,24 @@ export function rateLimit(opts: RateLimitOptions) {
 			: `${opts.key}:${ip}`;
 		const bucket = `rl:${key}`;
 
-		const count = await redis.incr(bucket);
-		if (count === 1) await redis.expire(bucket, opts.windowSec);
+		try {
+			const count = await redis.incr(bucket);
+			if (count === 1) await redis.expire(bucket, opts.windowSec);
 
-		if (count > opts.limit) {
-			const ttl = await redis.ttl(bucket);
-			c.header("retry-after", String(Math.max(ttl, 1)));
-			throw new RateLimitedError(Math.max(ttl, 1));
+			if (count > opts.limit) {
+				const ttl = await redis.ttl(bucket);
+				c.header("retry-after", String(Math.max(ttl, 1)));
+				throw new RateLimitedError(Math.max(ttl, 1));
+			}
+
+			c.header("x-ratelimit-limit", String(opts.limit));
+			c.header("x-ratelimit-remaining", String(Math.max(opts.limit - count, 0)));
+			await next();
+			return;
+		} catch (err) {
+			if (err instanceof RateLimitedError) throw err;
+			console.warn("rate-limit redis unavailable; allowing request through", err);
 		}
-
-		c.header("x-ratelimit-limit", String(opts.limit));
-		c.header("x-ratelimit-remaining", String(Math.max(opts.limit - count, 0)));
 		await next();
 	});
 }

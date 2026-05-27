@@ -156,7 +156,7 @@ allocationsRouter.post(
 			if (!att) throw new NotFoundError("attendee");
 
 			if ((room.occupiedCount ?? 0) >= room.capacity) {
-				throw new BadRequestError("room is at capacity");
+				throw new BadRequestError("Room is at capacity");
 			}
 
 			const [existing] = await tx
@@ -172,7 +172,7 @@ allocationsRouter.post(
 				)
 				.limit(1);
 			if (existing) {
-				throw new BadRequestError("attendee already has an active allocation");
+				throw new BadRequestError("Attendee already has an active allocation");
 			}
 
 			const [row] = await tx

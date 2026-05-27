@@ -15,6 +15,9 @@ export function FilterChip({
 	onClear: () => void;
 	icon?: ReactNode;
 }) {
+	const displayValue =
+		typeof value === "string" || typeof value === "number" ? humanise(String(value)) : value;
+
 	return (
 		<span
 			className={cx(
@@ -24,7 +27,7 @@ export function FilterChip({
 		>
 			{icon && <span>{icon}</span>}
 			<span className="text-ink-3">{label}:</span>
-			<span className="text-ink">{humanise(value)}</span>
+			<span className="text-ink">{displayValue}</span>
 			<button
 				onClick={onClear}
 				className="inline-flex items-center justify-center size-5 rounded focus-visible:ring focus-visible:ring-primary/50 hover:bg-accent/10 transition-colors"

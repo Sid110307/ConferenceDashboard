@@ -53,8 +53,12 @@ async function main() {
 
 		for (const row of rows) {
 			try {
-				const plaintext = decrypt(row.configEncrypted, oldKey);
-				const reEnc = encrypt(plaintext);
+				const plaintext = decrypt(
+					row.configEncrypted,
+					{ encryptionKey: env.ENCRYPTION_KEY },
+					oldKey,
+				);
+				const reEnc = encrypt(plaintext, { encryptionKey: env.ENCRYPTION_KEY });
 				await tx
 					.update(messagingProviders)
 					.set({ configEncrypted: reEnc, updatedAt: new Date() })

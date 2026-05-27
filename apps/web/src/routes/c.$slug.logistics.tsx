@@ -3,6 +3,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtINR, humanise } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -207,7 +208,9 @@ function LogisticsDrawer({ item, onClose }: { item: LogisticsItem | null; onClos
 			return isEdit ? api.patch(`${path}/${item!.id}`, body) : api.post(path, body);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["logistics", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.logistics(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success(isEdit ? "Logistics item updated" : "Logistics item created");
 			onClose();
 		},
@@ -217,7 +220,9 @@ function LogisticsDrawer({ item, onClose }: { item: LogisticsItem | null; onClos
 	const del = useMutation({
 		mutationFn: () => api.del(`/api/v1/c/${conference.slug}/logistics/${item!.id}`),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["logistics", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.logistics(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success("Logistics item deleted");
 			onClose();
 		},

@@ -7,6 +7,7 @@ import {
 	type Membership,
 } from "@/lib/ConferenceContext";
 import { queryClient } from "@/lib/queryClient";
+import { queryKeys } from "@/lib/queryKeys";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, Outlet, redirect, useLocation } from "@tanstack/react-router";
 
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/c/$slug")({
 	beforeLoad: async ({ params, location }) => {
 		try {
 			await queryClient.ensureQueryData({
-				queryKey: ["tenant", params.slug],
+				queryKey: queryKeys.tenant(params.slug),
 				queryFn: () => api.get<TenantRoot>(`/api/v1/c/${params.slug}/`),
 				staleTime: 60000,
 			});
@@ -53,12 +54,12 @@ function ConferenceLayout() {
 	const location = useLocation();
 
 	const { data, isLoading, error } = useQuery<TenantRoot>({
-		queryKey: ["tenant", slug],
+		queryKey: queryKeys.tenant(slug),
 		queryFn: () => api.get<TenantRoot>(`/api/v1/c/${slug}/`),
 		staleTime: 60000,
 	});
 	const { data: themeData } = useQuery<{ data: ThemeSettings }>({
-		queryKey: ["conf-theme", slug],
+		queryKey: queryKeys.confTheme(slug),
 		queryFn: () => api.get<{ data: ThemeSettings }>(`/api/v1/c/${slug}/settings/theme`),
 		staleTime: 60000,
 	});

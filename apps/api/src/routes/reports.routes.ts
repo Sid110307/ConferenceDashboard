@@ -2,7 +2,7 @@ import { recordAudit } from "@/lib/audit";
 import type { AppContext } from "@/lib/context";
 import { BadRequestError, NotFoundError } from "@/lib/errors";
 import { getClientIp } from "@/lib/http";
-import { defaultJobOptions, JOB_NAMES, reportsQueue } from "@/lib/queue";
+import { enqueueJob, JOB_NAMES, reportsQueue } from "@/lib/queue";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import { files, reportJobs } from "@conference/db";
@@ -88,11 +88,11 @@ reportsRouter.post(
 			return r;
 		});
 
-		await reportsQueue.add(
-			JOB_NAMES.REPORT_GENERATE,
-			{ jobId: job!.id, conferenceId: conf.id, userId: user.id },
-			defaultJobOptions,
-		);
+		await enqueueJob(reportsQueue, JOB_NAMES.REPORT_GENERATE, {
+			jobId: job!.id,
+			conferenceId: conf.id,
+			userId: user.id,
+		});
 
 		return c.json({ data: job }, 201);
 	},
@@ -113,7 +113,7 @@ reportsRouter.get(
 				.limit(1);
 			if (!r) throw new NotFoundError("report job");
 			if (r.status !== "completed" || !r.fileId) {
-				throw new BadRequestError(`report not ready (status=${r.status})`);
+				throw new BadRequestError(`Report not ready (status=${r.status})`);
 			}
 			const [f] = await tx.select().from(files).where(eq(files.id, r.fileId)).limit(1);
 			if (!f) throw new NotFoundError("output file");

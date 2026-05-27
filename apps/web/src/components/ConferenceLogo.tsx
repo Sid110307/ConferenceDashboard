@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import { useConference } from "@/lib/ConferenceContext";
+import { queryKeys } from "@/lib/queryKeys";
 import { cx } from "@/lib/uiStyles";
 import { useQuery } from "@tanstack/react-query";
 
@@ -11,7 +12,7 @@ export function ConferenceLogo({ className, alt }: { className?: string; alt?: s
 	const { conference } = useConference();
 
 	const theme = useQuery<{ data: ThemeSettings }>({
-		queryKey: ["conf-theme", conference.slug],
+		queryKey: queryKeys.confTheme(conference.slug),
 		queryFn: () =>
 			api.get<{ data: ThemeSettings }>(`/api/v1/c/${conference.slug}/settings/theme`),
 		staleTime: 60_000,
@@ -19,7 +20,7 @@ export function ConferenceLogo({ className, alt }: { className?: string; alt?: s
 
 	const logoFileId = theme.data?.data?.logoFileId ?? null;
 	const logoPreview = useQuery<{ url: string }>({
-		queryKey: ["conf-theme-logo", conference.slug, logoFileId],
+		queryKey: queryKeys.confThemeLogo(conference.slug, logoFileId),
 		queryFn: () =>
 			api.get<{ url: string }>(`/api/v1/c/${conference.slug}/files/${logoFileId}/download`),
 		enabled: !!logoFileId,

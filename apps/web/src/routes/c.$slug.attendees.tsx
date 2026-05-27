@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtDateTime, fmtRelative, humanise } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { PaginationType, useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
 import { Allocation } from "@/routes/c.$slug.accommodation";
@@ -128,11 +129,11 @@ function AttendeesPage() {
 		params,
 	});
 	const stats = useQuery<{ data: Stats }>({
-		queryKey: ["attendees-stats", conference.slug],
+		queryKey: queryKeys.attendeesStats(conference.slug),
 		queryFn: () => api.get<{ data: Stats }>(`/api/v1/c/${conference.slug}/attendees/stats`),
 	});
 	const arrivalManifest = useQuery<{ data: TravelManifestEntry[] }>({
-		queryKey: ["travel-manifest", conference.slug, "arrival"],
+		queryKey: queryKeys.travelManifest(conference.slug, "arrival"),
 		queryFn: () =>
 			api.get<{ data: TravelManifestEntry[] }>(
 				`/api/v1/c/${conference.slug}/travel/manifest`,
@@ -140,7 +141,7 @@ function AttendeesPage() {
 			),
 	});
 	const departureManifest = useQuery<{ data: TravelManifestEntry[] }>({
-		queryKey: ["travel-manifest", conference.slug, "departure"],
+		queryKey: queryKeys.travelManifest(conference.slug, "departure"),
 		queryFn: () =>
 			api.get<{ data: TravelManifestEntry[] }>(
 				`/api/v1/c/${conference.slug}/travel/manifest`,
@@ -148,7 +149,7 @@ function AttendeesPage() {
 			),
 	});
 	const accommodationAllocations = useQuery<{ data: Allocation[] }>({
-		queryKey: ["accommodation-allocations", conference.slug],
+		queryKey: queryKeys.accommodationAllocations(conference.slug),
 		queryFn: () =>
 			api.get<{ data: Allocation[] }>(
 				`/api/v1/c/${conference.slug}/accommodation/allocations`,
@@ -160,11 +161,15 @@ function AttendeesPage() {
 	const [editing, setEditing] = useState<Attendee | null>(null);
 
 	const invalidate = () => {
-		qc.invalidateQueries({ queryKey: ["attendees", conference.slug] }).catch(console.error);
-		qc.invalidateQueries({ queryKey: ["attendees-stats", conference.slug] }).catch(
+		qc.invalidateQueries({ queryKey: queryKeys.attendees(conference.slug) }).catch(
 			console.error,
 		);
-		qc.invalidateQueries({ queryKey: ["dashboard", conference.slug] }).catch(console.error);
+		qc.invalidateQueries({ queryKey: queryKeys.attendeesStats(conference.slug) }).catch(
+			console.error,
+		);
+		qc.invalidateQueries({ queryKey: queryKeys.dashboard(conference.slug) }).catch(
+			console.error,
+		);
 	};
 
 	const checkInMut = useMutation({

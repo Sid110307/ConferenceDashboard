@@ -68,7 +68,7 @@ filesRouter.post(
 		const input = c.req.valid("json");
 
 		if (!ALLOWED_MIME.has(input.contentType)) {
-			throw new BadRequestError(`unsupported content type ${input.contentType}`);
+			throw new BadRequestError(`Unsupported content type ${input.contentType}`);
 		}
 
 		const fileId = createId();
@@ -125,7 +125,7 @@ filesRouter.post(
 
 			const exists = await objectExists(f.storageKey);
 			if (!exists) {
-				throw new BadRequestError("object not present in storage yet");
+				throw new BadRequestError("Object not present in storage yet");
 			}
 
 			const [updated] = await tx
@@ -191,7 +191,7 @@ filesRouter.delete(
 		const { id } = c.req.valid("param");
 		const { purge } = c.req.valid("query");
 		if (purge && m.role !== "super_admin") {
-			throw new BadRequestError("purge requires super_admin");
+			throw new BadRequestError("Purge requires super_admin");
 		}
 		await withTenant(conf.id, async tx => {
 			const [f] = await tx

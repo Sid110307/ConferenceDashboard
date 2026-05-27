@@ -65,7 +65,6 @@ mealScansRouter.post(
 			mealDate: isoDateSchema,
 			mealType: z.enum(["breakfast", "lunch", "tea", "dinner", "snacks"]),
 			scanLocation: z.string().max(255).optional(),
-			scanMethod: z.enum(["qr", "manual", "rfid", "face"]).default("qr"),
 			notes: z.string().max(500).optional(),
 		}),
 	),
@@ -125,7 +124,7 @@ mealScansRouter.post(
 				return row;
 			} catch (err: any) {
 				if (err?.code === "23505") {
-					throw new BadRequestError("already scanned for this meal");
+					throw new BadRequestError("Already scanned for this meal");
 				}
 				throw err;
 			}
@@ -164,7 +163,7 @@ mealScansRouter.get(
 					mealDate: mealScans.mealDate,
 					mealType: mealScans.mealType,
 					scannedAt: mealScans.scannedAt,
-					scanMethod: mealScans.scanMethod,
+					scannerLocation: mealScans.scannerLocation,
 				})
 				.from(mealScans)
 				.innerJoin(attendees, eq(attendees.id, mealScans.attendeeId))

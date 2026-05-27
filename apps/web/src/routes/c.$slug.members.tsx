@@ -3,6 +3,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtRelative, humanise, initials } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import type { BadgeVariant } from "@/lib/uiStyles";
 import {
 	inviteUserSchema,
@@ -64,11 +65,11 @@ function MembersPage() {
 	const confirm = useConfirm();
 
 	const members = useQuery<{ data: Member[] }>({
-		queryKey: ["members", conference.slug],
+		queryKey: queryKeys.members(conference.slug),
 		queryFn: () => api.get<{ data: Member[] }>(`/api/v1/c/${conference.slug}/members`),
 	});
 	const invites = useQuery<{ data: Invite[] }>({
-		queryKey: ["invites", conference.slug],
+		queryKey: queryKeys.invites(conference.slug),
 		queryFn: () => api.get<{ data: Invite[] }>(`/api/v1/c/${conference.slug}/members/invites`),
 		enabled: canAdmin,
 	});
@@ -81,7 +82,9 @@ function MembersPage() {
 				role: input.role,
 			}),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["members", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.members(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success("Role updated");
 		},
 		onError: (e: any) => toast.error("Could not change role", e.message),
@@ -89,7 +92,9 @@ function MembersPage() {
 	const deactivate = useMutation({
 		mutationFn: (userId: string) => api.del(`/api/v1/c/${conference.slug}/members/${userId}`),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["members", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.members(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success("Member removed");
 		},
 		onError: (e: any) => toast.error("Could not remove member", e.message),
@@ -98,7 +103,9 @@ function MembersPage() {
 		mutationFn: (id: string) =>
 			api.post(`/api/v1/c/${conference.slug}/members/invites/${id}/revoke`, {}),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["invites", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.invites(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success("Invite revoked");
 		},
 		onError: (e: any) => toast.error("Could not revoke", e.message),
@@ -266,7 +273,9 @@ function InviteDrawer({ roleOptions, onClose }: { roleOptions: UserRole[]; onClo
 				inviteUserSchema.parse({ email, role }) as InviteUserInput,
 			),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["invites", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.invites(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success("Invitation sent", `${email} will receive an email shortly.`);
 			onClose();
 		},

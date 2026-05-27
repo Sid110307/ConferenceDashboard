@@ -3,6 +3,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import { useConference } from "@/lib/ConferenceContext";
 import { fmtNumber, fmtRelative, humanise } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { useRealtime } from "@/lib/useRealtime";
 import { reportJobCreateSchema, type ReportJobCreateInput } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -51,14 +52,16 @@ function ReportsPage() {
 	const toast = useToast();
 
 	const jobs = useQuery<{ data: ReportJob[] }>({
-		queryKey: ["reports", conference.slug],
+		queryKey: queryKeys.reports(conference.slug),
 		queryFn: () => api.get<{ data: ReportJob[] }>(`/api/v1/c/${conference.slug}/reports`),
 		refetchInterval: 4000,
 	});
 
 	useRealtime(conference.slug, ev => {
 		if (ev.type.startsWith("report.")) {
-			qc.invalidateQueries({ queryKey: ["reports", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.reports(conference.slug) }).catch(
+				console.error,
+			);
 		}
 	});
 
@@ -158,7 +161,9 @@ function GenerateDrawer({ onClose }: { onClose: () => void }) {
 				reportJobCreateSchema.parse({ name: humanise(reportType), reportType, format }),
 			),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["reports", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.reports(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success("Report queued", "It will appear in the list when ready.");
 			onClose();
 		},

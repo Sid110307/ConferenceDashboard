@@ -3,6 +3,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtDateTime, humanise } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -186,7 +187,7 @@ function AnnouncementDrawer({
 			return isEdit ? api.patch(`${path}/${announcement!.id}`, body) : api.post(path, body);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["announcements", conference.slug] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.announcements(conference.slug) }).catch(
 				console.error,
 			);
 			toast.success(isEdit ? "Announcement updated" : "Announcement created");
@@ -198,7 +199,7 @@ function AnnouncementDrawer({
 	const del = useMutation({
 		mutationFn: () => api.del(`/api/v1/c/${conference.slug}/announcements/${announcement!.id}`),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["announcements", conference.slug] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.announcements(conference.slug) }).catch(
 				console.error,
 			);
 			toast.success("Announcement deleted");

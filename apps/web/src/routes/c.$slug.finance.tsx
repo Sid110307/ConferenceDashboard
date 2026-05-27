@@ -3,6 +3,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtINR, humanise } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -78,7 +79,7 @@ function FinancePage() {
 	const tab = search.tab ?? "ledger";
 
 	const summary = useQuery<{ data: Summary }>({
-		queryKey: ["finance-summary", conference.slug],
+		queryKey: queryKeys.financeSummary(conference.slug),
 		queryFn: () => api.get<{ data: Summary }>(`/api/v1/c/${conference.slug}/finance/summary`),
 	});
 
@@ -264,10 +265,10 @@ function FinanceItemDrawer({ item, onClose }: { item: FinanceItem | null; onClos
 			return isEdit ? api.patch(`${path}/${item!.id}`, body) : api.post(path, body);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["finance-items", conference.slug] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.financeItems(conference.slug) }).catch(
 				console.error,
 			);
-			qc.invalidateQueries({ queryKey: ["finance-summary", conference.slug] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.financeSummary(conference.slug) }).catch(
 				console.error,
 			);
 			toast.success("Saved");
@@ -279,10 +280,10 @@ function FinanceItemDrawer({ item, onClose }: { item: FinanceItem | null; onClos
 	const del = useMutation({
 		mutationFn: () => api.del(`/api/v1/c/${conference.slug}/finance/${item!.id}`),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["finance-items", conference.slug] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.financeItems(conference.slug) }).catch(
 				console.error,
 			);
-			qc.invalidateQueries({ queryKey: ["finance-summary", conference.slug] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.financeSummary(conference.slug) }).catch(
 				console.error,
 			);
 			toast.success("Item deleted");
@@ -517,7 +518,9 @@ function SponsorDrawer({ sponsor, onClose }: { sponsor: Sponsor | null; onClose:
 			return isEdit ? api.patch(`${path}/${sponsor!.id}`, body) : api.post(path, body);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["sponsors", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.sponsors(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success("Saved");
 			onClose();
 		},

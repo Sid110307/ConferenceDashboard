@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtRelative, humanise } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { cx } from "@/lib/uiStyles";
 import { useRealtime } from "@/lib/useRealtime";
 import {
@@ -75,20 +76,20 @@ function ImportsPage() {
 	const qc = useQueryClient();
 
 	const jobs = useQuery<{ data: ImportJob[] }>({
-		queryKey: ["import-jobs", conference.slug],
+		queryKey: queryKeys.importJobs(conference.slug),
 		queryFn: () => api.get<{ data: ImportJob[] }>(`/api/v1/c/${conference.slug}/imports`),
 		refetchInterval: 5000,
 	});
 
 	useRealtime(conference.slug, ev => {
 		if (ev.type.startsWith("import.")) {
-			qc.invalidateQueries({ queryKey: ["import-jobs", conference.slug] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.importJobs(conference.slug) }).catch(
 				console.error,
 			);
 			if (ev.id)
-				qc.invalidateQueries({ queryKey: ["import-job", conference.slug, ev.id] }).catch(
-					console.error,
-				);
+				qc.invalidateQueries({
+					queryKey: queryKeys.importJob(conference.slug, ev.id),
+				}).catch(console.error);
 		}
 	});
 
@@ -285,7 +286,7 @@ function JobWizard({ jobId, onReset }: { jobId: string; onReset: () => void }) {
 	const confirm = useConfirm();
 
 	const job = useQuery<{ data: ImportJob }>({
-		queryKey: ["import-job", conference.slug, jobId],
+		queryKey: queryKeys.importJob(conference.slug, jobId),
 		queryFn: () =>
 			api.get<{ data: ImportJob }>(`/api/v1/c/${conference.slug}/imports/${jobId}`),
 		refetchInterval: q => {
@@ -303,10 +304,10 @@ function JobWizard({ jobId, onReset }: { jobId: string; onReset: () => void }) {
 				importJobActionSchema.parse(body),
 			),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["import-job", conference.slug, jobId] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.importJob(conference.slug, jobId) }).catch(
 				console.error,
 			);
-			qc.invalidateQueries({ queryKey: ["import-jobs", conference.slug] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.importJobs(conference.slug) }).catch(
 				console.error,
 			);
 		},
@@ -323,7 +324,8 @@ function JobWizard({ jobId, onReset }: { jobId: string; onReset: () => void }) {
 				...importJobActionSchema.parse({ action: "preview" }),
 			});
 		},
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["import-job", conference.slug, jobId] }),
+		onSuccess: () =>
+			qc.invalidateQueries({ queryKey: queryKeys.importJob(conference.slug, jobId) }),
 		onError: (e: any) => toast.error("Could not save mapping", e.message),
 	});
 
@@ -578,7 +580,7 @@ function PreviewCard({ job, jobId }: { job: ImportJob; jobId: string }) {
 	const [showErrors, setShowErrors] = useState(false);
 
 	const errorRows = useQuery<{ data: ImportRow[] }>({
-		queryKey: ["import-rows", conference.slug, jobId],
+		queryKey: queryKeys.importRows(conference.slug, jobId),
 		queryFn: () =>
 			api.get<{ data: ImportRow[] }>(`/api/v1/c/${conference.slug}/imports/${jobId}/rows`, {
 				status: "invalid",
@@ -593,7 +595,7 @@ function PreviewCard({ job, jobId }: { job: ImportJob; jobId: string }) {
 				...importJobActionSchema.parse({ action: "start" }),
 			}),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["import-job", conference.slug, jobId] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.importJob(conference.slug, jobId) }).catch(
 				console.error,
 			);
 			toast.success("Import started");

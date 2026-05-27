@@ -3,6 +3,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtRelative, humanise } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import type { BadgeVariant } from "@/lib/uiStyles";
 import { useListQuery } from "@/lib/useListQuery";
 import { useRealtime } from "@/lib/useRealtime";
@@ -83,7 +84,9 @@ function HelpdeskPage() {
 
 	useRealtime(conference.slug, ev => {
 		if (ev.type.startsWith("helpdesk.")) {
-			qc.invalidateQueries({ queryKey: ["helpdesk", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.helpdesk(conference.slug) }).catch(
+				console.error,
+			);
 		}
 	});
 
@@ -235,8 +238,12 @@ function IssueDrawer({
 				resolutionNotes: notes || undefined,
 			}),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["helpdesk", conference.slug] }).catch(console.error);
-			qc.invalidateQueries({ queryKey: ["dashboard", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.helpdesk(conference.slug) }).catch(
+				console.error,
+			);
+			qc.invalidateQueries({ queryKey: queryKeys.dashboard(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success("Issue updated");
 			onClose();
 		},
@@ -246,7 +253,9 @@ function IssueDrawer({
 	const del = useMutation({
 		mutationFn: () => api.del(`/api/v1/c/${conference.slug}/helpdesk/${issue.id}`),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["helpdesk", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.helpdesk(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success("Issue deleted");
 			onClose();
 		},
@@ -376,7 +385,9 @@ function CreateIssueDrawer({ onClose }: { onClose: () => void }) {
 	const create = useMutation({
 		mutationFn: () => api.post(`/api/v1/c/${conference.slug}/helpdesk`, form),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["helpdesk", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.helpdesk(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success("Issue created");
 			onClose();
 		},

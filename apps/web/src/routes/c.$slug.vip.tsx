@@ -3,6 +3,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { humanise } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -206,7 +207,7 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 	const [newItem, setNewItem] = useState("");
 
 	const checklist = useQuery<{ data: ChecklistItem[] }>({
-		queryKey: ["vip-checklist", conference.slug, vip.id],
+		queryKey: queryKeys.vipChecklist(conference.slug, vip.id),
 		queryFn: () => api.get(`/api/v1/c/${conference.slug}/vip-checklist/${vip.id}`),
 	});
 
@@ -214,9 +215,9 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 		mutationFn: () =>
 			api.post(`/api/v1/c/${conference.slug}/vip-checklist/${vip.id}`, { item: newItem }),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["vip-checklist", conference.slug, vip.id] }).catch(
-				console.error,
-			);
+			qc.invalidateQueries({
+				queryKey: queryKeys.vipChecklist(conference.slug, vip.id),
+			}).catch(console.error);
 			setNewItem("");
 		},
 		onError: (e: any) => toast.error("Could not add item", e.message),
@@ -227,13 +228,13 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 				isDone: !item.isDone,
 			}),
 		onSuccess: () =>
-			qc.invalidateQueries({ queryKey: ["vip-checklist", conference.slug, vip.id] }),
+			qc.invalidateQueries({ queryKey: queryKeys.vipChecklist(conference.slug, vip.id) }),
 	});
 
 	const del = useMutation({
 		mutationFn: () => api.del(`/api/v1/c/${conference.slug}/vip/${vip.id}`),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["vip", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.vip(conference.slug) }).catch(console.error);
 			toast.success("VIP guest deleted");
 			onClose();
 		},
@@ -418,7 +419,7 @@ function CreateVipDrawer({ onClose }: { onClose: () => void }) {
 	const create = useMutation({
 		mutationFn: () => api.post(`/api/v1/c/${conference.slug}/vip`, form),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["vip", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.vip(conference.slug) }).catch(console.error);
 			toast.success("VIP guest added");
 			onClose();
 		},

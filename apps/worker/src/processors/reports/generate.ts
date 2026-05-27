@@ -111,7 +111,7 @@ export async function processReportGenerate(payload: {
 
 	await db
 		.update(reportJobs)
-		.set({ status: "running", startedAt: new Date(), updatedAt: new Date() })
+		.set({ status: "generating", startedAt: new Date(), updatedAt: new Date() })
 		.where(eq(reportJobs.id, jobId));
 
 	try {
@@ -164,7 +164,6 @@ export async function processReportGenerate(payload: {
 					storageKey: key,
 					storageBucket: env.S3_BUCKET,
 					purpose: "report" as const,
-					uploadStatus: "ready" as const,
 					uploadedByUserId: userId,
 				})
 				.returning({ id: filesTable.id });

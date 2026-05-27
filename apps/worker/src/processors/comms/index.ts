@@ -266,13 +266,13 @@ export async function processCampaignDispatchBatch(payload: {
 		})
 		.where(eq(messageCampaigns.id, campaignId));
 
-	const [{ remaining }] = await db
+	const countRows = await db
 		.select({
 			remaining: sql<number>`count(*) FILTER (WHERE status = 'queued')::int`,
 		})
 		.from(messageRecipients)
 		.where(eq(messageRecipients.campaignId, campaignId));
-	if (remaining === 0) {
+	if ((countRows[0]?.remaining ?? 0) === 0) {
 		await db
 			.update(messageCampaigns)
 			.set({

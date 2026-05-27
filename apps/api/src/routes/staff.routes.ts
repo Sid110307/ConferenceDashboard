@@ -301,13 +301,24 @@ assignmentsRouter.patch(
 			}
 
 			const updateValues = {
-				...input,
+				...(input.committeeId !== undefined ? { committeeId: input.committeeId } : {}),
+				...(input.staffId !== undefined ? { staffId: input.staffId } : {}),
+				...(input.roleInCommittee !== undefined
+					? { roleInCommittee: input.roleInCommittee }
+					: {}),
+				...(input.isLead !== undefined ? { isLead: input.isLead } : {}),
+				...(input.responsibilities !== undefined
+					? { responsibilities: input.responsibilities }
+					: {}),
 				...(input.shiftStart !== undefined && {
 					shiftStart: input.shiftStart ? new Date(input.shiftStart) : null,
 				}),
 				...(input.shiftEnd !== undefined && {
 					shiftEnd: input.shiftEnd ? new Date(input.shiftEnd) : null,
 				}),
+				...(input.assignmentNotes !== undefined
+					? { assignmentNotes: input.assignmentNotes }
+					: {}),
 				updatedBy: user.id,
 				updatedAt: new Date(),
 			};

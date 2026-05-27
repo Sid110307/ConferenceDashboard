@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtDate } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { useRealtime } from "@/lib/useRealtime";
 import { type FoodPlan } from "@conference/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -44,14 +45,14 @@ function FoodPage() {
 	const qc = useQueryClient();
 
 	const plans = useQuery<{ data: FoodPlan[] }>({
-		queryKey: ["food-plans", conference.slug],
+		queryKey: queryKeys.foodPlans(conference.slug),
 		queryFn: () =>
 			api.get<{ data: FoodPlan[] }>(`/api/v1/c/${conference.slug}/food/plans`, {
 				pageSize: 60,
 			}),
 	});
 	const scanStats = useQuery<{ data: ScanStat[] }>({
-		queryKey: ["meal-scan-stats", conference.slug],
+		queryKey: queryKeys.mealScanStats(conference.slug),
 		queryFn: () =>
 			api.get<{ data: ScanStat[] }>(`/api/v1/c/${conference.slug}/food/scans/stats`),
 		refetchInterval: 30000,
@@ -59,7 +60,7 @@ function FoodPage() {
 
 	useRealtime(conference.slug, ev => {
 		if (ev.type === "meal_scan.created") {
-			qc.invalidateQueries({ queryKey: ["meal-scan-stats", conference.slug] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.mealScanStats(conference.slug) }).catch(
 				console.error,
 			);
 		}
@@ -180,18 +181,34 @@ function PlanDrawer({ plan, onClose }: { plan: FoodPlan | null; onClose: () => v
 	const toast = useToast();
 	const confirm = useConfirm();
 	const isEdit = !!plan;
+	const initialExpected = plan
+		? Math.max(
+				plan.breakfastCount,
+				plan.lunchCount,
+				plan.teaCount,
+				plan.dinnerCount,
+				plan.snacksCount,
+			)
+		: 0;
 	const [form, setForm] = useState({
 		mealDate: plan?.mealDate ?? "",
-		expectedHeadcount: plan?.expectedHeadcount?.toString() ?? "",
+		expectedHeadcount: initialExpected > 0 ? String(initialExpected) : "",
 		notes: plan?.notes ?? "",
 	});
 	const save = useMutation({
 		mutationFn: () => {
+			const parsedExpected = Number(form.expectedHeadcount);
+			const expectedHeadcount =
+				form.expectedHeadcount.trim() === "" || Number.isNaN(parsedExpected)
+					? undefined
+					: Math.max(0, Math.trunc(parsedExpected));
 			const body = {
 				mealDate: form.mealDate,
-				expectedHeadcount: form.expectedHeadcount
-					? Number(form.expectedHeadcount)
-					: undefined,
+				breakfastCount: expectedHeadcount,
+				lunchCount: expectedHeadcount,
+				teaCount: expectedHeadcount,
+				dinnerCount: expectedHeadcount,
+				snacksCount: expectedHeadcount,
 				notes: form.notes || undefined,
 			};
 			return isEdit
@@ -199,7 +216,7 @@ function PlanDrawer({ plan, onClose }: { plan: FoodPlan | null; onClose: () => v
 				: api.post(`/api/v1/c/${conference.slug}/food/plans`, body);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["food-plans", conference.slug] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.foodPlans(conference.slug) }).catch(
 				console.error,
 			);
 			toast.success(isEdit ? "Meal plan updated" : "Meal plan added");
@@ -211,7 +228,7 @@ function PlanDrawer({ plan, onClose }: { plan: FoodPlan | null; onClose: () => v
 	const del = useMutation({
 		mutationFn: () => api.del(`/api/v1/c/${conference.slug}/food/plans/${plan!.id}`),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["food-plans", conference.slug] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.foodPlans(conference.slug) }).catch(
 				console.error,
 			);
 			toast.success("Meal plan deleted");
@@ -313,7 +330,7 @@ function ScanDrawer({ onClose }: { onClose: () => void }) {
 		onSuccess: (_data, overrideCode) => {
 			const scannedCode = overrideCode ?? form.attendeeCode;
 
-			qc.invalidateQueries({ queryKey: ["meal-scan-stats", conference.slug] }).catch(
+			qc.invalidateQueries({ queryKey: queryKeys.mealScanStats(conference.slug) }).catch(
 				console.error,
 			);
 			toast.success("Scan recorded", `${scannedCode} · ${form.mealType}`);

@@ -125,7 +125,7 @@ conferencesRouter.post(
 				.from(conferences)
 				.where(eq(conferences.slug, input.slug))
 				.limit(1);
-			if (existing) throw new ConflictError("slug already taken");
+			if (existing) throw new ConflictError("Slug already taken");
 
 			const [conf] = await tx
 				.insert(conferences)
@@ -135,7 +135,7 @@ conferencesRouter.post(
 					updatedBy: user.id,
 				})
 				.returning();
-			if (!conf) throw new BadRequestError("failed to create");
+			if (!conf) throw new BadRequestError("Failed to create");
 
 			await tx.insert(userConferenceRoles).values({
 				userId: user.id,
@@ -202,10 +202,34 @@ conferencesRouter.patch(
 			const [result] = await tx
 				.update(conferences)
 				.set({
-					...input,
+					...(input.slug !== undefined ? { slug: input.slug } : {}),
+					...(input.name !== undefined ? { name: input.name } : {}),
+					...(input.shortName !== undefined ? { shortName: input.shortName } : {}),
+					...(input.description !== undefined ? { description: input.description } : {}),
+					...(input.startDate !== undefined ? { startDate: input.startDate } : {}),
+					...(input.endDate !== undefined ? { endDate: input.endDate } : {}),
+					...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
+					...(input.conferenceStatus !== undefined
+						? { conferenceStatus: input.conferenceStatus }
+						: {}),
+					...(input.publicStatus !== undefined
+						? { publicStatus: input.publicStatus }
+						: {}),
+					...(input.venueName !== undefined ? { venueName: input.venueName } : {}),
+					...(input.venueAddress !== undefined
+						? { venueAddress: input.venueAddress }
+						: {}),
+					...(input.venueCity !== undefined ? { venueCity: input.venueCity } : {}),
+					...(input.venueState !== undefined ? { venueState: input.venueState } : {}),
+					...(input.venueCountry !== undefined
+						? { venueCountry: input.venueCountry }
+						: {}),
+					...(input.currentDay !== undefined ? { currentDay: input.currentDay } : {}),
+					...(input.settings !== undefined ? { settings: input.settings } : {}),
+					...(input.branding !== undefined ? { branding: input.branding } : {}),
 					updatedBy: user.id,
 					updatedAt: new Date(),
-				})
+				} as any)
 				.where(eq(conferences.id, conf.id))
 				.returning();
 			if (!result) throw new NotFoundError("conference");

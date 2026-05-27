@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
+import { queryKeys } from "@/lib/queryKeys";
 import { btn, cx } from "@/lib/uiStyles";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
@@ -17,7 +18,7 @@ export function AppHeader({ rightSlot }: { rightSlot?: React.ReactNode }) {
 	const location = useLocation();
 	const toast = useToast();
 	const { data } = useQuery<Me>({
-		queryKey: ["me"],
+		queryKey: queryKeys.me(),
 		queryFn: () => api.get<Me>("/api/v1/auth/me"),
 		staleTime: 5 * 60000,
 	});

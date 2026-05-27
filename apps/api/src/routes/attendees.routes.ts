@@ -453,7 +453,7 @@ attendeesRouter.post(
 				.where(and(eq(attendees.id, id), eq(attendees.conferenceId, conf.id)))
 				.limit(1);
 			if (!before) throw new NotFoundError("attendee");
-			if (!before.deletedAt) throw new BadRequestError("not deleted");
+			if (!before.deletedAt) throw new BadRequestError("Not deleted");
 			await tx
 				.update(attendees)
 				.set({ deletedAt: null, deletedBy: null, updatedBy: user.id })
@@ -507,7 +507,7 @@ attendeesRouter.post(
 				.limit(1);
 			if (!before) throw new NotFoundError("attendee");
 			if (before.checkinStatus === "checked_in")
-				throw new BadRequestError("attendee already checked in");
+				throw new BadRequestError("Attendee already checked in");
 
 			const [updated] = await tx
 				.update(attendees)
@@ -618,7 +618,7 @@ attendeesRouter.post(
 		const user = c.get("user")!;
 		const { ids, action } = c.req.valid("json");
 		if (ids.length > LIMITS.MAX_AUDIENCE_PER_CAMPAIGN) {
-			throw new BadRequestError("too many ids");
+			throw new BadRequestError("Too many ids");
 		}
 
 		const setMap: Record<typeof action, any> = {

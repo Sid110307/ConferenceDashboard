@@ -3,6 +3,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { humanise, slugify } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { useUrlState } from "@/lib/useUrlState";
 import {
 	CUSTOM_FIELD_ENTITIES,
@@ -79,7 +80,7 @@ function CustomFieldsPage() {
 	const confirm = useConfirm();
 
 	const fields = useQuery<{ data: FieldDef[] }>({
-		queryKey: ["custom-fields", conference.slug, entity],
+		queryKey: queryKeys.customFields(conference.slug, entity),
 		queryFn: () =>
 			api.get<{ data: FieldDef[] }>(`/api/v1/c/${conference.slug}/custom-fields`, {
 				entity,
@@ -93,9 +94,9 @@ function CustomFieldsPage() {
 	const del = useMutation({
 		mutationFn: (id: string) => api.del(`/api/v1/c/${conference.slug}/custom-fields/${id}`),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["custom-fields", conference.slug, entity] }).catch(
-				console.error,
-			);
+			qc.invalidateQueries({
+				queryKey: queryKeys.customFields(conference.slug, entity),
+			}).catch(console.error);
 			toast.success("Field deleted");
 		},
 		onError: (e: any) => toast.error("Delete failed", e.message),
@@ -275,9 +276,9 @@ function FieldDefDrawer({
 			return api.post(path, body);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["custom-fields", conference.slug, entity] }).catch(
-				console.error,
-			);
+			qc.invalidateQueries({
+				queryKey: queryKeys.customFields(conference.slug, entity),
+			}).catch(console.error);
 			toast.success(isEdit ? "Field updated" : "Field created");
 			onClose();
 		},

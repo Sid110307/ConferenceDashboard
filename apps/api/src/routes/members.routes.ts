@@ -53,11 +53,11 @@ membersRouter.patch(
 		const input = c.req.valid("json");
 
 		if (userId === me.id) {
-			throw new BadRequestError("cannot change your own role here");
+			throw new BadRequestError("Cannot change your own role here");
 		}
 
 		if (input.role === "super_admin" && m.role !== "super_admin") {
-			throw new ForbiddenError("only super_admin can grant super_admin");
+			throw new ForbiddenError("Only super_admin can grant super_admin");
 		}
 
 		const updated = await db.transaction(async tx => {
@@ -74,7 +74,7 @@ membersRouter.patch(
 			if (!before) throw new NotFoundError("member");
 
 			if (before.role === "super_admin" && m.role !== "super_admin") {
-				throw new ForbiddenError("only super_admin can modify super_admin");
+				throw new ForbiddenError("Only super_admin can modify super_admin");
 			}
 
 			const [row] = await tx
@@ -123,7 +123,7 @@ membersRouter.delete(
 		const { userId } = c.req.valid("param");
 
 		if (userId === me.id) {
-			throw new BadRequestError("cannot remove yourself");
+			throw new BadRequestError("Cannot remove yourself");
 		}
 
 		await db.transaction(async tx => {
@@ -140,7 +140,7 @@ membersRouter.delete(
 			if (!before) throw new NotFoundError("member");
 
 			if (before.role === "super_admin" && m.role !== "super_admin") {
-				throw new ForbiddenError("only super_admin can remove super_admin");
+				throw new ForbiddenError("Only super_admin can remove super_admin");
 			}
 
 			await tx
@@ -188,7 +188,7 @@ membersRouter.post(
 		const input = c.req.valid("json");
 
 		if (input.role === "super_admin" && m.role !== "super_admin") {
-			throw new ForbiddenError("only super_admin can invite super_admin");
+			throw new ForbiddenError("Only super_admin can invite super_admin");
 		}
 
 		const token = makeToken(32);
@@ -208,7 +208,7 @@ membersRouter.post(
 				)
 				.limit(1);
 			if (existing) {
-				throw new BadRequestError("invitation already pending for this email");
+				throw new BadRequestError("Invitation already pending for this email");
 			}
 
 			const expiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000);
@@ -266,7 +266,7 @@ membersRouter.post(
 				.where(and(eq(invitations.id, id), eq(invitations.conferenceId, conf.id)))
 				.limit(1);
 			if (!inv) throw new NotFoundError("invitation");
-			if (inv.acceptedAt) throw new BadRequestError("already accepted");
+			if (inv.acceptedAt) throw new BadRequestError("Already accepted");
 
 			await tx
 				.update(invitations)

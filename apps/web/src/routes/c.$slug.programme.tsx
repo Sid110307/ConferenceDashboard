@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtDate, fmtTime, humanise } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { useUrlState } from "@/lib/useUrlState";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -19,6 +20,7 @@ import { EntityDrawer } from "@/components/EntityDrawer";
 import { FieldRow } from "@/components/FieldRow";
 import { Input, Select, Textarea } from "@/components/Input";
 import { PageHeader } from "@/components/PageHeader";
+import { VenuesMap } from "@/components/programme/VenuesMap";
 import { Tabs } from "@/components/Tabs";
 import { useToast } from "@/components/Toast";
 
@@ -27,7 +29,7 @@ const Search = z.object({
 });
 
 export const Route = createFileRoute("/c/$slug/programme")({
-	validateSearch: s => Search.parse(s),
+	validateSearch: (s: unknown) => Search.parse(s),
 	component: ProgrammePage,
 });
 
@@ -112,7 +114,7 @@ function ProgrammePage() {
 function SessionsTab({ canEdit }: { canEdit: boolean }) {
 	const { conference } = useConference();
 	const sessions = useQuery<{ data: Session[] }>({
-		queryKey: ["sessions", conference.slug],
+		queryKey: queryKeys.sessions(conference.slug),
 		queryFn: () =>
 			api.get<{ data: Session[] }>(`/api/v1/c/${conference.slug}/programme/sessions`, {
 				pageSize: 200,
@@ -239,11 +241,11 @@ function SessionDrawer({ session, onClose }: { session: Session | null; onClose:
 	const [form, setForm] = useState<Partial<Session>>(session ?? {});
 
 	const venues = useQuery<{ data: Venue[] }>({
-		queryKey: ["venues", conference.slug],
+		queryKey: queryKeys.venues(conference.slug),
 		queryFn: () => api.get<{ data: Venue[] }>(`/api/v1/c/${conference.slug}/programme/venues`),
 	});
 	const tracks = useQuery<{ data: Track[] }>({
-		queryKey: ["tracks", conference.slug],
+		queryKey: queryKeys.tracks(conference.slug),
 		queryFn: () => api.get<{ data: Track[] }>(`/api/v1/c/${conference.slug}/programme/tracks`),
 	});
 
@@ -264,7 +266,9 @@ function SessionDrawer({ session, onClose }: { session: Session | null; onClose:
 			return isEdit ? api.patch(`${path}/${session!.id}`, body) : api.post(path, body);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["sessions", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.sessions(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success(isEdit ? "Session updated" : "Session added");
 			onClose();
 		},
@@ -274,7 +278,9 @@ function SessionDrawer({ session, onClose }: { session: Session | null; onClose:
 	const del = useMutation({
 		mutationFn: () => api.del(`/api/v1/c/${conference.slug}/programme/sessions/${session!.id}`),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["sessions", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.sessions(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success("Session deleted");
 			onClose();
 		},
@@ -453,7 +459,7 @@ function SimpleCrudTab<T extends { id: string; name: string }>({
 	const toast = useToast();
 	const confirm = useConfirm();
 	const list = useQuery<{ data: T[] }>({
-		queryKey: [queryKey, conference.slug],
+		queryKey: queryKeys.scoped(queryKey, conference.slug),
 		queryFn: () =>
 			api.get<{ data: T[] }>(`/api/v1/c/${conference.slug}/programme/${entityPath}`, {
 				pageSize: 200,
@@ -475,7 +481,9 @@ function SimpleCrudTab<T extends { id: string; name: string }>({
 			return editing ? api.patch(`${path}/${editing.id}`, form) : api.post(path, form);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: [queryKey, conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.scoped(queryKey, conference.slug) }).catch(
+				console.error,
+			);
 			toast.success("Saved");
 			setEditing(null);
 			setCreating(false);
@@ -489,7 +497,9 @@ function SimpleCrudTab<T extends { id: string; name: string }>({
 			return api.del(`${path}/${editing!.id}`);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: [queryKey, conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.scoped(queryKey, conference.slug) }).catch(
+				console.error,
+			);
 			toast.success("Deleted");
 			setEditing(null);
 			setCreating(false);
@@ -683,26 +693,292 @@ function SpeakersTab({ canEdit }: { canEdit: boolean }) {
 		/>
 	);
 }
+
 function VenuesTab({ canEdit }: { canEdit: boolean }) {
+	const { conference } = useConference();
+	const qc = useQueryClient();
+	const toast = useToast();
+	const confirm = useConfirm();
+
+	const list = useQuery<{ data: Venue[] }>({
+		queryKey: queryKeys.scoped("venues", conference.slug),
+		queryFn: () =>
+			api.get<{ data: Venue[] }>(`/api/v1/c/${conference.slug}/programme/venues`, {
+				pageSize: 200,
+			}),
+	});
+
+	const [editing, setEditing] = useState<Venue | null>(null);
+	const [creating, setCreating] = useState(false);
+	const [form, setForm] = useState<Record<string, any>>({});
+
+	useEffect(() => {
+		setForm(editing ?? {});
+	}, [editing]);
+
+	const open = (item: Venue | null) => {
+		setEditing(item);
+		setCreating(!item);
+		setForm(item ?? { location: "" });
+	};
+
+	const save = useMutation({
+		mutationFn: () => {
+			const path = `/api/v1/c/${conference.slug}/programme/venues`;
+			return editing ? api.patch(`${path}/${editing.id}`, form) : api.post(path, form);
+		},
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: queryKeys.scoped("venues", conference.slug) }).catch(
+				console.error,
+			);
+			toast.success("Saved");
+			setEditing(null);
+			setCreating(false);
+		},
+		onError: (e: any) => toast.error("Save failed", e?.message),
+	});
+
+	const del = useMutation({
+		mutationFn: () => {
+			const path = `/api/v1/c/${conference.slug}/programme/venues`;
+			return api.del(`${path}/${editing!.id}`);
+		},
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: queryKeys.scoped("venues", conference.slug) }).catch(
+				console.error,
+			);
+			toast.success("Deleted");
+			setEditing(null);
+			setCreating(false);
+		},
+		onError: (e: any) => toast.error("Delete failed", e?.message),
+	});
+
+	const venues = list.data?.data ?? [];
+
 	return (
-		<SimpleCrudTab<Venue>
-			canEdit={canEdit}
-			entityPath="venues"
-			queryKey="venues"
-			label="venue"
-			icon={<MapPin size={16} />}
-			fields={[
-				{ key: "name", label: "Name", required: true },
-				{ key: "description", label: "Description", textarea: true },
-				{ key: "capacity", label: "Capacity", number: true },
-				{ key: "location", label: "Location" },
-				{ key: "hasProjector", label: "Has projector", dropdown: true },
-				{ key: "hasMic", label: "Has microphone", dropdown: true },
-				{ key: "hasAc", label: "Has air conditioning", dropdown: true },
-				{ key: "hasRecording", label: "Can be recorded", dropdown: true },
-				{ key: "isPublic", label: "Publicly visible", dropdown: true },
-			]}
-		/>
+		<>
+			<div className="mb-3">
+				<VenuesMap
+					venues={venues}
+					activeVenueId={editing?.id ?? null}
+					editable={canEdit && (creating || !!editing)}
+					locationValue={String(form.location ?? "")}
+					onLocationChange={location =>
+						setForm((p: Record<string, any>) => ({ ...p, location }))
+					}
+					onEditVenue={venueId => {
+						const venue = venues.find(v => v.id === venueId);
+						if (venue) open(venue);
+					}}
+				/>
+			</div>
+			<div className="flex justify-end mb-3">
+				{canEdit && (
+					<Button
+						variant="primary"
+						size="sm"
+						leadingIcon={<Plus size={13} />}
+						onClick={() => open(null)}
+					>
+						Add venue
+					</Button>
+				)}
+			</div>
+			{list.isLoading && <CenterSpinner />}
+			{venues.length === 0 && (
+				<Card>
+					<EmptyState title={`No venues yet`} />
+				</Card>
+			)}
+			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+				{venues.map(item => (
+					<button
+						key={item.id}
+						onClick={() => open(item)}
+						className="text-left hover:cursor-pointer bg-surface border border-line rounded-lg p-3.5 hover:border-accent transition-colors flex items-center gap-3"
+					>
+						<div className="size-9 rounded-md bg-accent-soft text-accent-soft-fg flex items-center justify-center shrink-0">
+							<MapPin size={16} />
+						</div>
+						<div className="min-w-0">
+							<div className="text-sm font-medium text-ink truncate">{item.name}</div>
+							<div className="mt-0.5 text-xs text-ink-3 flex items-center gap-1 flex-wrap">
+								{item.description && (
+									<div className="w-full text-ink-3">{item.description}</div>
+								)}
+								{item.location && (
+									<Badge size="xs" variant="accent">
+										{item.location}
+									</Badge>
+								)}
+							</div>
+						</div>
+					</button>
+				))}
+			</div>
+			{(editing || creating) && (
+				<EntityDrawer
+					open
+					onOpenChange={v => {
+						if (!v) {
+							setEditing(null);
+							setCreating(false);
+						}
+					}}
+					title={editing ? editing.name : `New venue`}
+					width="sm"
+					footer={
+						<>
+							<div className={editing ? "flex items-center gap-2" : ""}>
+								{editing && (
+									<Button
+										variant="danger"
+										leadingIcon={<Trash2 size={14} />}
+										loading={del.isPending}
+										onClick={async () => {
+											const ok = await confirm({
+												title: `Delete venue?`,
+												description: `"${editing.name}" will be permanently deleted.`,
+												tone: "danger",
+												confirmLabel: "Delete",
+											});
+											if (ok) del.mutate();
+										}}
+									>
+										Delete
+									</Button>
+								)}
+							</div>
+							<div className="flex gap-2">
+								<Button
+									variant="ghost"
+									onClick={() => {
+										setEditing(null);
+										setCreating(false);
+									}}
+								>
+									Cancel
+								</Button>
+								<Button
+									variant="primary"
+									loading={save.isPending}
+									onClick={() => save.mutate()}
+								>
+									Save
+								</Button>
+							</div>
+						</>
+					}
+				>
+					<div className="space-y-4">
+						<FieldRow label="Name" required>
+							<Input
+								value={form.name ?? ""}
+								onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+							/>
+						</FieldRow>
+						<FieldRow label="Description">
+							<Textarea
+								value={form.description ?? ""}
+								onChange={e =>
+									setForm(p => ({ ...p, description: e.target.value }))
+								}
+							/>
+						</FieldRow>
+						<div className="grid grid-cols-2 gap-3">
+							<FieldRow label="Capacity">
+								<Input
+									type="number"
+									value={form.capacity ?? ""}
+									onChange={e =>
+										setForm(p => ({
+											...p,
+											capacity: e.target.value
+												? parseInt(e.target.value)
+												: null,
+										}))
+									}
+								/>
+							</FieldRow>
+							<FieldRow label="Location (lat,lng)">
+								<Input
+									value={form.location ?? ""}
+									onChange={e =>
+										setForm(p => ({ ...p, location: e.target.value }))
+									}
+								/>
+							</FieldRow>
+							<FieldRow label="Has projector">
+								<Select
+									value={form.hasProjector ? "yes" : "no"}
+									onChange={e =>
+										setForm(p => ({
+											...p,
+											hasProjector: e.target.value === "yes",
+										}))
+									}
+								>
+									<option value="">—</option>
+									<option value="yes">Yes</option>
+									<option value="no">No</option>
+								</Select>
+							</FieldRow>
+							<FieldRow label="Has microphone">
+								<Select
+									value={form.hasMic ? "yes" : "no"}
+									onChange={e =>
+										setForm(p => ({ ...p, hasMic: e.target.value === "yes" }))
+									}
+								>
+									<option value="">—</option>
+									<option value="yes">Yes</option>
+									<option value="no">No</option>
+								</Select>
+							</FieldRow>
+							<FieldRow label="Has air conditioning">
+								<Select
+									value={form.hasAc ? "yes" : "no"}
+									onChange={e =>
+										setForm(p => ({ ...p, hasAc: e.target.value === "yes" }))
+									}
+								>
+									<option value="">—</option>
+									<option value="yes">Yes</option>
+									<option value="no">No</option>
+								</Select>
+							</FieldRow>
+							<FieldRow label="Can be recorded">
+								<Select
+									value={form.hasRecording ? "yes" : "no"}
+									onChange={e =>
+										setForm(p => ({
+											...p,
+											hasRecording: e.target.value === "yes",
+										}))
+									}
+								>
+									<option value="">—</option>
+									<option value="yes">Yes</option>
+									<option value="no">No</option>
+								</Select>
+							</FieldRow>
+							<FieldRow label="Publicly visible">
+								<Select
+									value={form.isPublic ? "yes" : "no"}
+									onChange={e =>
+										setForm(p => ({ ...p, isPublic: e.target.value === "yes" }))
+									}
+								>
+									<option value="yes">Yes</option>
+									<option value="no">No</option>
+								</Select>
+							</FieldRow>
+						</div>
+					</div>
+				</EntityDrawer>
+			)}
+		</>
 	);
 }
 function TracksTab({ canEdit }: { canEdit: boolean }) {

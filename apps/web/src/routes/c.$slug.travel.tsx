@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtDateTime, humanise } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
 import {
@@ -109,7 +110,7 @@ function TravelPage() {
 		},
 	});
 	const vehicles = useQuery<{ data: Vehicle[] }>({
-		queryKey: ["vehicles", conference.slug],
+		queryKey: queryKeys.vehicles(conference.slug),
 		queryFn: () =>
 			api.get<{ data: Vehicle[] }>(`/api/v1/c/${conference.slug}/vehicles`, {
 				pageSize: 200,
@@ -127,7 +128,9 @@ function TravelPage() {
 		mutationFn: (input: { segmentIds: string[]; vehicleId: string }) =>
 			api.post(`/api/v1/c/${conference.slug}/travel/assign-vehicle`, input),
 		onSuccess: (_d, input) => {
-			qc.invalidateQueries({ queryKey: ["travel", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.travel(conference.slug) }).catch(
+				console.error,
+			);
 			setSelected(new Set());
 			setAssignOpen(false);
 			toast.success(
@@ -477,7 +480,7 @@ function TravelPage() {
 				vehicle={editingVehicle}
 				onClose={() => setVehicleDrawerMode("closed")}
 				onSaved={() => {
-					qc.invalidateQueries({ queryKey: ["vehicles", conference.slug] }).catch(
+					qc.invalidateQueries({ queryKey: queryKeys.vehicles(conference.slug) }).catch(
 						console.error,
 					);
 				}}
@@ -603,7 +606,9 @@ function VehicleDrawer({ mode, vehicle, onClose, onSaved }: VehicleDrawerProps) 
 			return api.post<{ data: Vehicle }>(path, payload);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["vehicles", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.vehicles(conference.slug) }).catch(
+				console.error,
+			);
 			onSaved();
 			onClose();
 			toast.success(isEdit ? "Vehicle updated" : "Vehicle added");

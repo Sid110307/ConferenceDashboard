@@ -1,8 +1,8 @@
-import type { MessageChannel } from "@conference/shared";
+import type { CommsChannel } from "@conference/shared";
 import nodemailer from "nodemailer";
 
 export type SendInput = {
-	channel: MessageChannel;
+	channel: CommsChannel;
 	to: string;
 	subject?: string | null;
 	body: string;

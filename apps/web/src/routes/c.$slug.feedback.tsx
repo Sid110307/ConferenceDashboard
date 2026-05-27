@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
 import { fmtDateTime } from "@/lib/format";
+import { queryKeys } from "@/lib/queryKeys";
 import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
 import { type Attendee } from "@conference/shared";
@@ -211,7 +212,9 @@ function FeedbackDrawer({
 			return isEdit ? api.patch(`${path}/${feedback!.id}`, body) : api.post(path, body);
 		},
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["feedback", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.feedback(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success(isEdit ? "Feedback updated" : "Feedback created");
 			onClose();
 		},
@@ -221,7 +224,9 @@ function FeedbackDrawer({
 	const del = useMutation({
 		mutationFn: () => api.del(`/api/v1/c/${conference.slug}/feedback/${feedback!.id}`),
 		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["feedback", conference.slug] }).catch(console.error);
+			qc.invalidateQueries({ queryKey: queryKeys.feedback(conference.slug) }).catch(
+				console.error,
+			);
 			toast.success("Feedback deleted");
 			onClose();
 		},
