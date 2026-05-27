@@ -10,8 +10,6 @@ import { processReportGenerate } from "@/processors/reports/generate";
 import { createLogger, createRedis } from "@conference/infra";
 import { Worker, type Job } from "bullmq";
 
-import "@/lib/env";
-
 const logger = createLogger({
 	level: env.LOG_LEVEL,
 	service: "@conference/worker",

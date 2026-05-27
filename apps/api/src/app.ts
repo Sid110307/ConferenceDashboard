@@ -8,12 +8,7 @@ import { loadAuthUser, requireRole, resolveConference } from "@/middleware/auth"
 import { errorHandler } from "@/middleware/error-handler";
 import { requestIdMiddleware } from "@/middleware/request-id";
 import { requestLogMiddleware } from "@/middleware/request-log";
-import {
-	accommodationIssuesRouter,
-	allocationsRouter,
-	blocksRouter,
-	roomsRouter,
-} from "@/routes/accommodation.routes";
+import { accommodationIssuesRouter, allocationsRouter, blocksRouter, roomsRouter } from "@/routes/accommodation.routes";
 import { announcementsRouter } from "@/routes/announcements.routes";
 import { attendeesRouter } from "@/routes/attendees.routes";
 import { auditRouter } from "@/routes/audit.routes";
@@ -32,13 +27,7 @@ import { helpdeskRouter } from "@/routes/helpdesk.routes";
 import { importsRouter } from "@/routes/imports.routes";
 import { logisticsRouter } from "@/routes/logistics.routes";
 import { membersRouter } from "@/routes/members.routes";
-import {
-	sessionSpeakersRouter,
-	sessionsRouter,
-	speakersRouter,
-	tracksRouter,
-	venuesRouter,
-} from "@/routes/programme.routes";
+import { sessionSpeakersRouter, sessionsRouter, speakersRouter, tracksRouter, venuesRouter } from "@/routes/programme.routes";
 import { realtimeRouter } from "@/routes/realtime.routes";
 import { reportsRouter } from "@/routes/reports.routes";
 import { settingsRouter } from "@/routes/settings.routes";
@@ -54,6 +43,10 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
 
+
+
+
+
 export function buildApp() {
 	const app = new Hono<AppContext>();
 
@@ -61,7 +54,7 @@ export function buildApp() {
 	app.use(
 		"*",
 		cors({
-			origin: [env.WEB_BASE_URL],
+			origin: [env.WEB_BASE_URL, env.API_BASE_URL],
 			credentials: true,
 			allowHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
 			allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],

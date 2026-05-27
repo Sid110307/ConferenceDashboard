@@ -1,7 +1,7 @@
 
 
 
-import "@/lib/env";
+import "../lib/env";
 
 import { auth } from "@/auth";
 import { db } from "@/lib/tenancy";
