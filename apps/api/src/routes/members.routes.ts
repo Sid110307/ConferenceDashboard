@@ -2,9 +2,15 @@ import { recordAudit } from "@/lib/audit";
 import type { AppContext } from "@/lib/context";
 import { BadRequestError, ForbiddenError, NotFoundError } from "@/lib/errors";
 import { hashToken, makeToken } from "@/lib/id";
+import { commsQueue, enqueueJob, JOB_NAMES } from "@/lib/queue";
 import { db } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
-import { invitations, userConferenceRoles, users as usersTable } from "@conference/db";
+import {
+	invitations,
+	messagingProviders,
+	userConferenceRoles,
+	users as usersTable,
+} from "@conference/db";
 import { inviteUserSchema, USER_ROLES, type UserRole } from "@conference/shared";
 import { zValidator } from "@hono/zod-validator";
 import { and, desc, eq, isNull } from "drizzle-orm";
@@ -180,7 +186,7 @@ membersRouter.get("/invites", requireRole("admin"), async c => {
 membersRouter.post(
 	"/invite",
 	requireRole("admin"),
-	zValidator("json", inviteUserSchema),
+	zValidator("json", inviteUserSchema.extend({ send: z.boolean().optional() })),
 	async c => {
 		const conf = c.get("conference")!;
 		const me = c.get("user")!;
@@ -239,14 +245,135 @@ membersRouter.post(
 			return inv;
 		});
 
+		const inviteUrl = `${c.req.url.split("/api/")[0]}/invite/${token}`;
+
+		let enqueued = false;
+		if ((input as any).send && created) {
+			const [provider] = await db
+				.select()
+				.from(messagingProviders)
+				.where(
+					and(
+						eq(messagingProviders.conferenceId, conf.id),
+						eq(messagingProviders.channel, "email"),
+						eq(messagingProviders.isDefault, true),
+						isNull(messagingProviders.deletedAt),
+						eq(messagingProviders.isActive, true),
+					),
+				)
+				.limit(1);
+			if (!provider)
+				throw new BadRequestError(
+					"No default email provider configured for this conference",
+				);
+
+			const subject = `You're invited to join ${conf.name}`;
+			const body = `Hello,\n\nYou've been invited to join ${conf.name}. Use this link to accept the invitation:\n\n${inviteUrl}\n\nThis link expires ${created?.expiresAt ? created?.expiresAt?.toISOString() : "soon"}.`;
+
+			const ok = await enqueueJob(commsQueue, JOB_NAMES.SEND_MESSAGE, {
+				conferenceId: conf.id,
+				inviteId: created.id,
+				inviteUrl,
+				email: created.email,
+				providerId: provider.id,
+				subject,
+				body,
+				fromAddress: provider.fromAddress,
+				fromName: provider.fromName,
+			});
+			if (!ok) throw new Error("Failed to enqueue send job");
+			enqueued = true;
+			await recordAudit(db, {
+				conferenceId: conf.id,
+				userId: me.id,
+				action: "invite",
+				entity: "invitation",
+				entityId: created.id,
+				meta: { sendEnqueued: true },
+				ip: c.req.header("x-forwarded-for")?.split(",")[0] ?? null,
+				userAgent: c.req.header("user-agent") ?? null,
+				requestId: c.get("requestId"),
+			});
+		}
+
 		return c.json(
 			{
 				data: created,
-				inviteUrl: `${c.req.url.split("/api/")[0]}/invite/${token}`,
+				inviteUrl,
 				token,
+				enqueued,
 			},
 			201,
 		);
+	},
+);
+
+membersRouter.post(
+	"/invite/:id/send",
+	requireRole("admin"),
+	zValidator("param", z.object({ id: z.string().uuid() })),
+	zValidator("json", z.object({ token: z.string() })),
+	async c => {
+		const conf = c.get("conference")!;
+		const me = c.get("user")!;
+		const { id } = c.req.valid("param");
+		const { token } = c.req.valid("json");
+
+		const [inv] = await db
+			.select()
+			.from(invitations)
+			.where(and(eq(invitations.id, id), eq(invitations.conferenceId, conf.id)))
+			.limit(1);
+		if (!inv) throw new NotFoundError("invitation");
+		if (inv.acceptedAt) throw new BadRequestError("Already accepted");
+		if (inv.revokedAt) throw new BadRequestError("Invitation revoked");
+
+		const [provider] = await db
+			.select()
+			.from(messagingProviders)
+			.where(
+				and(
+					eq(messagingProviders.conferenceId, conf.id),
+					eq(messagingProviders.channel, "email"),
+					eq(messagingProviders.isDefault, true),
+					isNull(messagingProviders.deletedAt),
+					eq(messagingProviders.isActive, true),
+				),
+			)
+			.limit(1);
+		if (!provider)
+			throw new BadRequestError("No default email provider configured for this conference");
+
+		const inviteUrl = `${c.req.url.split("/api/")[0]}/invite/${token}`;
+		const subject = `You're invited to join ${conf.name}`;
+		const body = `Hello,\n\nYou've been invited to join ${conf.name}. Use this link to accept the invitation:\n\n${inviteUrl}\n\nThis link expires ${inv.expiresAt ? inv.expiresAt.toISOString() : "soon"}.`;
+
+		const ok = await enqueueJob(commsQueue, JOB_NAMES.SEND_MESSAGE, {
+			conferenceId: conf.id,
+			inviteId: id,
+			inviteUrl,
+			email: inv.email,
+			providerId: provider.id,
+			subject,
+			body,
+			fromAddress: provider.fromAddress,
+			fromName: provider.fromName,
+		});
+
+		if (!ok) throw new Error("Failed to enqueue send job");
+		await recordAudit(db, {
+			conferenceId: conf.id,
+			userId: me.id,
+			action: "invite",
+			entity: "invitation",
+			entityId: inv.id,
+			meta: { sendEnqueued: true },
+			ip: c.req.header("x-forwarded-for")?.split(",")[0] ?? null,
+			userAgent: c.req.header("user-agent") ?? null,
+			requestId: c.get("requestId"),
+		});
+
+		return c.json({ enqueued: true });
 	},
 );
 

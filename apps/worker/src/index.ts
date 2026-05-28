@@ -2,6 +2,7 @@ import { env } from "@/lib/env";
 import { commsQueue, importsQueue, JOB_NAMES, maintenanceQueue, reportsQueue } from "@/lib/queue";
 import { processCampaignDispatchBatch } from "@/processors/comms/dispatch";
 import { processCampaignMaterialise } from "@/processors/comms/materialise";
+import { processSendMessage } from "@/processors/comms/send-invite";
 import { processImportPreview } from "@/processors/imports/preview";
 import { processImportRollback } from "@/processors/imports/rollback";
 import { processImportStart } from "@/processors/imports/start";
@@ -60,6 +61,8 @@ const commsWorker = new Worker(
 				return processCampaignMaterialise(job.data);
 			case JOB_NAMES.CAMPAIGN_DISPATCH_BATCH:
 				return processCampaignDispatchBatch(job.data);
+			case JOB_NAMES.SEND_MESSAGE:
+				return processSendMessage(job.data);
 			default:
 				throw new Error(`Unknown comms job: ${job.name}`);
 		}

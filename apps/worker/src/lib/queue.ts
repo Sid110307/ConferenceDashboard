@@ -22,6 +22,7 @@ export const JOB_NAMES = {
 	IMPORT_ROLLBACK: "import.rollback",
 	CAMPAIGN_MATERIALISE: "campaign.materialise",
 	CAMPAIGN_DISPATCH_BATCH: "campaign.dispatch_batch",
+	SEND_MESSAGE: "message.send",
 	REPORT_GENERATE: "report.generate",
 	MAINT_CLEAN_OLD_TOKENS: "maint.clean_old_tokens",
 	MAINT_CLEAN_OLD_FILES: "maint.clean_old_files",

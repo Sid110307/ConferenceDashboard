@@ -47,6 +47,12 @@ type Invite = {
 	createdAt: string;
 	expiresAt?: string | null;
 };
+type InviteData = {
+	data: Invite;
+	inviteUrl: string;
+	token: string;
+	enqueued?: boolean;
+};
 
 const ROLE_VARIANT: Record<UserRole, BadgeVariant> = {
 	super_admin: "success",
@@ -265,19 +271,44 @@ function InviteDrawer({ roleOptions, onClose }: { roleOptions: UserRole[]; onClo
 	const toast = useToast();
 	const [email, setEmail] = useState("");
 	const [role, setRole] = useState<UserRole>("viewer");
+	const providers = useQuery<{ data: { id: string; channel: string; isDefault: boolean }[] }>({
+		queryKey: queryKeys.providers(conference.slug),
+		queryFn: () => api.get<{ data: any[] }>(`/api/v1/c/${conference.slug}/comms/providers`),
+		staleTime: 60000,
+	});
+	const [inviteData, setInviteData] = useState<InviteData | null>(null);
 
 	const invite = useMutation({
 		mutationFn: () =>
 			api.post(
 				`/api/v1/c/${conference.slug}/members/invite`,
-				inviteUserSchema.parse({ email, role }) as InviteUserInput,
+				inviteUserSchema.parse({
+					email,
+					role,
+					send:
+						providers.data?.data?.some(p => p.channel === "email" && p.isDefault) ??
+						false,
+				}) as InviteUserInput & { send?: boolean },
 			),
-		onSuccess: () => {
+		onSuccess: (data: any) => {
 			qc.invalidateQueries({ queryKey: queryKeys.invites(conference.slug) }).catch(
 				console.error,
 			);
+			setInviteData(data as InviteData & { enqueued?: boolean });
+		},
+		onError: (e: any) => toast.error("Could not send invite", e.message),
+	});
+
+	const sendViaSystem = useMutation({
+		mutationFn: (payload: { id: string; token: string }) =>
+			api.post(`/api/v1/c/${conference.slug}/members/invite/${payload.id}/send`, {
+				token: payload.token,
+			}),
+		onSuccess: () => {
 			toast.success("Invitation sent", `${email} will receive an email shortly.`);
-			onClose();
+			qc.invalidateQueries({ queryKey: queryKeys.invites(conference.slug) }).catch(
+				console.error,
+			);
 		},
 		onError: (e: any) => toast.error("Could not send invite", e.message),
 	});
@@ -290,54 +321,128 @@ function InviteDrawer({ roleOptions, onClose }: { roleOptions: UserRole[]; onClo
 			width="sm"
 			footer={
 				<>
-					<Button variant="ghost" onClick={onClose}>
-						Cancel
-					</Button>
-					<Button
-						variant="primary"
-						loading={invite.isPending}
-						disabled={!email}
-						leadingIcon={<Mail size={13} />}
-						onClick={() => invite.mutate()}
-					>
-						Send invite
-					</Button>
+					{inviteData ? (
+						<>
+							<Button
+								variant="ghost"
+								onClick={() => {
+									setInviteData(null);
+									onClose();
+								}}
+							>
+								Close
+							</Button>
+							<Button
+								variant="primary"
+								onClick={() => {
+									navigator.clipboard
+										?.writeText(inviteData.inviteUrl ?? "")
+										.then(() => {
+											toast.success("Copied to clipboard");
+										})
+										.catch(() => toast.error("Could not copy"));
+								}}
+							>
+								Copy link
+							</Button>
+							{!inviteData.enqueued &&
+							providers.data?.data?.some(
+								p => p.channel === "email" && p.isDefault,
+							) ? (
+								<Button
+									variant="secondary"
+									onClick={() => {
+										sendViaSystem.mutate({
+											id: inviteData.data.id,
+											token: inviteData.token,
+										});
+									}}
+								>
+									Send
+								</Button>
+							) : null}
+						</>
+					) : (
+						<>
+							<Button variant="ghost" onClick={onClose}>
+								Cancel
+							</Button>
+							<Button
+								variant="primary"
+								loading={invite.isPending}
+								disabled={!email}
+								leadingIcon={<Mail size={13} />}
+								onClick={() => invite.mutate()}
+							>
+								Send invite
+							</Button>
+						</>
+					)}
 				</>
 			}
 		>
-			<div className="space-y-4">
-				<FieldRow label="Email address" required>
-					<Input
-						type="email"
-						value={email}
-						onChange={e => setEmail(e.target.value)}
-						placeholder="colleague@example.org"
-					/>
-				</FieldRow>
-				<FieldRow label="Role">
-					<Select value={role} onChange={e => setRole(e.target.value as UserRole)}>
-						{roleOptions.map(r => (
-							<option key={r} value={r}>
-								{humanise(r)}
-							</option>
-						))}
-					</Select>
-				</FieldRow>
-				<div className="rounded-md bg-surface-2 border border-line p-3 text-xs text-ink-2 space-y-1">
-					<div className="flex items-center gap-1.5 font-medium text-ink">
-						<ShieldCheck size={13} /> Role capabilities
-					</div>
-					<div>
-						<b>Admin</b>: full access incl. members & settings.
-					</div>
-					<div>
-						<b>Editor</b>: create and edit records, run imports & campaigns.
-					</div>
-					<div>
-						<b>Viewer</b>: read-only access to all data.
+			{inviteData ? (
+				<div className="space-y-4">
+					<FieldRow label="Invitation link">
+						<div className="flex items-center gap-2">
+							<input
+								readOnly
+								value={inviteData.inviteUrl}
+								className="flex-1 text-xs p-2 bg-surface border border-line rounded"
+							/>
+							<Button
+								variant="icon"
+								onClick={() =>
+									navigator.clipboard
+										?.writeText(inviteData.inviteUrl ?? "")
+										.then(() => toast.success("Copied"))
+								}
+								leadingIcon={<Mail size={13} />}
+							/>
+							<a
+								href={`mailto:${inviteData.data.email}?subject=${encodeURIComponent("You're invited to join")}&body=${encodeURIComponent(`Join using this link: ${inviteData.inviteUrl}`)}`}
+								className="inline-block"
+							>
+								<Button variant="secondary">Send email</Button>
+							</a>
+						</div>
+					</FieldRow>
+				</div>
+			) : (
+				<div className="space-y-4">
+					<FieldRow label="Email address" required>
+						<Input
+							type="email"
+							value={email}
+							onChange={e => setEmail(e.target.value)}
+							placeholder="colleague@example.org"
+						/>
+					</FieldRow>
+					<FieldRow label="Role">
+						<Select value={role} onChange={e => setRole(e.target.value as UserRole)}>
+							{roleOptions.map(r => (
+								<option key={r} value={r}>
+									{humanise(r)}
+								</option>
+							))}
+						</Select>
+					</FieldRow>
+					<div className="rounded-md bg-surface-2 border border-line p-3 text-xs text-ink-2 space-y-1">
+						<div className="flex items-center gap-1.5 font-medium text-ink">
+							<ShieldCheck size={13} /> Role capabilities
+						</div>
+						<div>
+							<b>Admin</b>: full access incl. members & settings.
+						</div>
+						<div>
+							<b>Editor</b>: create and edit records, run imports & campaigns.
+						</div>
+						<div>
+							<b>Viewer</b>: read-only access to all data.
+						</div>
 					</div>
 				</div>
-			</div>
+			)}
 		</EntityDrawer>
 	);
 }
