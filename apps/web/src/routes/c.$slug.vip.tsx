@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
@@ -8,7 +8,7 @@ import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { CheckSquare, Plus, Square, Trash2 } from "lucide-react";
+import { CheckSquare, Pencil, Plus, Square, Trash2 } from "lucide-react";
 import { z } from "zod";
 
 import { Badge } from "@/components/Badge";
@@ -16,6 +16,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { DataTable, Pagination, type Column } from "@/components/DataTable";
+import { DatePickerInput } from "@/components/DatePicker";
 import { CenterSpinner } from "@/components/EmptyState";
 import { EntityDrawer } from "@/components/EntityDrawer";
 import { FieldRow } from "@/components/FieldRow";
@@ -206,6 +207,38 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 	const confirm = useConfirm();
 	const [newItem, setNewItem] = useState("");
 
+	const [form, setForm] = useState({
+		name: vip.name,
+		designation: vip.designation,
+		institution: vip.institution,
+		protocolLevel: vip.protocolLevel ?? "none",
+		status: vip.status ?? "pending",
+		arrivalTime: vip.arrivalTime ?? "",
+		departureTime: vip.departureTime ?? "",
+		vehicle: vip.vehicle ?? "",
+		securityRequired: vip.securityRequired,
+		speechRequired: vip.speechRequired,
+		greenRoom: vip.greenRoom ?? "",
+		notes: vip.notes ?? "",
+	});
+
+	useEffect(() => {
+		setForm({
+			name: vip.name,
+			designation: vip.designation,
+			institution: vip.institution,
+			protocolLevel: vip.protocolLevel ?? "none",
+			status: vip.status ?? "pending",
+			arrivalTime: vip.arrivalTime ?? "",
+			departureTime: vip.departureTime ?? "",
+			vehicle: vip.vehicle ?? "",
+			securityRequired: vip.securityRequired,
+			speechRequired: vip.speechRequired,
+			greenRoom: vip.greenRoom ?? "",
+			notes: vip.notes ?? "",
+		});
+	}, [vip]);
+
 	const checklist = useQuery<{ data: ChecklistItem[] }>({
 		queryKey: queryKeys.vipChecklist(conference.slug, vip.id),
 		queryFn: () => api.get(`/api/v1/c/${conference.slug}/vip-checklist/${vip.id}`),
@@ -239,6 +272,18 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 			onClose();
 		},
 		onError: (e: any) => toast.error("Delete failed", e.message),
+	});
+
+	const save = useMutation({
+		mutationFn: async () => {
+			return api.patch(`/api/v1/c/${conference.slug}/vip/${vip.id}`, cleanForApi(form));
+		},
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: queryKeys.vip(conference.slug) }).catch(console.error);
+			toast.success("VIP guest updated");
+			onClose();
+		},
+		onError: (e: any) => toast.error("Update failed", e.message),
 	});
 
 	const items = checklist.data?.data ?? [];
@@ -275,6 +320,14 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 						>
 							Delete
 						</Button>
+						<Button
+							variant="primary"
+							leadingIcon={<Pencil size={14} />}
+							loading={save.isPending}
+							onClick={() => save.mutate()}
+						>
+							Save
+						</Button>
 						<Button variant="ghost" onClick={onClose}>
 							Close
 						</Button>
@@ -287,59 +340,185 @@ function VipDrawer({ vip, canEdit, onClose }: { vip: Vip; canEdit: boolean; onCl
 			}
 		>
 			<div className="space-y-4">
-				{vip.arrivalTime && (
-					<div>
-						<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3 mb-1">
-							Arrival time
-						</div>
-						<p className="text-sm text-ink-2">
-							{new Date(vip.arrivalTime).toLocaleString()}
-						</p>
+				{canEdit ? (
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+						<FieldRow label="Name" required className="sm:col-span-2">
+							<Input
+								value={form.name}
+								onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+							/>
+						</FieldRow>
+						<FieldRow label="Designation">
+							<Input
+								value={form.designation}
+								onChange={e =>
+									setForm(f => ({ ...f, designation: e.target.value }))
+								}
+							/>
+						</FieldRow>
+						<FieldRow label="Institution">
+							<Input
+								value={form.institution}
+								onChange={e =>
+									setForm(f => ({ ...f, institution: e.target.value }))
+								}
+							/>
+						</FieldRow>
+						<FieldRow label="Protocol level">
+							<Select
+								value={form.protocolLevel}
+								onChange={e =>
+									setForm(f => ({ ...f, protocolLevel: e.target.value }))
+								}
+							>
+								<option value="a_plus">A+</option>
+								<option value="a">A</option>
+								<option value="b">B</option>
+								<option value="c">C</option>
+								<option value="none">None</option>
+							</Select>
+						</FieldRow>
+						<FieldRow label="Status">
+							<Select
+								value={form.status}
+								onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
+							>
+								{["pending", "confirmed", "arrived", "completed", "cancelled"].map(
+									s => (
+										<option key={s} value={s}>
+											{humanise(s)}
+										</option>
+									),
+								)}
+							</Select>
+						</FieldRow>
+						<FieldRow label="Arrival time">
+							<DatePickerInput
+								mode="datetime"
+								value={form.arrivalTime}
+								onChange={e => setForm(f => ({ ...f, arrivalTime: e || "" }))}
+							/>
+						</FieldRow>
+						<FieldRow label="Departure time">
+							<DatePickerInput
+								mode="datetime"
+								value={form.departureTime}
+								onChange={e => setForm(f => ({ ...f, departureTime: e || "" }))}
+							/>
+						</FieldRow>
+						<FieldRow label="Vehicle">
+							<Input
+								value={form.vehicle}
+								onChange={e => setForm(f => ({ ...f, vehicle: e.target.value }))}
+							/>
+						</FieldRow>
+						<FieldRow label="Requirements">
+							<div className="flex flex-col gap-2">
+								<label className="flex items-center gap-2">
+									<input
+										type="checkbox"
+										checked={form.securityRequired}
+										onChange={e =>
+											setForm(f => ({
+												...f,
+												securityRequired: e.target.checked,
+											}))
+										}
+										className="size-4 accent-accent"
+									/>
+									<span>Security required</span>
+								</label>
+								<label className="flex items-center gap-2">
+									<input
+										type="checkbox"
+										checked={form.speechRequired}
+										onChange={e =>
+											setForm(f => ({
+												...f,
+												speechRequired: e.target.checked,
+											}))
+										}
+										className="size-4 accent-accent"
+									/>
+									<span>Speech required</span>
+								</label>
+								<Input
+									placeholder="Green room"
+									value={form.greenRoom}
+									onChange={e =>
+										setForm(f => ({ ...f, greenRoom: e.target.value }))
+									}
+								/>
+							</div>
+						</FieldRow>
+						<FieldRow label="Notes" className="sm:col-span-2">
+							<Textarea
+								value={form.notes}
+								onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+							/>
+						</FieldRow>
 					</div>
-				)}
-				{vip.departureTime && (
-					<div>
-						<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3 mb-1">
-							Departure time
-						</div>
-						<p className="text-sm text-ink-2">
-							{new Date(vip.departureTime).toLocaleString()}
-						</p>
-					</div>
-				)}
-				{vip.vehicle && (
-					<div>
-						<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3 mb-1">
-							Vehicle
-						</div>
-						<p className="text-sm text-ink-2">{vip.vehicle}</p>
-					</div>
-				)}
-				<div>
-					<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3 mb-1">
-						Requirements
-					</div>
-					{vip.securityRequired || vip.speechRequired || vip.greenRoom ? (
-						<div className="flex flex-col gap-1">
-							{vip.securityRequired && (
-								<Badge variant="danger">Security required</Badge>
+				) : (
+					<>
+						{vip.arrivalTime && (
+							<div>
+								<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3 mb-1">
+									Arrival time
+								</div>
+								<p className="text-sm text-ink-2">
+									{new Date(vip.arrivalTime).toLocaleString()}
+								</p>
+							</div>
+						)}
+						{vip.departureTime && (
+							<div>
+								<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3 mb-1">
+									Departure time
+								</div>
+								<p className="text-sm text-ink-2">
+									{new Date(vip.departureTime).toLocaleString()}
+								</p>
+							</div>
+						)}
+						{vip.vehicle && (
+							<div>
+								<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3 mb-1">
+									Vehicle
+								</div>
+								<p className="text-sm text-ink-2">{vip.vehicle}</p>
+							</div>
+						)}
+						<div>
+							<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3 mb-1">
+								Requirements
+							</div>
+							{vip.securityRequired || vip.speechRequired || vip.greenRoom ? (
+								<div className="flex flex-col gap-1">
+									{vip.securityRequired && (
+										<Badge variant="danger">Security required</Badge>
+									)}
+									{vip.speechRequired && (
+										<Badge variant="accent">Speech required</Badge>
+									)}
+									{vip.greenRoom && (
+										<Badge variant="success">Green room: {vip.greenRoom}</Badge>
+									)}
+								</div>
+							) : (
+								<span className="text-sm text-ink-2">None</span>
 							)}
-							{vip.speechRequired && <Badge variant="accent">Speech required</Badge>}
-							{vip.greenRoom && (
-								<Badge variant="success">Green room: {vip.greenRoom}</Badge>
-							)}
 						</div>
-					) : (
-						<span className="text-sm text-ink-2">None</span>
-					)}
-				</div>
-				{vip.notes && (
-					<div>
-						<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3 mb-1">
-							Notes
-						</div>
-						<p className="text-sm text-ink-2 whitespace-pre-wrap">{vip.notes}</p>
-					</div>
+						{vip.notes && (
+							<div>
+								<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3 mb-1">
+									Notes
+								</div>
+								<p className="text-sm text-ink-2 whitespace-pre-wrap">
+									{vip.notes}
+								</p>
+							</div>
+						)}
+					</>
 				)}
 				<div>
 					<div className="flex items-center justify-between mb-2">
@@ -490,4 +669,13 @@ function CreateVipDrawer({ onClose }: { onClose: () => void }) {
 			</div>
 		</EntityDrawer>
 	);
+}
+
+function cleanForApi(o: Record<string, any>) {
+	const out: Record<string, any> = {};
+	for (const [k, v] of Object.entries(o)) {
+		if (v === "" || v === undefined) continue;
+		out[k] = v;
+	}
+	return out;
 }

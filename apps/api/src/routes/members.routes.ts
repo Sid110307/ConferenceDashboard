@@ -13,7 +13,7 @@ import {
 } from "@conference/db";
 import { inviteUserSchema, USER_ROLES, type UserRole } from "@conference/shared";
 import { zValidator } from "@hono/zod-validator";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -182,6 +182,66 @@ membersRouter.get("/invites", requireRole("admin"), async c => {
 		.orderBy(desc(invitations.createdAt));
 	return c.json({ data: rows });
 });
+
+membersRouter.get(
+	"/invite/:token",
+	zValidator("param", z.object({ token: z.string() })),
+	async c => {
+		const { token } = c.req.valid("param");
+		const tokenHash = await hashToken(token);
+
+		const [inv] = await db
+			.select()
+			.from(invitations)
+			.where(and(eq(invitations.tokenHash, tokenHash), gt(invitations.expiresAt, sql`now()`)))
+			.limit(1);
+
+		if (!inv) throw new NotFoundError("invitation");
+		if (inv.acceptedAt) throw new BadRequestError("Already accepted");
+		if (inv.revokedAt) throw new BadRequestError("Invitation revoked");
+
+		await db.transaction(async tx => {
+			const [user] = await tx
+				.select()
+				.from(usersTable)
+				.where(eq(usersTable.email, inv.email))
+				.limit(1);
+
+			let userId: string;
+			if (user) {
+				userId = user.id;
+			} else {
+				const [newUser] = await tx
+					.insert(usersTable)
+					.values({
+						name: inv.email.split("@")[0] || inv.email,
+						email: inv.email,
+					})
+					.returning();
+				userId = newUser!.id;
+			}
+
+			await tx
+				.insert(userConferenceRoles)
+				.values({
+					userId,
+					conferenceId: inv.conferenceId,
+					role: inv.role,
+					isActive: true,
+					invitedAt: new Date(),
+					acceptedAt: new Date(),
+				})
+				.returning();
+
+			await tx
+				.update(invitations)
+				.set({ acceptedAt: new Date() })
+				.where(eq(invitations.id, inv.id));
+		});
+
+		return c.redirect(`${c.req.url.split("/api/")[0]}/`, 302);
+	},
+);
 
 membersRouter.post(
 	"/invite",

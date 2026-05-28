@@ -1,7 +1,7 @@
 import { env } from "@/lib/env";
 import { notifyConference } from "@/lib/notify";
 import { db, withTenant } from "@/lib/tenancy";
-import { attendees, importJobs, importRows, staff } from "@conference/db";
+import { attendees, importJobs, importRows, staff, travelSegments } from "@conference/db";
 import { createLogger } from "@conference/infra";
 import { and, eq, sql } from "drizzle-orm";
 
@@ -63,9 +63,8 @@ export async function processImportStart(payload: {
 						.where(eq(attendees.conferenceId, conferenceId));
 					const start = (baseRows[0]?.n ?? 0) + 1;
 					inserts.forEach((entry, idx) => {
-						if (!entry.data.attendeeCode) {
-							entry.data.attendeeCode = `IMP-${String(start + idx).padStart(5, "0")}`;
-						}
+						if (!entry.data.attendeeCode)
+							entry.data.attendeeCode = `A${String(start + idx).padStart(4, "0")}`;
 					});
 					inserted = await tx
 						.insert(attendees)
@@ -77,33 +76,20 @@ export async function processImportStart(payload: {
 						.insert(staff)
 						.values(inserts.map(entry => entry.data) as any)
 						.returning({ id: staff.id });
+				} else if (targetEntity === "travel_segments") {
+					inserted = await tx
+						.insert(travelSegments)
+						.values(inserts.map(entry => entry.data) as any)
+						.returning({ id: travelSegments.id });
 				} else {
-					for (const entry of inserts) {
-						const row = entry.data;
-						try {
-							const [insertedRow] = await tx
-								.insert(attendees)
-								.values(row as any)
-								.onConflictDoNothing({ target: attendees.attendeeCode })
-								.returning({ id: attendees.id });
-							if (insertedRow?.id) {
-								inserted.push({ id: insertedRow.id });
-							}
-						} catch (err) {
-							logger.error(
-								{ err, jobId, rowId: entry.sourceRow.id },
-								"failed to insert row",
-							);
-							await tx
-								.update(importRows)
-								.set({
-									status: "failed",
-									errors: { _insert: (err as Error).message },
-								})
-								.where(eq(importRows.id, entry.sourceRow.id));
-							failed++;
-						}
-					}
+					await tx
+						.update(importJobs)
+						.set({
+							status: "failed",
+							errorMessage: `Import not implemented for entity: ${targetEntity}`,
+						})
+						.where(eq(importJobs.id, jobId));
+					throw new Error(`Import not implemented for: ${targetEntity}`);
 				}
 			} catch (err) {
 				logger.error({ err, jobId, batchStart: i }, "batch insert failed");

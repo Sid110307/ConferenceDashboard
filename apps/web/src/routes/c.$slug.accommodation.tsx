@@ -57,7 +57,7 @@ export type Allocation = {
 	id: string;
 	roomId: string;
 	attendeeId: string;
-	status: "pending" | "checked_in" | "checked_out" | "cancelled";
+	status: "pending" | "checked_in" | "checked_out" | "cancelled" | "no_show";
 	bedNumber?: string | null;
 	plannedCheckinDate?: string | null;
 	plannedCheckoutDate?: string | null;

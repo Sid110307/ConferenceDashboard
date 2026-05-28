@@ -125,6 +125,7 @@ function ProfileTab() {
 				</FieldRow>
 				<FieldRow label="Short name" required>
 					<Input
+						maxLength={32}
 						value={merged.shortName ?? ""}
 						onChange={e => upd({ shortName: e.target.value })}
 					/>
@@ -152,9 +153,9 @@ function ProfileTab() {
 						value={merged.publicStatus ?? "draft"}
 						onChange={e => upd({ publicStatus: e.target.value as any })}
 					>
-						{["draft", "active", "archived"].map(s => (
+						{["draft", "published", "archived"].map(s => (
 							<option key={s} value={s}>
-								{humanise(s)}
+								{humanise(s.replace("published", "active"))}
 							</option>
 						))}
 					</Select>

@@ -87,19 +87,6 @@ type TravelManifestEntry = {
 	driverName?: string | null;
 };
 
-type AccommodationAllocation = {
-	id: string;
-	attendeeId: string;
-	roomId: string;
-	roomNumber?: string | null;
-	roomFloor?: string | null;
-	status: "pending" | "checked_in" | "checked_out" | "cancelled" | "no_show";
-	plannedCheckinDate?: string | null;
-	plannedCheckoutDate?: string | null;
-	checkinAt?: string | null;
-	checkoutAt?: string | null;
-};
-
 const PAGE_SIZE = 20;
 
 function AttendeesPage() {
@@ -252,8 +239,8 @@ function AttendeesPage() {
 		return out;
 	}, [departureManifest.data]);
 	const accommodationByAttendee = useMemo(() => {
-		const out = new Map<string, AccommodationAllocation>();
-		const priority = (status: AccommodationAllocation["status"]) => {
+		const out = new Map<string, Allocation>();
+		const priority = (status: Allocation["status"]) => {
 			if (status === "checked_in") return 0;
 			if (status === "pending") return 1;
 			return 2;
@@ -377,11 +364,10 @@ function AttendeesPage() {
 						<div className="flex items-center gap-2">
 							<StatusBadge status={allocation.status} />
 							<span className="text-ink truncate">
-								Room {allocation.roomNumber ?? "-"}
+								Room {allocation.bedNumber ?? "-"}
 							</span>
 						</div>
 						<div className="text-[11px] text-ink-3 truncate">
-							{allocation.roomFloor ? `Floor ${allocation.roomFloor}` : "Floor -"}
 							{allocation.checkinAt && ` · ${fmtRelative(allocation.checkinAt)}`}
 						</div>
 					</div>

@@ -7,7 +7,7 @@ import { codes } from "@/lib/id";
 import { notifyConference } from "@/lib/notify";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
-import { helpdeskIssues } from "@conference/db";
+import { attendees, helpdeskIssues } from "@conference/db";
 import { zValidator } from "@hono/zod-validator";
 import { and, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
@@ -87,13 +87,41 @@ helpdeskRouter.post("/", requireRole("editor"), zValidator("json", helpdeskCreat
 			.where(eq(helpdeskIssues.conferenceId, conf.id));
 		const issueCode = codes.issue((countRows[0]?.n ?? 0) + 1);
 
+		const reporterInfo = await tx
+			.select({
+				name: attendees.name,
+				phone: attendees.phone,
+				type: sql<"attendee" | "staff" | "guest" | "vip" | "anonymous">`
+					CASE
+						WHEN ${attendees.category} IN
+						     ('student', 'faculty', 'industry', 'speaker', 'sponsor', 'media', 'other') THEN 'attendee'
+						WHEN ${attendees.category} IN ('organizer') THEN 'staff'
+						WHEN ${attendees.category} = 'guest' THEN 'guest'
+						WHEN ${attendees.category} = 'vip' THEN 'vip'
+						ELSE 'anonymous'
+						END
+				`.as("type"),
+			})
+			.from(attendees)
+			.where(
+				and(eq(attendees.id, input.attendeeId ?? ""), eq(attendees.conferenceId, conf.id)),
+			)
+			.limit(1)
+			.then(r => r[0]);
+
 		const [created] = await tx
 			.insert(helpdeskIssues)
 			.values({
 				...input,
 				issueCode,
 				conferenceId: conf.id,
-				reportedByUserId: user.id,
+				reportedByName:
+					input.reporterType === "anonymous" ? input.reportedByName : reporterInfo?.name,
+				reporterType:
+					input.reporterType === "anonymous"
+						? "anonymous"
+						: (reporterInfo?.type ?? "anonymous"),
+				reporterPhone: reporterInfo?.phone,
 				createdBy: user.id,
 				updatedBy: user.id,
 			} as any)

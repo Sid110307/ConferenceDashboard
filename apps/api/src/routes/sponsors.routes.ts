@@ -1,6 +1,5 @@
 import { makeCrudRouter } from "@/lib/crud-factory";
 import { sponsors } from "@conference/db";
-import { moneySchema } from "@conference/shared";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -27,34 +26,23 @@ export const sponsorsRouter = makeCrudRouter({
 	}),
 	updateSchema: z
 		.object({
-			itemName: z.string().min(1).max(255),
-			itemType: z.enum(["income", "expense"]),
-			category: z.enum([
-				"registration",
-				"sponsorship",
-				"accommodation",
-				"food",
-				"transport",
-				"printing",
-				"venue_av",
-				"vip_event",
-				"logistics",
-				"honorarium",
-				"misc",
-			]),
-			budgetAmount: moneySchema,
-			actualAmount: moneySchema.optional(),
-			paymentStatus: z
-				.enum(["pending", "partial", "paid", "received", "cancelled", "refunded"])
+			name: z.string().min(1).max(255).optional(),
+			tier: z.enum(["title", "platinum", "gold", "silver", "bronze", "partner"]).optional(),
+			contributionAmount: z
+				.string()
+				.regex(/^-?\d+(\.\d{1,2})?$/)
 				.optional(),
-			vendorOrSource: z.string().max(255).optional(),
-			invoiceNumber: z.string().max(64).optional(),
-			paidAt: z.string().datetime({ offset: true }).nullable().optional(),
+			website: z.string().url().optional(),
+			logoFileId: z.string().uuid().optional(),
+			contactName: z.string().max(255).optional(),
+			contactEmail: z.string().email().optional(),
+			contactPhone: z.string().max(32).optional(),
+			mouFileId: z.string().uuid().optional(),
+			sortOrder: z.number().int().optional(),
 			notes: z.string().max(2000).optional(),
-			customFields: z.record(z.string(), z.any()).optional(),
 		})
 		.partial(),
-	searchColumns: [sponsors.id, sponsors.name],
+	searchColumns: [sponsors.contactName, sponsors.name],
 	defaultSort: sponsors.sortOrder,
 	listQuerySchema: z.object({
 		tier: z.string().optional(),

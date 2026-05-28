@@ -40,10 +40,15 @@ const REPORT_TYPES = [
 	{ value: "attendee_by_category", label: "Attendees by category" },
 	{ value: "travel_manifest_arrivals", label: "Travel manifest (arrivals)" },
 	{ value: "travel_manifest_departures", label: "Travel manifest (departures)" },
+	{ value: "travel_manifest_male", label: "Travel manifest (male)" },
+	{ value: "travel_manifest_female", label: "Travel manifest (female)" },
 	{ value: "accommodation_plan", label: "Accommodation plan" },
-	{ value: "food_counts", label: "Food counts" },
-	{ value: "helpdesk_report", label: "Helpdesk report" },
+	{ value: "daily_control", label: "Daily control" },
 	{ value: "finance_summary", label: "Finance summary" },
+	{ value: "food_counts", label: "Food counts" },
+	{ value: "committee_directory", label: "Committee directory" },
+	{ value: "vip_report", label: "VIP report" },
+	{ value: "helpdesk_report", label: "Helpdesk report" },
 ];
 
 function ReportsPage() {

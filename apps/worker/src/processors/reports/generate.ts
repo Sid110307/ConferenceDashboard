@@ -9,78 +9,284 @@ import ExcelJS from "exceljs";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 
 type ReportType =
-	| "attendees_full"
-	| "travel_manifest"
-	| "accommodation_roster"
-	| "food_meal_counts"
-	| "helpdesk_log"
-	| "finance_summary";
+	| "attendee_master"
+	| "attendee_by_category"
+	| "travel_manifest_arrivals"
+	| "travel_manifest_departures"
+	| "travel_manifest_male"
+	| "travel_manifest_female"
+	| "accommodation_plan"
+	| "daily_control"
+	| "finance_summary"
+	| "food_counts"
+	| "committee_directory"
+	| "vip_report"
+	| "helpdesk_report";
 
 type Format = "csv" | "xlsx" | "pdf";
 
-const QUERIES: Record<ReportType, string> = {
-	attendees_full: `
-		SELECT attendee_code, name, email, phone, gender, category,
-		       institution, designation, prantha, city, state,
-		       registration_status, checkin_status, checked_in_at,
-		       is_vip, dietary_preference, blood_group, tags
+const QUERIES: Record<ReportType, (conferenceId: string) => ReturnType<typeof sql>> = {
+	attendee_master: conferenceId => sql`
+		SELECT attendee_code,
+		       name,
+		       email,
+		       phone,
+		       gender,
+		       category,
+		       institution,
+		       designation,
+		       prantha,
+		       city,
+		       state,
+		       registration_status,
+		       checkin_status,
+		       checked_in_at,
+		       is_vip,
+		       dietary_preference,
+		       blood_group,
+		       tags
 		FROM attendees
-		WHERE conference_id = $1 AND deleted_at IS NULL
+		WHERE conference_id = ${conferenceId}
+		  AND deleted_at IS NULL
 		ORDER BY attendee_code
 	`,
-	travel_manifest: `
-		SELECT a.attendee_code, a.name, a.gender, a.phone,
-		       t.direction, t.travel_mode, t.carrier, t.service_number,
-		       t.origin_city, t.destination_city, t.scheduled_time,
-		       t.pickup_status, v.label AS vehicle, v.driver_name, v.driver_phone
+	attendee_by_category: conferenceId => sql`
+		SELECT category,
+		       COUNT(*)::int AS total_count,
+		       SUM(CASE WHEN checkin_status = 'checked_in' THEN 1 ELSE 0 END)::int AS checked_in,
+		       SUM(CASE WHEN is_vip = true THEN 1 ELSE 0 END)::int AS vip_count
+		FROM attendees
+		WHERE conference_id = ${conferenceId}
+		  AND deleted_at IS NULL
+		GROUP BY category
+		ORDER BY category
+	`,
+	travel_manifest_arrivals: conferenceId => sql`
+		SELECT a.attendee_code,
+		       a.name,
+		       a.gender,
+		       a.phone,
+		       t.travel_mode,
+		       t.carrier,
+		       t.service_number,
+		       t.origin_city,
+		       t.destination_city,
+		       t.scheduled_time,
+		       t.pickup_status,
+		       CASE
+				   WHEN v.id IS NULL THEN NULL
+			       ELSE TRIM(COALESCE(v.vehicle_type, '') || ' ' || COALESCE(v.plate_number, ''))
+				   END AS vehicle,
+		       v.driver_name,
+		       v.driver_phone
 		FROM travel_segments t
-		JOIN attendees a ON a.id = t.attendee_id
-		LEFT JOIN vehicles v ON v.id = t.vehicle_id
-		WHERE t.conference_id = $1 AND t.deleted_at IS NULL
+				 JOIN attendees a ON a.id = t.attendee_id
+			     LEFT JOIN vehicles v ON v.id = t.vehicle_id
+		WHERE t.conference_id = ${conferenceId}
+		  AND t.direction = 'arrival'
+		  AND t.deleted_at IS NULL
+		ORDER BY t.scheduled_time NULLS LAST
+	`,
+	travel_manifest_departures: conferenceId => sql`
+		SELECT a.attendee_code,
+		       a.name,
+		       a.gender,
+		       a.phone,
+		       t.travel_mode,
+		       t.carrier,
+		       t.service_number,
+		       t.origin_city,
+		       t.destination_city,
+		       t.scheduled_time,
+		       t.pickup_status,
+		       CASE
+				   WHEN v.id IS NULL THEN NULL
+			       ELSE TRIM(COALESCE(v.vehicle_type, '') || ' ' || COALESCE(v.plate_number, ''))
+				   END AS vehicle,
+		       v.driver_name,
+		       v.driver_phone
+		FROM travel_segments t
+				 JOIN attendees a ON a.id = t.attendee_id
+			     LEFT JOIN vehicles v ON v.id = t.vehicle_id
+		WHERE t.conference_id = ${conferenceId}
+		  AND t.direction = 'departure'
+		  AND t.deleted_at IS NULL
+		ORDER BY t.scheduled_time NULLS LAST
+	`,
+	travel_manifest_male: conferenceId => sql`
+		SELECT a.attendee_code,
+		       a.name,
+		       a.phone,
+		       t.direction,
+		       t.travel_mode,
+		       t.carrier,
+		       t.service_number,
+		       t.origin_city,
+		       t.destination_city,
+		       t.scheduled_time,
+		       t.pickup_status,
+		       CASE
+				   WHEN v.id IS NULL THEN NULL
+			       ELSE TRIM(COALESCE(v.vehicle_type, '') || ' ' || COALESCE(v.plate_number, ''))
+				   END AS vehicle,
+		       v.driver_name,
+		       v.driver_phone
+		FROM travel_segments t
+				 JOIN attendees a ON a.id = t.attendee_id
+			     LEFT JOIN vehicles v ON v.id = t.vehicle_id
+		WHERE t.conference_id = ${conferenceId}
+		  AND a.gender = 'male'
+		  AND t.deleted_at IS NULL
 		ORDER BY t.scheduled_time NULLS LAST, t.direction
 	`,
-	accommodation_roster: `
-		SELECT b.name AS block, r.room_number, r.floor, r.capacity, r.status,
-		       a.name AS attendee, a.attendee_code, a.gender,
-		       al.allocated_at, al.checked_in_at, al.checked_out_at, al.status AS alloc_status
-		FROM accommodation_allocations al
-		JOIN accommodation_rooms r ON r.id = al.room_id
-		JOIN accommodation_blocks b ON b.id = r.block_id
-		JOIN attendees a ON a.id = al.attendee_id
-		WHERE al.conference_id = $1 AND al.deleted_at IS NULL
-		ORDER BY b.name, r.room_number
+	travel_manifest_female: conferenceId => sql`
+		SELECT a.attendee_code,
+		       a.name,
+		       a.phone,
+		       t.direction,
+		       t.travel_mode,
+		       t.carrier,
+		       t.service_number,
+		       t.origin_city,
+		       t.destination_city,
+		       t.scheduled_time,
+		       t.pickup_status,
+		       CASE
+				   WHEN v.id IS NULL THEN NULL
+			       ELSE TRIM(COALESCE(v.vehicle_type, '') || ' ' || COALESCE(v.plate_number, ''))
+				   END AS vehicle,
+		       v.driver_name,
+		       v.driver_phone
+		FROM travel_segments t
+				 JOIN attendees a ON a.id = t.attendee_id
+			     LEFT JOIN vehicles v ON v.id = t.vehicle_id
+		WHERE t.conference_id = ${conferenceId}
+		  AND a.gender = 'female'
+		  AND t.deleted_at IS NULL
+		ORDER BY t.scheduled_time NULLS LAST, t.direction
 	`,
-	food_meal_counts: `
-		SELECT meal_date, meal_type,
+	accommodation_plan: conferenceId => sql`
+		SELECT b.name AS block,
+		       r.room_number,
+		       r.floor,
+		       r.room_type,
+		       r.capacity,
+		       r.status,
+		       a.attendee_code,
+		       a.name AS attendee,
+		       a.gender,
+		       ra.bed_number,
+		       ra.planned_checkin_date,
+		       ra.planned_checkout_date,
+		       ra.checkin_at,
+		       ra.checkout_at,
+		       ra.status AS allocation_status
+		FROM room_allocations ra
+				 JOIN accommodation_rooms r ON r.id = ra.room_id
+			     JOIN accommodation_blocks b ON b.id = r.block_id
+			     JOIN attendees a ON a.id = ra.attendee_id
+		WHERE ra.conference_id = ${conferenceId}
+		  AND ra.deleted_at IS NULL
+		ORDER BY b.name, r.room_number, a.attendee_code
+	`,
+	daily_control: conferenceId => sql`
+		SELECT log_date,
+		       day_label,
+		       shift_label,
+		       summary,
+		       incidents,
+		       actions_taken,
+		       pending_actions,
+		       stats
+		FROM daily_control_logs
+		WHERE conference_id = ${conferenceId}
+		  AND deleted_at IS NULL
+		ORDER BY log_date DESC
+	`,
+	finance_summary: conferenceId => sql`
+		SELECT category,
+		       item_type AS type,
+		       SUM(actual_amount)::numeric(14,2) AS actual_amount,
+		       SUM(budget_amount)::numeric(14,2) AS budget_amount,
+		       COUNT(*)::int AS line_items
+		FROM finance_items
+		WHERE conference_id = ${conferenceId}
+		  AND deleted_at IS NULL
+		GROUP BY category, item_type
+		ORDER BY category, item_type
+	`,
+	food_counts: conferenceId => sql`
+		SELECT meal_date,
+		       meal_type,
 		       COUNT(*)::int AS scan_count,
 		       COUNT(DISTINCT attendee_id)::int AS unique_attendees
 		FROM meal_scans
-		WHERE conference_id = $1
+		WHERE conference_id = ${conferenceId}
+		  AND deleted_at IS NULL
 		GROUP BY meal_date, meal_type
 		ORDER BY meal_date, meal_type
 	`,
-	helpdesk_log: `
-		SELECT h.issue_code, h.title, h.category, h.priority, h.status,
-		       h.created_at, h.resolved_at,
-		       a.name AS reported_by_attendee, s.name AS assigned_to_staff,
-		       c.name AS committee, h.description, h.resolution_notes
-		FROM helpdesk_issues h
-		LEFT JOIN attendees a ON a.id = h.attendee_id
-		LEFT JOIN staff s ON s.id = h.assigned_to_staff_id
-		LEFT JOIN committees c ON c.id = h.assigned_committee_id
-		WHERE h.conference_id = $1 AND h.deleted_at IS NULL
-		ORDER BY h.created_at DESC
+	committee_directory: conferenceId => sql`
+		SELECT c.name AS committee,
+		       c.slug,
+		       c.description,
+		       c.lead_name,
+		       c.lead_phone,
+		       c.lead_email,
+		       s.name AS staff_name,
+		       s.designation,
+		       s.phone,
+		       s.email,
+		       ca.role_in_committee,
+		       ca.is_lead
+		FROM committees c
+				 LEFT JOIN committee_assignments ca ON ca.committee_id = c.id
+				 LEFT JOIN staff s ON s.id = ca.staff_id
+		WHERE c.conference_id = ${conferenceId}
+		  AND c.deleted_at IS NULL
+		ORDER BY c.sort_order, c.name, ca.is_lead DESC, s.name
 	`,
-	finance_summary: `
-		SELECT category,
-		       direction,
-		       SUM(amount_actual)::numeric(14,2) AS actual,
-		       SUM(amount_planned)::numeric(14,2) AS planned,
-		       COUNT(*)::int AS line_items
-		FROM finance_items
-		WHERE conference_id = $1 AND deleted_at IS NULL
-		GROUP BY category, direction
-		ORDER BY direction, category
+	vip_report: conferenceId => sql`
+		SELECT v.name,
+		       v.designation,
+		       v.institution,
+		       v.protocol_level,
+		       v.status,
+		       v.arrival_time,
+		       v.departure_time,
+		       v.vehicle,
+		       v.security_required,
+		       v.speech_required,
+		       v.green_room,
+		       s.name AS liaison_staff,
+		       s.phone AS liaison_phone,
+		       v.notes
+		FROM vip_guests v
+				 LEFT JOIN staff s ON s.id = v.liaison_staff_id
+		WHERE v.conference_id = ${conferenceId}
+		  AND v.deleted_at IS NULL
+		ORDER BY v.protocol_level, v.name
+	`,
+	helpdesk_report: conferenceId => sql`
+		SELECT h.issue_code,
+		       h.title,
+		       h.category,
+		       h.priority,
+		       h.status,
+		       h.created_at,
+		       h.resolved_at,
+		       COALESCE(a.name, h.reported_by_name) AS reported_by,
+		       s.name AS assigned_to_staff,
+		       c.name AS assigned_committee,
+		       h.description,
+		       h.resolution_notes
+		FROM helpdesk_issues h
+				 LEFT JOIN attendees a ON a.id = h.attendee_id
+			     LEFT JOIN staff s ON s.id = h.assigned_to_staff_id
+			     LEFT JOIN committees c ON c.id = h.assigned_committee_id
+		WHERE h.conference_id = ${conferenceId}
+		  AND h.deleted_at IS NULL
+		ORDER BY h.created_at DESC
 	`,
 };
 
@@ -118,7 +324,7 @@ export async function processReportGenerate(payload: {
 		let columns: string[] = [];
 		let rows: Record<string, any>[] = [];
 		await withTenant(conferenceId, async tx => {
-			const result: any = await tx.execute(sql.raw(query.replace("$1", `'${conferenceId}'`)));
+			const result: any = await tx.execute(query(conferenceId));
 			rows = result.rows ?? result ?? [];
 			if (rows.length > 0) columns = Object.keys(rows[0]!);
 		});

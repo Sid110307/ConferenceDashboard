@@ -61,7 +61,6 @@ export const vipChecklist = pgTable(
 		item: text("item").notNull(),
 		description: text("description"),
 		isDone: boolean("is_done").notNull().default(false),
-		assignedTo: text("assigned_to"),
 		assignedStaffId: uuid("assigned_staff_id").references(() => staff.id, {
 			onDelete: "set null",
 		}),

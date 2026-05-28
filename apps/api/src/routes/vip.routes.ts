@@ -5,7 +5,7 @@ import { NotFoundError } from "@/lib/errors";
 import { getClientIp } from "@/lib/http";
 import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
-import { vipChecklist, vipGuests } from "@conference/db";
+import { staff, vipChecklist, vipGuests } from "@conference/db";
 import { zValidator } from "@hono/zod-validator";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
@@ -20,7 +20,17 @@ export const vipRouter = makeCrudRouter({
 		name: z.string().min(1).max(255),
 		designation: z.string().max(255).optional(),
 		institution: z.string().max(255).optional(),
-		protocolLevel: z.enum(["a_plus", "a", "b", "c"]).default("b"),
+		protocolLevel: z.enum(["a_plus", "a", "b", "c", "none"]).default("none"),
+		status: z
+			.enum(["pending", "confirmed", "arrived", "completed", "cancelled"])
+			.default("pending"),
+		arrivalTime: z.string().datetime({ offset: true }).nullable().default(null),
+		departureTime: z.string().datetime({ offset: true }).nullable().default(null),
+		vehicle: z.string().max(255).nullable().default(null),
+		securityRequired: z.boolean().default(false),
+		speechRequired: z.boolean().default(false),
+		greenRoom: z.string().max(255).nullable().default(null),
+		liaisonStaffId: z.string().uuid().nullable().default(null),
 		notes: z.string().max(5000).optional(),
 		customFields: z.record(z.string(), z.any()).default({}),
 	}),
@@ -30,7 +40,15 @@ export const vipRouter = makeCrudRouter({
 			name: z.string().min(1).max(255),
 			designation: z.string().max(255),
 			institution: z.string().max(255),
-			protocolLevel: z.enum(["a_plus", "a", "b", "c"]),
+			protocolLevel: z.enum(["a_plus", "a", "b", "c", "none"]),
+			status: z.enum(["pending", "confirmed", "arrived", "completed", "cancelled"]),
+			arrivalTime: z.string().datetime({ offset: true }).nullable(),
+			departureTime: z.string().datetime({ offset: true }).nullable(),
+			vehicle: z.string().max(255).nullable(),
+			securityRequired: z.boolean(),
+			speechRequired: z.boolean(),
+			greenRoom: z.string().max(255).nullable(),
+			liaisonStaffId: z.string().uuid().nullable(),
 			notes: z.string().max(5000),
 			customFields: z.record(z.string(), z.any()),
 		})
@@ -76,6 +94,16 @@ vipChecklistRouter.post(
 		const conf = c.get("conference")!;
 		const { vipId } = c.req.valid("param");
 		const input = c.req.valid("json");
+
+		const vipRow = await withTenant(conf.id, async tx =>
+			tx
+				.select()
+				.from(vipGuests)
+				.where(and(eq(vipGuests.id, vipId), eq(vipGuests.conferenceId, conf.id)))
+				.limit(1),
+		);
+		if (!vipRow) throw new NotFoundError("VIP guest");
+
 		const [row] = await withTenant(conf.id, async tx =>
 			tx
 				.insert(vipChecklist)
@@ -100,6 +128,12 @@ vipChecklistRouter.patch(
 		const user = c.get("user")!;
 		const { vipId, itemId } = c.req.valid("param");
 		const input = c.req.valid("json");
+
+		const [staffRow] = await withTenant(conf.id, async tx =>
+			tx.select().from(staff).where(eq(staff.userId, user.id)).limit(1),
+		);
+		if (!staffRow) throw new NotFoundError("staff record for user");
+
 		const [row] = await withTenant(conf.id, async tx =>
 			tx
 				.update(vipChecklist)
@@ -111,7 +145,7 @@ vipChecklistRouter.patch(
 							: input.isDone === false
 								? null
 								: undefined,
-					assignedStaffId: input.isDone === true ? user.id : null,
+					assignedStaffId: input.isDone === true ? staffRow.id : null,
 					updatedAt: new Date(),
 				})
 				.where(

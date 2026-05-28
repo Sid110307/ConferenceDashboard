@@ -226,7 +226,6 @@ conferencesRouter.patch(
 						: {}),
 					...(input.currentDay !== undefined ? { currentDay: input.currentDay } : {}),
 					...(input.settings !== undefined ? { settings: input.settings } : {}),
-					...(input.branding !== undefined ? { branding: input.branding } : {}),
 					updatedBy: user.id,
 					updatedAt: new Date(),
 				} as any)

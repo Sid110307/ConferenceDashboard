@@ -130,14 +130,7 @@ export type CustomFieldEntity = (typeof CUSTOM_FIELD_ENTITIES)[number];
 export const IMPORT_ENTITIES = [
 	"attendees",
 	"staff",
-	"committee_assignments",
-	"sessions",
-	"speakers",
-	"sponsors",
 	"travel_segments",
-	"accommodation_rooms",
-	"room_allocations",
-	"finance_items",
 ] as const;
 export type ImportEntity = (typeof IMPORT_ENTITIES)[number];
 

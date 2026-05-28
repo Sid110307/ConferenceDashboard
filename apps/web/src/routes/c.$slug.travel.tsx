@@ -773,6 +773,12 @@ function cleanForApi(o: Partial<Vehicle>): Partial<Vehicle> {
 	const out: any = {};
 	for (const [k, v] of Object.entries(o)) {
 		if (v === "" || v === undefined) continue;
+		if (k === "ratePerDay" && typeof v === "string") {
+			const num = parseFloat(v);
+			if (isNaN(num)) continue;
+			out[k] = num;
+			continue;
+		}
 		out[k] = v;
 	}
 	return out;

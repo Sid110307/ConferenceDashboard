@@ -66,10 +66,6 @@ export const conferences = pgTable(
 				defaults: Record<string, string>;
 				[k: string]: unknown;
 			}>(),
-		branding: jsonb("branding")
-			.notNull()
-			.default(sql`'{}'::jsonb`)
-			.$type<Record<string, string>>(),
 		...customFieldsColumn(),
 		...auditColumns(() => users.id),
 	},

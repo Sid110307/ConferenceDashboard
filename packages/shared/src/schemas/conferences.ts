@@ -37,7 +37,6 @@ export const conferenceUpdateSchema = conferenceCreateSchema.partial().extend({
 	publicStatus: z.enum(["draft", "published", "archived"]).optional(),
 	currentDay: z.number().int().min(1).max(30).nullable().optional(),
 	settings: z.record(z.string(), z.any()).optional(),
-	branding: z.record(z.string(), z.string()).optional(),
 });
 
 export type ConferenceCreateInput = z.infer<typeof conferenceCreateSchema>;

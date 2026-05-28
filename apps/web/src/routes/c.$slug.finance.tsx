@@ -54,20 +54,23 @@ type Sponsor = {
 	name: string;
 	tier: string | null;
 	contributionAmount: string;
-	currency: string;
+	website: string | null;
+	logoFileId: string | null;
+	mouFileId: string | null;
+	notes: string | null;
 
 	contactName: string | null;
 	contactEmail: string | null;
 	contactPhone: string | null;
 };
 type Summary = {
-	totalBudget: number;
-	totalActual: number;
-	incomeBudget: number;
-	incomeActual: number;
-	expenseBudget: number;
-	expenseActual: number;
-	count: number;
+	totalBudget: string;
+	totalActual: string;
+	incomeBudget: string;
+	incomeActual: string;
+	expenseBudget: string;
+	expenseActual: string;
+	count: string;
 };
 
 const PAGE_SIZE = 20;
@@ -260,6 +263,9 @@ function FinanceItemDrawer({ item, onClose }: { item: FinanceItem | null; onClos
 				itemType: form.itemType,
 				budgetAmount: form.budgetAmount ? String(form.budgetAmount) : undefined,
 				actualAmount: form.actualAmount ? String(form.actualAmount) : undefined,
+				paymentStatus: form.paymentStatus,
+				vendorOrSource: form.vendorOrSource || undefined,
+				invoiceNumber: form.invoiceNumber || undefined,
 				notes: form.notes || undefined,
 			};
 			return isEdit ? api.patch(`${path}/${item!.id}`, body) : api.post(path, body);
@@ -393,6 +399,32 @@ function FinanceItemDrawer({ item, onClose }: { item: FinanceItem | null; onClos
 						/>
 					</FieldRow>
 				</div>
+				<FieldRow label="Payment status">
+					<Select
+						value={form.paymentStatus ?? "pending"}
+						onChange={e => upd({ paymentStatus: e.target.value })}
+					>
+						{["pending", "partial", "paid", "received", "cancelled", "refunded"].map(
+							s => (
+								<option key={s} value={s}>
+									{humanise(s)}
+								</option>
+							),
+						)}
+					</Select>
+				</FieldRow>
+				<FieldRow label="Vendor / source">
+					<Input
+						value={form.vendorOrSource ?? ""}
+						onChange={e => upd({ vendorOrSource: e.target.value })}
+					/>
+				</FieldRow>
+				<FieldRow label="Invoice number">
+					<Input
+						value={form.invoiceNumber ?? ""}
+						onChange={e => upd({ invoiceNumber: e.target.value })}
+					/>
+				</FieldRow>
 				<FieldRow label="Notes">
 					<Textarea
 						value={form.notes ?? ""}
@@ -589,6 +621,19 @@ function SponsorDrawer({ sponsor, onClose }: { sponsor: Sponsor | null; onClose:
 					<Input
 						value={form.contactPhone ?? ""}
 						onChange={e => upd({ contactPhone: e.target.value })}
+					/>
+				</FieldRow>
+				<FieldRow label="Website" className="sm:col-span-2">
+					<Input
+						type="url"
+						value={form.website ?? ""}
+						onChange={e => upd({ website: e.target.value })}
+					/>
+				</FieldRow>
+				<FieldRow label="Notes" className="sm:col-span-2">
+					<Textarea
+						value={form.notes ?? ""}
+						onChange={e => upd({ notes: e.target.value })}
 					/>
 				</FieldRow>
 			</div>
