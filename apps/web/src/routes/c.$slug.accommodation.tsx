@@ -222,11 +222,9 @@ function AccommodationPage() {
 					</Card>
 				</div>
 			</div>
-
 			{openRoom && (
 				<RoomDrawer room={openRoom} onClose={() => setOpenRoom(null)} canEdit={canEdit} />
 			)}
-
 			{createBlockOpen && <BlockDrawer onClose={() => setCreateBlockOpen(false)} />}
 		</div>
 	);
@@ -358,6 +356,8 @@ function RoomDrawer({
 									<Button
 										variant="primary"
 										size="xs"
+										disabled={action.isPending}
+										loading={action.isPending}
 										onClick={() =>
 											action.mutate({ allocId: a.id, action: "check_in" })
 										}
@@ -369,6 +369,8 @@ function RoomDrawer({
 									<Button
 										variant="primary"
 										size="xs"
+										disabled={action.isPending}
+										loading={action.isPending}
 										onClick={() =>
 											action.mutate({
 												allocId: a.id,
@@ -383,6 +385,8 @@ function RoomDrawer({
 									<Button
 										variant="danger"
 										size="xs"
+										disabled={action.isPending}
+										loading={action.isPending}
 										onClick={async () => {
 											const ok = await confirm({
 												title: "Cancel allocation?",

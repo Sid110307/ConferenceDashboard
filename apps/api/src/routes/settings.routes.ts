@@ -87,8 +87,6 @@ settingsRouter.put(
 			accentColor: z.string().max(16).nullable().optional(),
 			logoFileId: z.string().uuid().nullable().optional(),
 			faviconFileId: z.string().uuid().nullable().optional(),
-			heroImageFileId: z.string().uuid().nullable().optional(),
-			tokens: z.record(z.string(), z.any()).nullable().optional(),
 		}),
 	),
 	async c => {

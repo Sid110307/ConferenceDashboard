@@ -16,6 +16,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { DataTable, Pagination, type Column } from "@/components/DataTable";
+import { DatePickerInput } from "@/components/DatePicker";
 import { EntityDrawer } from "@/components/EntityDrawer";
 import { FieldRow } from "@/components/FieldRow";
 import { Input, Select, Textarea } from "@/components/Input";
@@ -43,6 +44,7 @@ type FinanceItem = {
 	budgetAmount: string;
 	actualAmount: string;
 	currency: string;
+	paidAt: string | null;
 
 	paymentStatus: string;
 	vendorOrSource: string | null;
@@ -57,7 +59,7 @@ type Sponsor = {
 	website: string | null;
 	logoFileId: string | null;
 	mouFileId: string | null;
-	notes: string | null;
+	description: string | null;
 
 	contactName: string | null;
 	contactEmail: string | null;
@@ -261,6 +263,7 @@ function FinanceItemDrawer({ item, onClose }: { item: FinanceItem | null; onClos
 				itemName: form.itemName,
 				category: form.category || undefined,
 				itemType: form.itemType,
+				paidAt: form.paidAt || undefined,
 				budgetAmount: form.budgetAmount ? String(form.budgetAmount) : undefined,
 				actualAmount: form.actualAmount ? String(form.actualAmount) : undefined,
 				paymentStatus: form.paymentStatus,
@@ -413,6 +416,15 @@ function FinanceItemDrawer({ item, onClose }: { item: FinanceItem | null; onClos
 						)}
 					</Select>
 				</FieldRow>
+				{(form.paymentStatus === "paid" || form.paymentStatus === "received") && (
+					<FieldRow label="Paid at">
+						<DatePickerInput
+							value={form.paidAt ?? undefined}
+							onChange={e => upd({ paidAt: e })}
+							className="w-full"
+						/>
+					</FieldRow>
+				)}
 				<FieldRow label="Vendor / source">
 					<Input
 						value={form.vendorOrSource ?? ""}
@@ -532,6 +544,7 @@ function SponsorDrawer({ sponsor, onClose }: { sponsor: Sponsor | null; onClose:
 	const { conference } = useConference();
 	const qc = useQueryClient();
 	const toast = useToast();
+	const confirm = useConfirm();
 	const isEdit = !!sponsor;
 	const [form, setForm] = useState<Partial<Sponsor>>(sponsor ?? {});
 	const save = useMutation({
@@ -546,6 +559,8 @@ function SponsorDrawer({ sponsor, onClose }: { sponsor: Sponsor | null; onClose:
 				contactName: form.contactName || undefined,
 				contactEmail: form.contactEmail || undefined,
 				contactPhone: form.contactPhone || undefined,
+				website: form.website || undefined,
+				description: form.description || undefined,
 			};
 			return isEdit ? api.patch(`${path}/${sponsor!.id}`, body) : api.post(path, body);
 		},
@@ -558,7 +573,19 @@ function SponsorDrawer({ sponsor, onClose }: { sponsor: Sponsor | null; onClose:
 		},
 		onError: (e: any) => toast.error("Save failed", e.message),
 	});
+	const del = useMutation({
+		mutationFn: () => api.del(`/api/v1/c/${conference.slug}/sponsors/${sponsor!.id}`),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: queryKeys.sponsors(conference.slug) }).catch(
+				console.error,
+			);
+			toast.success("Sponsor deleted");
+			onClose();
+		},
+		onError: (e: any) => toast.error("Delete failed", e.message),
+	});
 	const upd = (p: Partial<Sponsor>) => setForm(f => ({ ...f, ...p }));
+
 	return (
 		<EntityDrawer
 			open
@@ -567,6 +594,24 @@ function SponsorDrawer({ sponsor, onClose }: { sponsor: Sponsor | null; onClose:
 			width="md"
 			footer={
 				<>
+					{isEdit && (
+						<Button
+							variant="danger"
+							leadingIcon={<Trash2 size={14} />}
+							loading={del.isPending}
+							onClick={async () => {
+								const ok = await confirm({
+									title: `Delete sponsor?`,
+									description: `"${sponsor!.name}" will be permanently deleted.`,
+									tone: "danger",
+									confirmLabel: "Delete",
+								});
+								if (ok) del.mutate();
+							}}
+						>
+							Delete
+						</Button>
+					)}
 					<Button variant="ghost" onClick={onClose}>
 						Cancel
 					</Button>
@@ -630,10 +675,10 @@ function SponsorDrawer({ sponsor, onClose }: { sponsor: Sponsor | null; onClose:
 						onChange={e => upd({ website: e.target.value })}
 					/>
 				</FieldRow>
-				<FieldRow label="Notes" className="sm:col-span-2">
+				<FieldRow label="Description" className="sm:col-span-2">
 					<Textarea
-						value={form.notes ?? ""}
-						onChange={e => upd({ notes: e.target.value })}
+						value={form.description ?? ""}
+						onChange={e => upd({ description: e.target.value })}
 					/>
 				</FieldRow>
 			</div>

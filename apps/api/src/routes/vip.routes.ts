@@ -95,11 +95,17 @@ vipChecklistRouter.post(
 		const { vipId } = c.req.valid("param");
 		const input = c.req.valid("json");
 
-		const vipRow = await withTenant(conf.id, async tx =>
+		const [vipRow] = await withTenant(conf.id, async tx =>
 			tx
-				.select()
+				.select({ id: vipGuests.id })
 				.from(vipGuests)
-				.where(and(eq(vipGuests.id, vipId), eq(vipGuests.conferenceId, conf.id)))
+				.where(
+					and(
+						eq(vipGuests.id, vipId),
+						eq(vipGuests.conferenceId, conf.id),
+						isNull(vipGuests.deletedAt),
+					),
+				)
 				.limit(1),
 		);
 		if (!vipRow) throw new NotFoundError("VIP guest");

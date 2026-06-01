@@ -160,6 +160,18 @@ function ProfileTab() {
 						))}
 					</Select>
 				</FieldRow>
+				<FieldRow label="Internal status">
+					<Select
+						value={merged.conferenceStatus ?? "draft"}
+						onChange={e => upd({ conferenceStatus: e.target.value as any })}
+					>
+						{["draft", "active", "concluded", "archived"].map(s => (
+							<option key={s} value={s}>
+								{humanise(s)}
+							</option>
+						))}
+					</Select>
+				</FieldRow>
 				<FieldRow label="Venue name">
 					<Input
 						value={merged.venueName ?? ""}

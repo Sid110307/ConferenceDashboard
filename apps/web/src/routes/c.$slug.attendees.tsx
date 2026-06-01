@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
-import { fmtDateTime, fmtRelative, humanise } from "@/lib/format";
+import { cleanForApi, fmtDateTime, fmtRelative, humanise } from "@/lib/format";
 import { queryKeys } from "@/lib/queryKeys";
 import { PaginationType, useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
@@ -936,10 +936,60 @@ function AttendeeDrawer({
 		mutationFn: async () => {
 			const path = `/api/v1/c/${conference.slug}/attendees`;
 			if (isEdit && attendee) {
-				const payload: AttendeeUpdateInput = attendeeUpdateSchema.parse(cleanForApi(form));
+				const payload: AttendeeUpdateInput = attendeeUpdateSchema.parse(
+					cleanForApi(form, {
+						transforms: {
+							tags: value =>
+								Array.isArray(value)
+									? value.filter(s => s.trim() !== "")
+									: (value ?? []),
+							customFields: value => {
+								if (!value || typeof value !== "object" || Array.isArray(value))
+									return undefined;
+								const cleaned: Record<string, unknown> = {};
+								for (const [fieldKey, fieldValue] of Object.entries(
+									value as Record<string, unknown>,
+								)) {
+									if (
+										fieldValue !== "" &&
+										fieldValue !== undefined &&
+										fieldValue !== null
+									)
+										cleaned[fieldKey] = fieldValue;
+								}
+								return Object.keys(cleaned).length > 0 ? cleaned : undefined;
+							},
+						},
+					}),
+				);
 				return api.patch<{ data: Attendee }>(`${path}/${attendee.id}`, payload);
 			}
-			const payload: AttendeeCreateInput = attendeeCreateSchema.parse(cleanForApi(form));
+			const payload: AttendeeCreateInput = attendeeCreateSchema.parse(
+				cleanForApi(form, {
+					transforms: {
+						tags: value =>
+							Array.isArray(value)
+								? value.filter(s => s.trim() !== "")
+								: (value ?? []),
+						customFields: value => {
+							if (!value || typeof value !== "object" || Array.isArray(value))
+								return undefined;
+							const cleaned: Record<string, unknown> = {};
+							for (const [fieldKey, fieldValue] of Object.entries(
+								value as Record<string, unknown>,
+							)) {
+								if (
+									fieldValue !== "" &&
+									fieldValue !== undefined &&
+									fieldValue !== null
+								)
+									cleaned[fieldKey] = fieldValue;
+							}
+							return Object.keys(cleaned).length > 0 ? cleaned : undefined;
+						},
+					},
+				}),
+			);
 			return api.post<{ data: Attendee }>(path, payload);
 		},
 		onSuccess: () => {
@@ -1180,32 +1230,4 @@ function AttendeeDrawer({
 			</div>
 		</EntityDrawer>
 	);
-}
-
-function cleanForApi(o: Partial<Attendee>): Partial<Attendee> {
-	const out: any = {};
-	for (const [k, v] of Object.entries(o)) {
-		if (v === "" || v === undefined) continue;
-		if (k === "tags") {
-			out[k] = Array.isArray(v) ? v.filter(s => s.trim() !== "") : (v ?? []);
-			continue;
-		}
-		if (k === "customFields") {
-			const cleaned: Record<string, unknown> = {};
-			for (const [fieldKey, fieldValue] of Object.entries(v as Record<string, unknown>)) {
-				if (fieldValue !== "" && fieldValue !== undefined && fieldValue !== null)
-					cleaned[fieldKey] = fieldValue;
-			}
-			if (Object.keys(cleaned).length > 0) {
-				out[k] = cleaned;
-			}
-			continue;
-		}
-		if (Array.isArray(v)) {
-			out[k] = v;
-			continue;
-		}
-		out[k] = v;
-	}
-	return out;
 }

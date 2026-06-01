@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
-import { humanise } from "@/lib/format";
+import { cleanForApi, humanise } from "@/lib/format";
 import { queryKeys } from "@/lib/queryKeys";
 import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
@@ -669,13 +669,4 @@ function CreateVipDrawer({ onClose }: { onClose: () => void }) {
 			</div>
 		</EntityDrawer>
 	);
-}
-
-function cleanForApi(o: Record<string, any>) {
-	const out: Record<string, any> = {};
-	for (const [k, v] of Object.entries(o)) {
-		if (v === "" || v === undefined) continue;
-		out[k] = v;
-	}
-	return out;
 }

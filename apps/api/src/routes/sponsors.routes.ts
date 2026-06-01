@@ -22,7 +22,7 @@ export const sponsorsRouter = makeCrudRouter({
 		contactPhone: z.string().max(32).optional(),
 		mouFileId: z.string().uuid().optional(),
 		sortOrder: z.number().int().default(0),
-		notes: z.string().max(2000).optional(),
+		description: z.string().max(2000).optional(),
 	}),
 	updateSchema: z
 		.object({
@@ -39,7 +39,7 @@ export const sponsorsRouter = makeCrudRouter({
 			contactPhone: z.string().max(32).optional(),
 			mouFileId: z.string().uuid().optional(),
 			sortOrder: z.number().int().optional(),
-			notes: z.string().max(2000).optional(),
+			description: z.string().max(2000).optional(),
 		})
 		.partial(),
 	searchColumns: [sponsors.contactName, sponsors.name],

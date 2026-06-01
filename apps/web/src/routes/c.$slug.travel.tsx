@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
 import { hasAtLeastRole, useConference } from "@/lib/ConferenceContext";
-import { fmtDateTime, humanise } from "@/lib/format";
+import { cleanForApi, fmtDateTime, humanise } from "@/lib/format";
 import { queryKeys } from "@/lib/queryKeys";
 import { useListQuery } from "@/lib/useListQuery";
 import { useUrlState } from "@/lib/useUrlState";
@@ -599,10 +599,30 @@ function VehicleDrawer({ mode, vehicle, onClose, onSaved }: VehicleDrawerProps) 
 		mutationFn: async () => {
 			const path = `/api/v1/c/${conference.slug}/vehicles`;
 			if (isEdit && vehicle) {
-				const payload: VehicleUpdateInput = vehicleUpdateSchema.parse(cleanForApi(form));
+				const payload: VehicleUpdateInput = vehicleUpdateSchema.parse(
+					cleanForApi(form, {
+						transforms: {
+							ratePerDay: value => {
+								if (typeof value !== "string") return value;
+								const num = parseFloat(value);
+								return Number.isNaN(num) ? undefined : num;
+							},
+						},
+					}),
+				);
 				return api.patch<{ data: Vehicle }>(`${path}/${vehicle.id}`, payload);
 			}
-			const payload: VehicleCreateInput = vehicleCreateSchema.parse(cleanForApi(form));
+			const payload: VehicleCreateInput = vehicleCreateSchema.parse(
+				cleanForApi(form, {
+					transforms: {
+						ratePerDay: value => {
+							if (typeof value !== "string") return value;
+							const num = parseFloat(value);
+							return Number.isNaN(num) ? undefined : num;
+						},
+					},
+				}),
+			);
 			return api.post<{ data: Vehicle }>(path, payload);
 		},
 		onSuccess: () => {
@@ -767,19 +787,4 @@ function VehicleDrawer({ mode, vehicle, onClose, onSaved }: VehicleDrawerProps) 
 			</div>
 		</EntityDrawer>
 	);
-}
-
-function cleanForApi(o: Partial<Vehicle>): Partial<Vehicle> {
-	const out: any = {};
-	for (const [k, v] of Object.entries(o)) {
-		if (v === "" || v === undefined) continue;
-		if (k === "ratePerDay" && typeof v === "string") {
-			const num = parseFloat(v);
-			if (isNaN(num)) continue;
-			out[k] = num;
-			continue;
-		}
-		out[k] = v;
-	}
-	return out;
 }

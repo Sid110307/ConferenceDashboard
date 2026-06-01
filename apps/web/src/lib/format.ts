@@ -75,3 +75,22 @@ export function humanise(s: string | null | undefined): string {
 		.trim()
 		.replace(/^\w/, c => c.toUpperCase());
 }
+
+export function cleanForApi<T extends Record<string, any>>(
+	input: T,
+	options: { transforms?: { [K in keyof T]?: (value: T[K], key: K, input: T) => unknown } } = {},
+): Partial<T> {
+	const out: Partial<T> = {};
+
+	for (const [rawKey, value] of Object.entries(input) as [keyof T & string, T[keyof T]][]) {
+		if (value === "" || value === undefined) continue;
+
+		const transform = options.transforms?.[rawKey as keyof T];
+		const next = transform ? transform(value, rawKey as keyof T, input) : value;
+		if (next === "" || next === undefined) continue;
+
+		out[rawKey as keyof T] = next as T[keyof T];
+	}
+
+	return out;
+}

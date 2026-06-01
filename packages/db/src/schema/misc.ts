@@ -120,7 +120,7 @@ export const themeSettings = pgTable(
 			.references(() => conferences.id, { onDelete: "cascade" }),
 		primaryColor: varchar("primary_color", { length: 32 }),
 		accentColor: varchar("accent_color", { length: 32 }),
-		backgroundColor: varchar("background_color", { length: 32 }),
+		secondaryColor: varchar("secondary_color", { length: 32 }),
 		cardColor: varchar("card_color", { length: 32 }),
 		textColor: varchar("text_color", { length: 32 }),
 		fontFamily: varchar("font_family", { length: 64 }),
