@@ -7,7 +7,7 @@ import { withTenant } from "@/lib/tenancy";
 import { requireRole } from "@/middleware/auth";
 import { staff, vipChecklist, vipGuests } from "@conference/db";
 import { zValidator } from "@hono/zod-validator";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 
