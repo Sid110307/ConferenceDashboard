@@ -15,7 +15,8 @@ export function ConferenceLogo({ className, alt }: { className?: string; alt?: s
 		queryKey: queryKeys.confTheme(conference.slug),
 		queryFn: () =>
 			api.get<{ data: ThemeSettings }>(`/api/v1/c/${conference.slug}/settings/theme`),
-		staleTime: 60_000,
+		staleTime: 60000,
+		throwOnError: false,
 	});
 
 	const logoFileId = theme.data?.data?.logoFileId ?? null;

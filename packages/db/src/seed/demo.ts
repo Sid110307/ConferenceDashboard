@@ -1,3 +1,6 @@
+
+
+
 import "dotenv/config";
 
 import { dbAdmin } from "@/client";
@@ -19,6 +22,7 @@ import { addHours, addMinutes } from "date-fns";
 import { eq, sql } from "drizzle-orm";
 
 import { DEFAULT_COMMITTEES, DEFAULT_CUSTOM_FIELDS } from "./reference";
+
 
 faker.seed(69420);
 
@@ -129,7 +133,7 @@ function indianPhone(): string {
 }
 
 function attendeeCode(idx: number): string {
-	return `NCC26-A${String(idx).padStart(4, "0")}`;
+	return `NCONEP26-A${String(idx).padStart(4, "0")}`;
 }
 
 function carrierForMode(mode: "flight" | "train" | "car"): string {
@@ -150,7 +154,7 @@ async function main() {
 		const previous = await tx
 			.select({ id: conferences.id })
 			.from(conferences)
-			.where(eq(conferences.slug, "demo-2026"));
+			.where(eq(conferences.slug, "nconep-26"));
 		if (previous[0]) {
 			await tx.delete(conferences).where(eq(conferences.id, previous[0].id));
 			console.log("Existing demo conference data deleted. Reseeding fresh data...");
@@ -178,18 +182,18 @@ async function main() {
 		const [conf] = await tx
 			.insert(conferences)
 			.values({
-				slug: "demo-2026",
-				name: "Demo National Conference 2026",
-				shortName: "NCC26",
-				description:
-					"A sample multi-day conference used by Conference Dashboard for demo purposes.",
+				slug: "nconep-26",
+				name: "National Conference 2026",
+				shortName: "NCONEP26",
+				description: "National Conference - BSM",
 				startDate,
 				endDate,
 				timezone: "Asia/Kolkata",
 				conferenceStatus: "active",
 				publicStatus: "published",
-				venueName: "Indian Institute of Science",
-				venueAddress: "CV Raman Avenue",
+				venueName: "Sri Sri Ravishankar Ashram",
+				venueAddress:
+					"Art of Living International Center, 21KM Kanakapura Main Rd, Udayapura Post, South, Agara, Karnataka 560082",
 				venueCity: "Bengaluru",
 				venueState: "Karnataka",
 				venueCountry: "India",
@@ -851,7 +855,7 @@ async function main() {
 						required: true,
 					},
 					{ key: "conference_name", label: "Conference Name", example: "Demo NCC 2026" },
-					{ key: "attendee_code", label: "Attendee Code", example: "NCC26-A0001" },
+					{ key: "attendee_code", label: "Attendee Code", example: "NCONEP26-A0001" },
 					{ key: "venue", label: "Venue Name", example: "IISc Convention Centre" },
 					{ key: "start_date", label: "Start Date", example: "26 Dec 2026" },
 					{ key: "end_date", label: "End Date", example: "29 Dec 2026" },
@@ -990,7 +994,7 @@ async function main() {
 		]);
 
 		console.log(
-			`\nDemo conference seeded successfully: demo-2026 | ${attendeeIds.length} attendees, ${staffIds.length} staff, ${committeeRows.length} committees, ${roomIds.length} rooms.`,
+			`\nDemo conference seeded successfully: nconep-26 | ${attendeeIds.length} attendees, ${staffIds.length} staff, ${committeeRows.length} committees, ${roomIds.length} rooms.`,
 		);
 	});
 

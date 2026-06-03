@@ -14,7 +14,11 @@ async function main() {
 	const start = Date.now();
 
 	console.log("Starting migration...");
-	await migrate(dbAdmin, { migrationsFolder: "./drizzle" });
+	try {
+		await migrate(dbAdmin, { migrationsFolder: "./drizzle" });
+	} catch (err) {
+		console.error("Ignored error:", err);
+	}
 
 	console.log("Applying database functions...");
 	await applyDatabaseFunctions(dbAdmin);
