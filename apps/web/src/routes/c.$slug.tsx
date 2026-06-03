@@ -39,7 +39,7 @@ export const Route = createFileRoute("/c/$slug")({
 				if (err.status === 401)
 					throw redirect({
 						to: "/login",
-						search: `?next=${encodeURIComponent(location.pathname + location.search)}`,
+						search: { next: location.href },
 					});
 				if (err.status === 404) throw redirect({ to: "/" });
 			}

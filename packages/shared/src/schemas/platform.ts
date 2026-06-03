@@ -46,7 +46,20 @@ export const messageTemplateCreateSchema = z.object({
 				required: z.boolean().optional(),
 			}),
 		)
-		.default([]),
+		.default([
+			{
+				key: "name",
+				label: "Attendee Name",
+				example: "Arjun Sharma",
+				required: true,
+			},
+			{ key: "conference_name", label: "Conference Name", example: "Demo NCC 2026" },
+			{ key: "attendee_code", label: "Attendee Code", example: "NCONEP26-A0001" },
+			{ key: "venue", label: "Venue Name", example: "IISc Convention Centre" },
+			{ key: "venue_address", label: "Venue Address", example: "IISc Campus, Bangalore" },
+			{ key: "start_date", label: "Start Date", example: "26 Dec 2026" },
+			{ key: "end_date", label: "End Date", example: "29 Dec 2026" },
+		]),
 	providerTemplateRef: z.string().max(255).optional(),
 });
 

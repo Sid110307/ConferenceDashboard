@@ -149,6 +149,27 @@ export async function processCampaignMaterialise(payload: {
 				}
 			}
 
+			if (totalInserted === 0) {
+				await tx
+					.update(messageCampaigns)
+					.set({
+						status: "completed",
+						recipientCount: 0,
+						startedAt: new Date(),
+						completedAt: new Date(),
+						updatedAt: new Date(),
+					})
+					.where(eq(messageCampaigns.id, campaignId));
+				await notifyConference(tx, conferenceId, {
+					type: "campaign.completed",
+					entity: "message_campaign",
+					id: campaignId,
+					meta: { total: 0, sent: 0, failed: 0, status: "completed" },
+				});
+
+				return;
+			}
+
 			await tx
 				.update(messageCampaigns)
 				.set({
@@ -167,11 +188,12 @@ export async function processCampaignMaterialise(payload: {
 			});
 		});
 
-		await commsQueue.add(
-			JOB_NAMES.CAMPAIGN_DISPATCH_BATCH,
-			{ campaignId, conferenceId },
-			defaultJobOptions,
-		);
+		if (totalInserted > 0)
+			await commsQueue.add(
+				JOB_NAMES.CAMPAIGN_DISPATCH_BATCH,
+				{ campaignId, conferenceId },
+				defaultJobOptions,
+			);
 	} catch (err: any) {
 		logger.error({ campaignId, err: String(err) }, "campaign materialise failed");
 		await db

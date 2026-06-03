@@ -842,24 +842,13 @@ async function main() {
 				conferenceId,
 				name: "Welcome Email",
 				channel: "email",
-				subject: "Welcome to {{conference_name}}!",
+				subject: "Welcome to {{conference.name}}!",
 				body:
-					"Dear {{name}},\n\nWelcome to {{conference_name}}!\n\n" +
-					"Your attendee code is {{attendee_code}}.\nVenue: {{venue}}\nDates: {{start_date}} - {{end_date}}\n\n" +
+					"Dear {{attendee.name}},\n\nWelcome to {{conference.name}}!\n\n" +
+					"Your attendee code is {{attendee.attendeeCode}}.\n" +
+					"Venue: {{conference.venueName}}\n" +
+					"Dates: {{conference.startDate}} - {{conference.endDate}}\n\n" +
 					"See you soon!\nThe Organising Committee",
-				variables: [
-					{
-						key: "name",
-						label: "Attendee Name",
-						example: "Arjun Sharma",
-						required: true,
-					},
-					{ key: "conference_name", label: "Conference Name", example: "Demo NCC 2026" },
-					{ key: "attendee_code", label: "Attendee Code", example: "NCONEP26-A0001" },
-					{ key: "venue", label: "Venue Name", example: "IISc Convention Centre" },
-					{ key: "start_date", label: "Start Date", example: "26 Dec 2026" },
-					{ key: "end_date", label: "End Date", example: "29 Dec 2026" },
-				],
 				createdBy: adminId,
 			})
 			.returning({ id: messageTemplates.id });

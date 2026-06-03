@@ -1,8 +1,14 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
+
+
 import { cx } from "@/lib/uiStyles";
 import * as Toast from "@radix-ui/react-toast";
 import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
+
+
+
+
 
 type ToastItem = {
 	id: string;
@@ -96,7 +102,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 								{t.title.charAt(0).toUpperCase() + t.title.slice(1)}
 							</Toast.Title>
 							{t.description && (
-								<Toast.Description className="mt-0.5 text-xs text-ink-2">
+								<Toast.Description className="mt-0.5 text-xs text-ink-2 whitespace-pre-line">
 									{t.description.charAt(0).toUpperCase() + t.description.slice(1)}
 								</Toast.Description>
 							)}

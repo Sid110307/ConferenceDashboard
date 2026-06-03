@@ -37,7 +37,7 @@ export const Route = createFileRoute("/account")({
 			if (err instanceof ApiError && err.status === 401) {
 				throw redirect({
 					to: "/login",
-					search: { next: `${location.pathname}${location.search}${location.hash}` },
+					search: { next: location.href },
 				});
 			}
 			throw err;

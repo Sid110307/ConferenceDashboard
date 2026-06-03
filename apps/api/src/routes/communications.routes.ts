@@ -546,6 +546,19 @@ campaignsRouter.post(
 						updatedAt: new Date(),
 					})
 					.where(eq(messageCampaigns.id, id));
+				await recordAudit(tx, {
+					conferenceId: conf.id,
+					userId: user.id,
+					action: "send_campaign",
+					entity: "message_campaign",
+					entityId: id,
+					before: camp,
+					after: { status: "materialising" },
+					meta: { stage: "materialising" },
+					ip: getClientIp(c),
+					userAgent: c.req.header("user-agent") ?? null,
+					requestId: c.get("requestId"),
+				});
 				return { status: "materialising", enqueue: true };
 			}
 
@@ -557,14 +570,18 @@ campaignsRouter.post(
 						id: undefined as any,
 						name: `${camp.name} (copy)`,
 						status: "draft",
+						scheduledAt: null,
 						startedAt: null,
 						completedAt: null,
 						cancelledAt: null,
+						recipientCount: 0,
 						sentCount: 0,
 						deliveredCount: 0,
 						openedCount: 0,
 						clickedCount: 0,
 						failedCount: 0,
+						bouncedCount: 0,
+						errorSummary: null,
 						createdAt: undefined as any,
 						updatedAt: undefined as any,
 						createdBy: user.id,
@@ -582,17 +599,19 @@ campaignsRouter.post(
 				campaignId: id,
 				conferenceId: conf.id,
 			});
-			await recordAudit(c.get("conference") ? (undefined as any) : (undefined as any), {
-				conferenceId: conf.id,
-				userId: user.id,
-				action: "send_campaign",
-				entity: "message_campaign",
-				entityId: id,
-				meta: { stage: "queued" },
-				ip: getClientIp(c),
-				userAgent: c.req.header("user-agent") ?? null,
-				requestId: c.get("requestId"),
-			} as any);
+			await withTenant(conf.id, async tx => {
+				await recordAudit(tx, {
+					conferenceId: conf.id,
+					userId: user.id,
+					action: "send_campaign",
+					entity: "message_campaign",
+					entityId: id,
+					meta: { stage: "queued" },
+					ip: getClientIp(c),
+					userAgent: c.req.header("user-agent") ?? null,
+					requestId: c.get("requestId"),
+				});
+			});
 		}
 
 		return c.json(result);

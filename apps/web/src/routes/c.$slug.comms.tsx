@@ -304,7 +304,7 @@ function ProviderDrawer({ onClose }: { onClose: () => void }) {
 
 				<div className="space-y-3 pt-2 border-t border-line">
 					<div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">
-						Credentials (encrypted at rest)
+						Credentials
 					</div>
 					{fields.map(f => (
 						<FieldRow key={f} label={humanise(f)}>
@@ -503,28 +503,40 @@ function TemplateDrawer({ template, onClose }: { template: Template | null; onCl
 							</p>
 							<ul className="list-disc pl-5 space-y-1 mt-1">
 								<li>
-									<code className="font-mono">{`{{name}}`}</code>: the
-									recipient&apos;s name
+									<code className="font-mono">{`{{attendee.name}}`}</code>: the
+									attendee&apos;s name
 								</li>
 								<li>
-									<code className="font-mono">{`{{conference_name}}`}</code>: the
+									<code className="font-mono">{`{{attendee.attendeeCode}}`}</code>
+									: the attendee&apos;s unique code
+								</li>
+								<li>
+									<code className="font-mono">{`{{attendee.email}}`}</code>: the
+									attendee&apos;s email
+								</li>
+								<li>
+									<code className="font-mono">{`{{attendee.phone}}`}</code>: the
+									attendee&apos;s phone
+								</li>
+								<li>
+									<code className="font-mono">{`{{conference.name}}`}</code>: the
 									conference name
 								</li>
 								<li>
-									<code className="font-mono">{`{{attendee_code}}`}</code>: the
-									recipient&apos;s unique attendee code
+									<code className="font-mono">{`{{conference.venueName}}`}</code>:
+									the venue name
 								</li>
 								<li>
-									<code className="font-mono">{`{{venue}}`}</code>: the conference
-									venue
+									<code className="font-mono">{`{{conference.venueAddress}}`}</code>
+									: the venue address
 								</li>
 								<li>
-									<code className="font-mono">{`{{start_date}}`}</code>: the
-									conference start date
+									<code className="font-mono">{`{{conference.startDate}}`}</code>:
+									the conference start date
 								</li>
 								<li>
-									<code className="font-mono">{`{{end_date}}`}</code>: the
-									conference end date
+									<code className="font-mono">{`{{conference.endDate}}`}</code>:
+									the conference end date
 								</li>
 							</ul>
 						</div>
@@ -534,7 +546,7 @@ function TemplateDrawer({ template, onClose }: { template: Template | null; onCl
 						value={form.body ?? ""}
 						onChange={e => upd({ body: e.target.value })}
 						className="min-h-45 font-mono text-[13px]"
-						placeholder={"Dear {{name}},\n\nWelcome to {{conference_name}}..."}
+						placeholder={"Dear {{attendee.name}},\n\nWelcome to {{conference.name}}..."}
 					/>
 				</FieldRow>
 			</div>

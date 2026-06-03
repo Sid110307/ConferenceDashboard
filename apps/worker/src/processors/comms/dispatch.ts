@@ -53,9 +53,18 @@ export async function processCampaignDispatchBatch(payload: {
 
 	const [conf] = await db
 		.select({
+			id: conferences.id,
 			name: conferences.name,
 			shortName: conferences.shortName,
 			slug: conferences.slug,
+			startDate: conferences.startDate,
+			endDate: conferences.endDate,
+			timezone: conferences.timezone,
+			venueName: conferences.venueName,
+			venueAddress: conferences.venueAddress,
+			venueCity: conferences.venueCity,
+			venueState: conferences.venueState,
+			venueCountry: conferences.venueCountry,
 		})
 		.from(conferences)
 		.where(eq(conferences.id, conferenceId))
@@ -119,22 +128,37 @@ export async function processCampaignDispatchBatch(payload: {
 			}
 
 			const ctx = {
-				name: attendee.name,
-				email: attendee.email,
-				phone: attendee.phone,
-				attendeeCode: attendee.attendeeCode,
-				category: attendee.category,
-				institution: attendee.institution,
-				designation: attendee.designation,
-				prantha: attendee.prantha,
-				city: attendee.city,
-				state: attendee.state,
+				recipient: {
+					id: r.id,
+					name: attendee.name,
+					recipientName: attendee.name,
+					address: r.address,
+					channel: campaign.channel,
+				},
+				attendee: {
+					...attendee,
+					customFields: attendee.customFields ?? {},
+				},
 				conference: {
+					id: conf?.id ?? "",
 					name: conf?.name ?? "",
 					shortName: conf?.shortName ?? "",
 					slug: conf?.slug ?? "",
+					startDate: conf?.startDate ?? "",
+					endDate: conf?.endDate ?? "",
+					timezone: conf?.timezone ?? "",
+					venueName: conf?.venueName ?? "",
+					venueAddress: conf?.venueAddress ?? "",
+					venueCity: conf?.venueCity ?? "",
+					venueState: conf?.venueState ?? "",
+					venueCountry: conf?.venueCountry ?? "",
 				},
-				...((attendee.customFields as Record<string, any>) ?? {}),
+				campaign: {
+					id: campaign.id,
+					name: campaign.name,
+					channel: campaign.channel,
+				},
+				custom: (attendee.customFields as Record<string, any>) ?? {},
 			};
 
 			const rendered = renderAll(
