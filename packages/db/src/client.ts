@@ -1,14 +1,9 @@
-import { config as loadEnv } from "dotenv";
-
-import { resolve } from "node:path";
-
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import pg from "pg";
 
 import * as schema from "./schema";
 
 const { Pool } = pg;
-loadEnv({ path: resolve(import.meta.dirname, "../../../.env") });
 
 const envUrl = process.env.DATABASE_URL;
 const envDirectUrl = process.env.DATABASE_URL_DIRECT || envUrl;

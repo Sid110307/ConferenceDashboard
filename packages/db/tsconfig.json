@@ -6,6 +6,7 @@
 		"baseUrl": ".",
 		"module": "ESNext",
 		"moduleResolution": "Bundler",
+		"incremental": false,
 		"paths": {
 			"@/*": ["src/*"]
 		}

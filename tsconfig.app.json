@@ -17,8 +17,6 @@
 		"ignoreDeprecations": "6.0",
 		"paths": {
 			"@/*": ["src/*"],
-			"@conference/infra": ["packages/infra/dist/index.d.ts"],
-			"@conference/infra/*": ["packages/infra/dist/*"]
 		},
 		"noUnusedLocals": false,
 		"noUnusedParameters": true,

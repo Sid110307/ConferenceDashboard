@@ -1,4 +1,4 @@
-import IORedis from "ioredis";
+import { Redis } from "ioredis";
 import type pino from "pino";
 
 export type RedisConfig = {
@@ -7,8 +7,8 @@ export type RedisConfig = {
 	logger?: pino.Logger;
 };
 
-export function createRedis(config: RedisConfig): IORedis {
-	const redis = new IORedis(config.url, {
+export function createRedis(config: RedisConfig) {
+	const redis = new Redis(config.url, {
 		maxRetriesPerRequest: null,
 		enableReadyCheck: true,
 		enableOfflineQueue: false,

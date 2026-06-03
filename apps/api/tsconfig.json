@@ -7,9 +7,7 @@
 		"module": "ESNext",
 		"moduleResolution": "Bundler",
 		"paths": {
-			"@/*": ["src/*"],
-			"@conference/infra": ["../../packages/infra/dist/index.d.ts"],
-			"@conference/infra/*": ["../../packages/infra/dist/*"]
+			"@/*": ["src/*"]
 		}
 	},
 	"include": ["src/**/*.ts"]

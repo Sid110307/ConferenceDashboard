@@ -2,10 +2,6 @@
 	"files": [],
 	"compilerOptions": {
 		"baseUrl": ".",
-		"paths": {
-			"@conference/infra": ["packages/infra/dist/index.d.ts"],
-			"@conference/infra/*": ["packages/infra/dist/*"]
-		},
 		"target": "ES2022",
 		"lib": ["ES2023"],
 		"module": "ESNext",
@@ -24,9 +20,6 @@
 		"noImplicitReturns": true,
 		"strictNullChecks": true,
 		"useDefineForClassFields": true,
-		"declaration": false,
-		"sourceMap": true,
-		"incremental": true
 	},
 	"references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
 }
