@@ -2,12 +2,11 @@
 	"name": "@conference/worker",
 	"version": "1.0.0",
 	"private": true,
-	"type": "module",
 	"main": "./src/index.ts",
 	"scripts": {
 		"dev": "dotenv -e ../../.env -- tsx watch src/index.ts",
-		"build": "tsc -p tsconfig.json",
-		"start": "node dist/index.js",
+		"build": "tsup src/index.ts --format esm --platform node --target node22 --out-dir dist --sourcemap --clean",
+		"start": "node dist/index.mjs",
 		"lint": "eslint ."
 	},
 	"dependencies": {

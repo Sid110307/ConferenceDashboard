@@ -1,15 +1,16 @@
-import { env } from "@/lib/env";
-import { commsQueue, importsQueue, JOB_NAMES, maintenanceQueue, reportsQueue } from "@/lib/queue";
-import { processCampaignDispatchBatch } from "@/processors/comms/dispatch";
-import { processCampaignMaterialise } from "@/processors/comms/materialise";
-import { processSendMessage } from "@/processors/comms/send-invite";
-import { processImportPreview } from "@/processors/imports/preview";
-import { processImportRollback } from "@/processors/imports/rollback";
-import { processImportStart } from "@/processors/imports/start";
-import { processCleanOldFiles, processCleanOldTokens } from "@/processors/maintenance";
-import { processReportGenerate } from "@/processors/reports/generate";
 import { createLogger, createRedis } from "@conference/infra";
 import { Worker, type Job } from "bullmq";
+
+import { env } from "./lib/env";
+import { commsQueue, importsQueue, JOB_NAMES, maintenanceQueue, reportsQueue } from "./lib/queue";
+import { processCampaignDispatchBatch } from "./processors/comms/dispatch";
+import { processCampaignMaterialise } from "./processors/comms/materialise";
+import { processSendMessage } from "./processors/comms/send-invite";
+import { processImportPreview } from "./processors/imports/preview";
+import { processImportRollback } from "./processors/imports/rollback";
+import { processImportStart } from "./processors/imports/start";
+import { processCleanOldFiles, processCleanOldTokens } from "./processors/maintenance";
+import { processReportGenerate } from "./processors/reports/generate";
 
 const logger = createLogger({
 	level: env.LOG_LEVEL,

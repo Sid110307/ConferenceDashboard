@@ -1,4 +1,3 @@
-;
 /* eslint-disable */
 
 // @ts-nocheck
@@ -9,678 +8,677 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root";
-import { Route as AccountRouteImport } from "./routes/account";
-import { Route as CRouteImport } from "./routes/c";
-import { Route as CSlugRouteImport } from "./routes/c.$slug";
-import { Route as CSlugAccommodationRouteImport } from "./routes/c.$slug.accommodation";
-import { Route as CSlugAnnouncementsRouteImport } from "./routes/c.$slug.announcements";
-import { Route as CSlugAttendeesRouteImport } from "./routes/c.$slug.attendees";
-import { Route as CSlugAuditRouteImport } from "./routes/c.$slug.audit";
-import { Route as CSlugCertificatesRouteImport } from "./routes/c.$slug.certificates";
-import { Route as CSlugCommsRouteImport } from "./routes/c.$slug.comms";
-import { Route as CSlugControlRoomRouteImport } from "./routes/c.$slug.control-room";
-import { Route as CSlugCustomFieldsRouteImport } from "./routes/c.$slug.custom-fields";
-import { Route as CSlugFeedbackRouteImport } from "./routes/c.$slug.feedback";
-import { Route as CSlugFinanceRouteImport } from "./routes/c.$slug.finance";
-import { Route as CSlugFoodRouteImport } from "./routes/c.$slug.food";
-import { Route as CSlugHelpdeskRouteImport } from "./routes/c.$slug.helpdesk";
-import { Route as CSlugImportsRouteImport } from "./routes/c.$slug.imports";
-import { Route as CSlugIndexRouteImport } from "./routes/c.$slug.index";
-import { Route as CSlugLogisticsRouteImport } from "./routes/c.$slug.logistics";
-import { Route as CSlugMembersRouteImport } from "./routes/c.$slug.members";
-import { Route as CSlugProgrammeRouteImport } from "./routes/c.$slug.programme";
-import { Route as CSlugReportsRouteImport } from "./routes/c.$slug.reports";
-import { Route as CSlugSettingsRouteImport } from "./routes/c.$slug.settings";
-import { Route as CSlugStaffRouteImport } from "./routes/c.$slug.staff";
-import { Route as CSlugTravelRouteImport } from "./routes/c.$slug.travel";
-import { Route as CSlugVipRouteImport } from "./routes/c.$slug.vip";
-import { Route as CIndexRouteImport } from "./routes/c.index";
-import { Route as IndexRouteImport } from "./routes/index";
-import { Route as LoginRouteImport } from "./routes/login";
-import { Route as NewConferenceRouteImport } from "./routes/new-conference";
-import { Route as PublicCSlugRouteImport } from "./routes/public-c.$slug";
-
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as NewConferenceRouteImport } from './routes/new-conference'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as CRouteImport } from './routes/c'
+import { Route as AccountRouteImport } from './routes/account'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as CIndexRouteImport } from './routes/c.index'
+import { Route as PublicCSlugRouteImport } from './routes/public-c.$slug'
+import { Route as CSlugRouteImport } from './routes/c.$slug'
+import { Route as CSlugIndexRouteImport } from './routes/c.$slug.index'
+import { Route as CSlugVipRouteImport } from './routes/c.$slug.vip'
+import { Route as CSlugTravelRouteImport } from './routes/c.$slug.travel'
+import { Route as CSlugStaffRouteImport } from './routes/c.$slug.staff'
+import { Route as CSlugSettingsRouteImport } from './routes/c.$slug.settings'
+import { Route as CSlugReportsRouteImport } from './routes/c.$slug.reports'
+import { Route as CSlugProgrammeRouteImport } from './routes/c.$slug.programme'
+import { Route as CSlugMembersRouteImport } from './routes/c.$slug.members'
+import { Route as CSlugLogisticsRouteImport } from './routes/c.$slug.logistics'
+import { Route as CSlugImportsRouteImport } from './routes/c.$slug.imports'
+import { Route as CSlugHelpdeskRouteImport } from './routes/c.$slug.helpdesk'
+import { Route as CSlugFoodRouteImport } from './routes/c.$slug.food'
+import { Route as CSlugFinanceRouteImport } from './routes/c.$slug.finance'
+import { Route as CSlugFeedbackRouteImport } from './routes/c.$slug.feedback'
+import { Route as CSlugCustomFieldsRouteImport } from './routes/c.$slug.custom-fields'
+import { Route as CSlugControlRoomRouteImport } from './routes/c.$slug.control-room'
+import { Route as CSlugCommsRouteImport } from './routes/c.$slug.comms'
+import { Route as CSlugCertificatesRouteImport } from './routes/c.$slug.certificates'
+import { Route as CSlugAuditRouteImport } from './routes/c.$slug.audit'
+import { Route as CSlugAttendeesRouteImport } from './routes/c.$slug.attendees'
+import { Route as CSlugAnnouncementsRouteImport } from './routes/c.$slug.announcements'
+import { Route as CSlugAccommodationRouteImport } from './routes/c.$slug.accommodation'
 
 const NewConferenceRoute = NewConferenceRouteImport.update({
-	id: "/new-conference",
-	path: "/new-conference",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/new-conference',
+  path: '/new-conference',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
-	id: "/login",
-	path: "/login",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CRoute = CRouteImport.update({
-	id: "/c",
-	path: "/c",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/c',
+  path: '/c',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AccountRoute = AccountRouteImport.update({
-	id: "/account",
-	path: "/account",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
-	id: "/",
-	path: "/",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CIndexRoute = CIndexRouteImport.update({
-	id: "/",
-	path: "/",
-	getParentRoute: () => CRoute,
-} as any);
+  id: '/',
+  path: '/',
+  getParentRoute: () => CRoute,
+} as any)
 const PublicCSlugRoute = PublicCSlugRouteImport.update({
-	id: "/public-c/$slug",
-	path: "/public-c/$slug",
-	getParentRoute: () => rootRouteImport,
-} as any);
+  id: '/public-c/$slug',
+  path: '/public-c/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CSlugRoute = CSlugRouteImport.update({
-	id: "/$slug",
-	path: "/$slug",
-	getParentRoute: () => CRoute,
-} as any);
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => CRoute,
+} as any)
 const CSlugIndexRoute = CSlugIndexRouteImport.update({
-	id: "/",
-	path: "/",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/',
+  path: '/',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugVipRoute = CSlugVipRouteImport.update({
-	id: "/vip",
-	path: "/vip",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/vip',
+  path: '/vip',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugTravelRoute = CSlugTravelRouteImport.update({
-	id: "/travel",
-	path: "/travel",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/travel',
+  path: '/travel',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugStaffRoute = CSlugStaffRouteImport.update({
-	id: "/staff",
-	path: "/staff",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/staff',
+  path: '/staff',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugSettingsRoute = CSlugSettingsRouteImport.update({
-	id: "/settings",
-	path: "/settings",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugReportsRoute = CSlugReportsRouteImport.update({
-	id: "/reports",
-	path: "/reports",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugProgrammeRoute = CSlugProgrammeRouteImport.update({
-	id: "/programme",
-	path: "/programme",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/programme',
+  path: '/programme',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugMembersRoute = CSlugMembersRouteImport.update({
-	id: "/members",
-	path: "/members",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugLogisticsRoute = CSlugLogisticsRouteImport.update({
-	id: "/logistics",
-	path: "/logistics",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/logistics',
+  path: '/logistics',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugImportsRoute = CSlugImportsRouteImport.update({
-	id: "/imports",
-	path: "/imports",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/imports',
+  path: '/imports',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugHelpdeskRoute = CSlugHelpdeskRouteImport.update({
-	id: "/helpdesk",
-	path: "/helpdesk",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/helpdesk',
+  path: '/helpdesk',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugFoodRoute = CSlugFoodRouteImport.update({
-	id: "/food",
-	path: "/food",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/food',
+  path: '/food',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugFinanceRoute = CSlugFinanceRouteImport.update({
-	id: "/finance",
-	path: "/finance",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugFeedbackRoute = CSlugFeedbackRouteImport.update({
-	id: "/feedback",
-	path: "/feedback",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/feedback',
+  path: '/feedback',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugCustomFieldsRoute = CSlugCustomFieldsRouteImport.update({
-	id: "/custom-fields",
-	path: "/custom-fields",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/custom-fields',
+  path: '/custom-fields',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugControlRoomRoute = CSlugControlRoomRouteImport.update({
-	id: "/control-room",
-	path: "/control-room",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/control-room',
+  path: '/control-room',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugCommsRoute = CSlugCommsRouteImport.update({
-	id: "/comms",
-	path: "/comms",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/comms',
+  path: '/comms',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugCertificatesRoute = CSlugCertificatesRouteImport.update({
-	id: "/certificates",
-	path: "/certificates",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/certificates',
+  path: '/certificates',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugAuditRoute = CSlugAuditRouteImport.update({
-	id: "/audit",
-	path: "/audit",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugAttendeesRoute = CSlugAttendeesRouteImport.update({
-	id: "/attendees",
-	path: "/attendees",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/attendees',
+  path: '/attendees',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugAnnouncementsRoute = CSlugAnnouncementsRouteImport.update({
-	id: "/announcements",
-	path: "/announcements",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/announcements',
+  path: '/announcements',
+  getParentRoute: () => CSlugRoute,
+} as any)
 const CSlugAccommodationRoute = CSlugAccommodationRouteImport.update({
-	id: "/accommodation",
-	path: "/accommodation",
-	getParentRoute: () => CSlugRoute,
-} as any);
+  id: '/accommodation',
+  path: '/accommodation',
+  getParentRoute: () => CSlugRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
-	"/": typeof IndexRoute;
-	"/account": typeof AccountRoute;
-	"/c": typeof CRouteWithChildren;
-	"/login": typeof LoginRoute;
-	"/new-conference": typeof NewConferenceRoute;
-	"/c/$slug": typeof CSlugRouteWithChildren;
-	"/public-c/$slug": typeof PublicCSlugRoute;
-	"/c/": typeof CIndexRoute;
-	"/c/$slug/accommodation": typeof CSlugAccommodationRoute;
-	"/c/$slug/announcements": typeof CSlugAnnouncementsRoute;
-	"/c/$slug/attendees": typeof CSlugAttendeesRoute;
-	"/c/$slug/audit": typeof CSlugAuditRoute;
-	"/c/$slug/certificates": typeof CSlugCertificatesRoute;
-	"/c/$slug/comms": typeof CSlugCommsRoute;
-	"/c/$slug/control-room": typeof CSlugControlRoomRoute;
-	"/c/$slug/custom-fields": typeof CSlugCustomFieldsRoute;
-	"/c/$slug/feedback": typeof CSlugFeedbackRoute;
-	"/c/$slug/finance": typeof CSlugFinanceRoute;
-	"/c/$slug/food": typeof CSlugFoodRoute;
-	"/c/$slug/helpdesk": typeof CSlugHelpdeskRoute;
-	"/c/$slug/imports": typeof CSlugImportsRoute;
-	"/c/$slug/logistics": typeof CSlugLogisticsRoute;
-	"/c/$slug/members": typeof CSlugMembersRoute;
-	"/c/$slug/programme": typeof CSlugProgrammeRoute;
-	"/c/$slug/reports": typeof CSlugReportsRoute;
-	"/c/$slug/settings": typeof CSlugSettingsRoute;
-	"/c/$slug/staff": typeof CSlugStaffRoute;
-	"/c/$slug/travel": typeof CSlugTravelRoute;
-	"/c/$slug/vip": typeof CSlugVipRoute;
-	"/c/$slug/": typeof CSlugIndexRoute;
+  '/': typeof IndexRoute
+  '/account': typeof AccountRoute
+  '/c': typeof CRouteWithChildren
+  '/login': typeof LoginRoute
+  '/new-conference': typeof NewConferenceRoute
+  '/c/$slug': typeof CSlugRouteWithChildren
+  '/public-c/$slug': typeof PublicCSlugRoute
+  '/c/': typeof CIndexRoute
+  '/c/$slug/accommodation': typeof CSlugAccommodationRoute
+  '/c/$slug/announcements': typeof CSlugAnnouncementsRoute
+  '/c/$slug/attendees': typeof CSlugAttendeesRoute
+  '/c/$slug/audit': typeof CSlugAuditRoute
+  '/c/$slug/certificates': typeof CSlugCertificatesRoute
+  '/c/$slug/comms': typeof CSlugCommsRoute
+  '/c/$slug/control-room': typeof CSlugControlRoomRoute
+  '/c/$slug/custom-fields': typeof CSlugCustomFieldsRoute
+  '/c/$slug/feedback': typeof CSlugFeedbackRoute
+  '/c/$slug/finance': typeof CSlugFinanceRoute
+  '/c/$slug/food': typeof CSlugFoodRoute
+  '/c/$slug/helpdesk': typeof CSlugHelpdeskRoute
+  '/c/$slug/imports': typeof CSlugImportsRoute
+  '/c/$slug/logistics': typeof CSlugLogisticsRoute
+  '/c/$slug/members': typeof CSlugMembersRoute
+  '/c/$slug/programme': typeof CSlugProgrammeRoute
+  '/c/$slug/reports': typeof CSlugReportsRoute
+  '/c/$slug/settings': typeof CSlugSettingsRoute
+  '/c/$slug/staff': typeof CSlugStaffRoute
+  '/c/$slug/travel': typeof CSlugTravelRoute
+  '/c/$slug/vip': typeof CSlugVipRoute
+  '/c/$slug/': typeof CSlugIndexRoute
 }
 export interface FileRoutesByTo {
-	"/": typeof IndexRoute;
-	"/account": typeof AccountRoute;
-	"/login": typeof LoginRoute;
-	"/new-conference": typeof NewConferenceRoute;
-	"/public-c/$slug": typeof PublicCSlugRoute;
-	"/c": typeof CIndexRoute;
-	"/c/$slug/accommodation": typeof CSlugAccommodationRoute;
-	"/c/$slug/announcements": typeof CSlugAnnouncementsRoute;
-	"/c/$slug/attendees": typeof CSlugAttendeesRoute;
-	"/c/$slug/audit": typeof CSlugAuditRoute;
-	"/c/$slug/certificates": typeof CSlugCertificatesRoute;
-	"/c/$slug/comms": typeof CSlugCommsRoute;
-	"/c/$slug/control-room": typeof CSlugControlRoomRoute;
-	"/c/$slug/custom-fields": typeof CSlugCustomFieldsRoute;
-	"/c/$slug/feedback": typeof CSlugFeedbackRoute;
-	"/c/$slug/finance": typeof CSlugFinanceRoute;
-	"/c/$slug/food": typeof CSlugFoodRoute;
-	"/c/$slug/helpdesk": typeof CSlugHelpdeskRoute;
-	"/c/$slug/imports": typeof CSlugImportsRoute;
-	"/c/$slug/logistics": typeof CSlugLogisticsRoute;
-	"/c/$slug/members": typeof CSlugMembersRoute;
-	"/c/$slug/programme": typeof CSlugProgrammeRoute;
-	"/c/$slug/reports": typeof CSlugReportsRoute;
-	"/c/$slug/settings": typeof CSlugSettingsRoute;
-	"/c/$slug/staff": typeof CSlugStaffRoute;
-	"/c/$slug/travel": typeof CSlugTravelRoute;
-	"/c/$slug/vip": typeof CSlugVipRoute;
-	"/c/$slug": typeof CSlugIndexRoute;
+  '/': typeof IndexRoute
+  '/account': typeof AccountRoute
+  '/login': typeof LoginRoute
+  '/new-conference': typeof NewConferenceRoute
+  '/public-c/$slug': typeof PublicCSlugRoute
+  '/c': typeof CIndexRoute
+  '/c/$slug/accommodation': typeof CSlugAccommodationRoute
+  '/c/$slug/announcements': typeof CSlugAnnouncementsRoute
+  '/c/$slug/attendees': typeof CSlugAttendeesRoute
+  '/c/$slug/audit': typeof CSlugAuditRoute
+  '/c/$slug/certificates': typeof CSlugCertificatesRoute
+  '/c/$slug/comms': typeof CSlugCommsRoute
+  '/c/$slug/control-room': typeof CSlugControlRoomRoute
+  '/c/$slug/custom-fields': typeof CSlugCustomFieldsRoute
+  '/c/$slug/feedback': typeof CSlugFeedbackRoute
+  '/c/$slug/finance': typeof CSlugFinanceRoute
+  '/c/$slug/food': typeof CSlugFoodRoute
+  '/c/$slug/helpdesk': typeof CSlugHelpdeskRoute
+  '/c/$slug/imports': typeof CSlugImportsRoute
+  '/c/$slug/logistics': typeof CSlugLogisticsRoute
+  '/c/$slug/members': typeof CSlugMembersRoute
+  '/c/$slug/programme': typeof CSlugProgrammeRoute
+  '/c/$slug/reports': typeof CSlugReportsRoute
+  '/c/$slug/settings': typeof CSlugSettingsRoute
+  '/c/$slug/staff': typeof CSlugStaffRoute
+  '/c/$slug/travel': typeof CSlugTravelRoute
+  '/c/$slug/vip': typeof CSlugVipRoute
+  '/c/$slug': typeof CSlugIndexRoute
 }
 export interface FileRoutesById {
-	"__root__": typeof rootRouteImport;
-	"/": typeof IndexRoute;
-	"/account": typeof AccountRoute;
-	"/c": typeof CRouteWithChildren;
-	"/login": typeof LoginRoute;
-	"/new-conference": typeof NewConferenceRoute;
-	"/c/$slug": typeof CSlugRouteWithChildren;
-	"/public-c/$slug": typeof PublicCSlugRoute;
-	"/c/": typeof CIndexRoute;
-	"/c/$slug/accommodation": typeof CSlugAccommodationRoute;
-	"/c/$slug/announcements": typeof CSlugAnnouncementsRoute;
-	"/c/$slug/attendees": typeof CSlugAttendeesRoute;
-	"/c/$slug/audit": typeof CSlugAuditRoute;
-	"/c/$slug/certificates": typeof CSlugCertificatesRoute;
-	"/c/$slug/comms": typeof CSlugCommsRoute;
-	"/c/$slug/control-room": typeof CSlugControlRoomRoute;
-	"/c/$slug/custom-fields": typeof CSlugCustomFieldsRoute;
-	"/c/$slug/feedback": typeof CSlugFeedbackRoute;
-	"/c/$slug/finance": typeof CSlugFinanceRoute;
-	"/c/$slug/food": typeof CSlugFoodRoute;
-	"/c/$slug/helpdesk": typeof CSlugHelpdeskRoute;
-	"/c/$slug/imports": typeof CSlugImportsRoute;
-	"/c/$slug/logistics": typeof CSlugLogisticsRoute;
-	"/c/$slug/members": typeof CSlugMembersRoute;
-	"/c/$slug/programme": typeof CSlugProgrammeRoute;
-	"/c/$slug/reports": typeof CSlugReportsRoute;
-	"/c/$slug/settings": typeof CSlugSettingsRoute;
-	"/c/$slug/staff": typeof CSlugStaffRoute;
-	"/c/$slug/travel": typeof CSlugTravelRoute;
-	"/c/$slug/vip": typeof CSlugVipRoute;
-	"/c/$slug/": typeof CSlugIndexRoute;
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/account': typeof AccountRoute
+  '/c': typeof CRouteWithChildren
+  '/login': typeof LoginRoute
+  '/new-conference': typeof NewConferenceRoute
+  '/c/$slug': typeof CSlugRouteWithChildren
+  '/public-c/$slug': typeof PublicCSlugRoute
+  '/c/': typeof CIndexRoute
+  '/c/$slug/accommodation': typeof CSlugAccommodationRoute
+  '/c/$slug/announcements': typeof CSlugAnnouncementsRoute
+  '/c/$slug/attendees': typeof CSlugAttendeesRoute
+  '/c/$slug/audit': typeof CSlugAuditRoute
+  '/c/$slug/certificates': typeof CSlugCertificatesRoute
+  '/c/$slug/comms': typeof CSlugCommsRoute
+  '/c/$slug/control-room': typeof CSlugControlRoomRoute
+  '/c/$slug/custom-fields': typeof CSlugCustomFieldsRoute
+  '/c/$slug/feedback': typeof CSlugFeedbackRoute
+  '/c/$slug/finance': typeof CSlugFinanceRoute
+  '/c/$slug/food': typeof CSlugFoodRoute
+  '/c/$slug/helpdesk': typeof CSlugHelpdeskRoute
+  '/c/$slug/imports': typeof CSlugImportsRoute
+  '/c/$slug/logistics': typeof CSlugLogisticsRoute
+  '/c/$slug/members': typeof CSlugMembersRoute
+  '/c/$slug/programme': typeof CSlugProgrammeRoute
+  '/c/$slug/reports': typeof CSlugReportsRoute
+  '/c/$slug/settings': typeof CSlugSettingsRoute
+  '/c/$slug/staff': typeof CSlugStaffRoute
+  '/c/$slug/travel': typeof CSlugTravelRoute
+  '/c/$slug/vip': typeof CSlugVipRoute
+  '/c/$slug/': typeof CSlugIndexRoute
 }
 export interface FileRouteTypes {
-	fileRoutesByFullPath: FileRoutesByFullPath;
-	fullPaths:
-		| "/"
-		| "/account"
-		| "/c"
-		| "/login"
-		| "/new-conference"
-		| "/c/$slug"
-		| "/public-c/$slug"
-		| "/c/"
-		| "/c/$slug/accommodation"
-		| "/c/$slug/announcements"
-		| "/c/$slug/attendees"
-		| "/c/$slug/audit"
-		| "/c/$slug/certificates"
-		| "/c/$slug/comms"
-		| "/c/$slug/control-room"
-		| "/c/$slug/custom-fields"
-		| "/c/$slug/feedback"
-		| "/c/$slug/finance"
-		| "/c/$slug/food"
-		| "/c/$slug/helpdesk"
-		| "/c/$slug/imports"
-		| "/c/$slug/logistics"
-		| "/c/$slug/members"
-		| "/c/$slug/programme"
-		| "/c/$slug/reports"
-		| "/c/$slug/settings"
-		| "/c/$slug/staff"
-		| "/c/$slug/travel"
-		| "/c/$slug/vip"
-		| "/c/$slug/";
-	fileRoutesByTo: FileRoutesByTo;
-	to:
-		| "/"
-		| "/account"
-		| "/login"
-		| "/new-conference"
-		| "/public-c/$slug"
-		| "/c"
-		| "/c/$slug/accommodation"
-		| "/c/$slug/announcements"
-		| "/c/$slug/attendees"
-		| "/c/$slug/audit"
-		| "/c/$slug/certificates"
-		| "/c/$slug/comms"
-		| "/c/$slug/control-room"
-		| "/c/$slug/custom-fields"
-		| "/c/$slug/feedback"
-		| "/c/$slug/finance"
-		| "/c/$slug/food"
-		| "/c/$slug/helpdesk"
-		| "/c/$slug/imports"
-		| "/c/$slug/logistics"
-		| "/c/$slug/members"
-		| "/c/$slug/programme"
-		| "/c/$slug/reports"
-		| "/c/$slug/settings"
-		| "/c/$slug/staff"
-		| "/c/$slug/travel"
-		| "/c/$slug/vip"
-		| "/c/$slug";
-	id:
-		| "__root__"
-		| "/"
-		| "/account"
-		| "/c"
-		| "/login"
-		| "/new-conference"
-		| "/c/$slug"
-		| "/public-c/$slug"
-		| "/c/"
-		| "/c/$slug/accommodation"
-		| "/c/$slug/announcements"
-		| "/c/$slug/attendees"
-		| "/c/$slug/audit"
-		| "/c/$slug/certificates"
-		| "/c/$slug/comms"
-		| "/c/$slug/control-room"
-		| "/c/$slug/custom-fields"
-		| "/c/$slug/feedback"
-		| "/c/$slug/finance"
-		| "/c/$slug/food"
-		| "/c/$slug/helpdesk"
-		| "/c/$slug/imports"
-		| "/c/$slug/logistics"
-		| "/c/$slug/members"
-		| "/c/$slug/programme"
-		| "/c/$slug/reports"
-		| "/c/$slug/settings"
-		| "/c/$slug/staff"
-		| "/c/$slug/travel"
-		| "/c/$slug/vip"
-		| "/c/$slug/";
-	fileRoutesById: FileRoutesById;
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths:
+    | '/'
+    | '/account'
+    | '/c'
+    | '/login'
+    | '/new-conference'
+    | '/c/$slug'
+    | '/public-c/$slug'
+    | '/c/'
+    | '/c/$slug/accommodation'
+    | '/c/$slug/announcements'
+    | '/c/$slug/attendees'
+    | '/c/$slug/audit'
+    | '/c/$slug/certificates'
+    | '/c/$slug/comms'
+    | '/c/$slug/control-room'
+    | '/c/$slug/custom-fields'
+    | '/c/$slug/feedback'
+    | '/c/$slug/finance'
+    | '/c/$slug/food'
+    | '/c/$slug/helpdesk'
+    | '/c/$slug/imports'
+    | '/c/$slug/logistics'
+    | '/c/$slug/members'
+    | '/c/$slug/programme'
+    | '/c/$slug/reports'
+    | '/c/$slug/settings'
+    | '/c/$slug/staff'
+    | '/c/$slug/travel'
+    | '/c/$slug/vip'
+    | '/c/$slug/'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/'
+    | '/account'
+    | '/login'
+    | '/new-conference'
+    | '/public-c/$slug'
+    | '/c'
+    | '/c/$slug/accommodation'
+    | '/c/$slug/announcements'
+    | '/c/$slug/attendees'
+    | '/c/$slug/audit'
+    | '/c/$slug/certificates'
+    | '/c/$slug/comms'
+    | '/c/$slug/control-room'
+    | '/c/$slug/custom-fields'
+    | '/c/$slug/feedback'
+    | '/c/$slug/finance'
+    | '/c/$slug/food'
+    | '/c/$slug/helpdesk'
+    | '/c/$slug/imports'
+    | '/c/$slug/logistics'
+    | '/c/$slug/members'
+    | '/c/$slug/programme'
+    | '/c/$slug/reports'
+    | '/c/$slug/settings'
+    | '/c/$slug/staff'
+    | '/c/$slug/travel'
+    | '/c/$slug/vip'
+    | '/c/$slug'
+  id:
+    | '__root__'
+    | '/'
+    | '/account'
+    | '/c'
+    | '/login'
+    | '/new-conference'
+    | '/c/$slug'
+    | '/public-c/$slug'
+    | '/c/'
+    | '/c/$slug/accommodation'
+    | '/c/$slug/announcements'
+    | '/c/$slug/attendees'
+    | '/c/$slug/audit'
+    | '/c/$slug/certificates'
+    | '/c/$slug/comms'
+    | '/c/$slug/control-room'
+    | '/c/$slug/custom-fields'
+    | '/c/$slug/feedback'
+    | '/c/$slug/finance'
+    | '/c/$slug/food'
+    | '/c/$slug/helpdesk'
+    | '/c/$slug/imports'
+    | '/c/$slug/logistics'
+    | '/c/$slug/members'
+    | '/c/$slug/programme'
+    | '/c/$slug/reports'
+    | '/c/$slug/settings'
+    | '/c/$slug/staff'
+    | '/c/$slug/travel'
+    | '/c/$slug/vip'
+    | '/c/$slug/'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-	IndexRoute: typeof IndexRoute;
-	AccountRoute: typeof AccountRoute;
-	CRoute: typeof CRouteWithChildren;
-	LoginRoute: typeof LoginRoute;
-	NewConferenceRoute: typeof NewConferenceRoute;
-	PublicCSlugRoute: typeof PublicCSlugRoute;
+  IndexRoute: typeof IndexRoute
+  AccountRoute: typeof AccountRoute
+  CRoute: typeof CRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  NewConferenceRoute: typeof NewConferenceRoute
+  PublicCSlugRoute: typeof PublicCSlugRoute
 }
 
-declare module "@tanstack/react-router" {
-	interface FileRoutesByPath {
-		"/new-conference": {
-			id: "/new-conference";
-			path: "/new-conference";
-			fullPath: "/new-conference";
-			preLoaderRoute: typeof NewConferenceRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/login": {
-			id: "/login";
-			path: "/login";
-			fullPath: "/login";
-			preLoaderRoute: typeof LoginRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/c": {
-			id: "/c";
-			path: "/c";
-			fullPath: "/c";
-			preLoaderRoute: typeof CRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/account": {
-			id: "/account";
-			path: "/account";
-			fullPath: "/account";
-			preLoaderRoute: typeof AccountRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/": {
-			id: "/";
-			path: "/";
-			fullPath: "/";
-			preLoaderRoute: typeof IndexRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/c/": {
-			id: "/c/";
-			path: "/";
-			fullPath: "/c/";
-			preLoaderRoute: typeof CIndexRouteImport;
-			parentRoute: typeof CRoute;
-		};
-		"/public-c/$slug": {
-			id: "/public-c/$slug";
-			path: "/public-c/$slug";
-			fullPath: "/public-c/$slug";
-			preLoaderRoute: typeof PublicCSlugRouteImport;
-			parentRoute: typeof rootRouteImport;
-		};
-		"/c/$slug": {
-			id: "/c/$slug";
-			path: "/$slug";
-			fullPath: "/c/$slug";
-			preLoaderRoute: typeof CSlugRouteImport;
-			parentRoute: typeof CRoute;
-		};
-		"/c/$slug/": {
-			id: "/c/$slug/";
-			path: "/";
-			fullPath: "/c/$slug/";
-			preLoaderRoute: typeof CSlugIndexRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/vip": {
-			id: "/c/$slug/vip";
-			path: "/vip";
-			fullPath: "/c/$slug/vip";
-			preLoaderRoute: typeof CSlugVipRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/travel": {
-			id: "/c/$slug/travel";
-			path: "/travel";
-			fullPath: "/c/$slug/travel";
-			preLoaderRoute: typeof CSlugTravelRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/staff": {
-			id: "/c/$slug/staff";
-			path: "/staff";
-			fullPath: "/c/$slug/staff";
-			preLoaderRoute: typeof CSlugStaffRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/settings": {
-			id: "/c/$slug/settings";
-			path: "/settings";
-			fullPath: "/c/$slug/settings";
-			preLoaderRoute: typeof CSlugSettingsRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/reports": {
-			id: "/c/$slug/reports";
-			path: "/reports";
-			fullPath: "/c/$slug/reports";
-			preLoaderRoute: typeof CSlugReportsRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/programme": {
-			id: "/c/$slug/programme";
-			path: "/programme";
-			fullPath: "/c/$slug/programme";
-			preLoaderRoute: typeof CSlugProgrammeRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/members": {
-			id: "/c/$slug/members";
-			path: "/members";
-			fullPath: "/c/$slug/members";
-			preLoaderRoute: typeof CSlugMembersRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/logistics": {
-			id: "/c/$slug/logistics";
-			path: "/logistics";
-			fullPath: "/c/$slug/logistics";
-			preLoaderRoute: typeof CSlugLogisticsRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/imports": {
-			id: "/c/$slug/imports";
-			path: "/imports";
-			fullPath: "/c/$slug/imports";
-			preLoaderRoute: typeof CSlugImportsRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/helpdesk": {
-			id: "/c/$slug/helpdesk";
-			path: "/helpdesk";
-			fullPath: "/c/$slug/helpdesk";
-			preLoaderRoute: typeof CSlugHelpdeskRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/food": {
-			id: "/c/$slug/food";
-			path: "/food";
-			fullPath: "/c/$slug/food";
-			preLoaderRoute: typeof CSlugFoodRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/finance": {
-			id: "/c/$slug/finance";
-			path: "/finance";
-			fullPath: "/c/$slug/finance";
-			preLoaderRoute: typeof CSlugFinanceRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/feedback": {
-			id: "/c/$slug/feedback";
-			path: "/feedback";
-			fullPath: "/c/$slug/feedback";
-			preLoaderRoute: typeof CSlugFeedbackRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/custom-fields": {
-			id: "/c/$slug/custom-fields";
-			path: "/custom-fields";
-			fullPath: "/c/$slug/custom-fields";
-			preLoaderRoute: typeof CSlugCustomFieldsRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/control-room": {
-			id: "/c/$slug/control-room";
-			path: "/control-room";
-			fullPath: "/c/$slug/control-room";
-			preLoaderRoute: typeof CSlugControlRoomRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/comms": {
-			id: "/c/$slug/comms";
-			path: "/comms";
-			fullPath: "/c/$slug/comms";
-			preLoaderRoute: typeof CSlugCommsRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/certificates": {
-			id: "/c/$slug/certificates";
-			path: "/certificates";
-			fullPath: "/c/$slug/certificates";
-			preLoaderRoute: typeof CSlugCertificatesRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/audit": {
-			id: "/c/$slug/audit";
-			path: "/audit";
-			fullPath: "/c/$slug/audit";
-			preLoaderRoute: typeof CSlugAuditRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/attendees": {
-			id: "/c/$slug/attendees";
-			path: "/attendees";
-			fullPath: "/c/$slug/attendees";
-			preLoaderRoute: typeof CSlugAttendeesRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/announcements": {
-			id: "/c/$slug/announcements";
-			path: "/announcements";
-			fullPath: "/c/$slug/announcements";
-			preLoaderRoute: typeof CSlugAnnouncementsRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-		"/c/$slug/accommodation": {
-			id: "/c/$slug/accommodation";
-			path: "/accommodation";
-			fullPath: "/c/$slug/accommodation";
-			preLoaderRoute: typeof CSlugAccommodationRouteImport;
-			parentRoute: typeof CSlugRoute;
-		};
-	}
+declare module '@tanstack/react-router' {
+  interface FileRoutesByPath {
+    '/new-conference': {
+      id: '/new-conference'
+      path: '/new-conference'
+      fullPath: '/new-conference'
+      preLoaderRoute: typeof NewConferenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/c': {
+      id: '/c'
+      path: '/c'
+      fullPath: '/c'
+      preLoaderRoute: typeof CRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/c/': {
+      id: '/c/'
+      path: '/'
+      fullPath: '/c/'
+      preLoaderRoute: typeof CIndexRouteImport
+      parentRoute: typeof CRoute
+    }
+    '/public-c/$slug': {
+      id: '/public-c/$slug'
+      path: '/public-c/$slug'
+      fullPath: '/public-c/$slug'
+      preLoaderRoute: typeof PublicCSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/c/$slug': {
+      id: '/c/$slug'
+      path: '/$slug'
+      fullPath: '/c/$slug'
+      preLoaderRoute: typeof CSlugRouteImport
+      parentRoute: typeof CRoute
+    }
+    '/c/$slug/': {
+      id: '/c/$slug/'
+      path: '/'
+      fullPath: '/c/$slug/'
+      preLoaderRoute: typeof CSlugIndexRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/vip': {
+      id: '/c/$slug/vip'
+      path: '/vip'
+      fullPath: '/c/$slug/vip'
+      preLoaderRoute: typeof CSlugVipRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/travel': {
+      id: '/c/$slug/travel'
+      path: '/travel'
+      fullPath: '/c/$slug/travel'
+      preLoaderRoute: typeof CSlugTravelRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/staff': {
+      id: '/c/$slug/staff'
+      path: '/staff'
+      fullPath: '/c/$slug/staff'
+      preLoaderRoute: typeof CSlugStaffRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/settings': {
+      id: '/c/$slug/settings'
+      path: '/settings'
+      fullPath: '/c/$slug/settings'
+      preLoaderRoute: typeof CSlugSettingsRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/reports': {
+      id: '/c/$slug/reports'
+      path: '/reports'
+      fullPath: '/c/$slug/reports'
+      preLoaderRoute: typeof CSlugReportsRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/programme': {
+      id: '/c/$slug/programme'
+      path: '/programme'
+      fullPath: '/c/$slug/programme'
+      preLoaderRoute: typeof CSlugProgrammeRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/members': {
+      id: '/c/$slug/members'
+      path: '/members'
+      fullPath: '/c/$slug/members'
+      preLoaderRoute: typeof CSlugMembersRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/logistics': {
+      id: '/c/$slug/logistics'
+      path: '/logistics'
+      fullPath: '/c/$slug/logistics'
+      preLoaderRoute: typeof CSlugLogisticsRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/imports': {
+      id: '/c/$slug/imports'
+      path: '/imports'
+      fullPath: '/c/$slug/imports'
+      preLoaderRoute: typeof CSlugImportsRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/helpdesk': {
+      id: '/c/$slug/helpdesk'
+      path: '/helpdesk'
+      fullPath: '/c/$slug/helpdesk'
+      preLoaderRoute: typeof CSlugHelpdeskRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/food': {
+      id: '/c/$slug/food'
+      path: '/food'
+      fullPath: '/c/$slug/food'
+      preLoaderRoute: typeof CSlugFoodRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/finance': {
+      id: '/c/$slug/finance'
+      path: '/finance'
+      fullPath: '/c/$slug/finance'
+      preLoaderRoute: typeof CSlugFinanceRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/feedback': {
+      id: '/c/$slug/feedback'
+      path: '/feedback'
+      fullPath: '/c/$slug/feedback'
+      preLoaderRoute: typeof CSlugFeedbackRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/custom-fields': {
+      id: '/c/$slug/custom-fields'
+      path: '/custom-fields'
+      fullPath: '/c/$slug/custom-fields'
+      preLoaderRoute: typeof CSlugCustomFieldsRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/control-room': {
+      id: '/c/$slug/control-room'
+      path: '/control-room'
+      fullPath: '/c/$slug/control-room'
+      preLoaderRoute: typeof CSlugControlRoomRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/comms': {
+      id: '/c/$slug/comms'
+      path: '/comms'
+      fullPath: '/c/$slug/comms'
+      preLoaderRoute: typeof CSlugCommsRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/certificates': {
+      id: '/c/$slug/certificates'
+      path: '/certificates'
+      fullPath: '/c/$slug/certificates'
+      preLoaderRoute: typeof CSlugCertificatesRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/audit': {
+      id: '/c/$slug/audit'
+      path: '/audit'
+      fullPath: '/c/$slug/audit'
+      preLoaderRoute: typeof CSlugAuditRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/attendees': {
+      id: '/c/$slug/attendees'
+      path: '/attendees'
+      fullPath: '/c/$slug/attendees'
+      preLoaderRoute: typeof CSlugAttendeesRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/announcements': {
+      id: '/c/$slug/announcements'
+      path: '/announcements'
+      fullPath: '/c/$slug/announcements'
+      preLoaderRoute: typeof CSlugAnnouncementsRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+    '/c/$slug/accommodation': {
+      id: '/c/$slug/accommodation'
+      path: '/accommodation'
+      fullPath: '/c/$slug/accommodation'
+      preLoaderRoute: typeof CSlugAccommodationRouteImport
+      parentRoute: typeof CSlugRoute
+    }
+  }
 }
 
 interface CSlugRouteChildren {
-	CSlugAccommodationRoute: typeof CSlugAccommodationRoute;
-	CSlugAnnouncementsRoute: typeof CSlugAnnouncementsRoute;
-	CSlugAttendeesRoute: typeof CSlugAttendeesRoute;
-	CSlugAuditRoute: typeof CSlugAuditRoute;
-	CSlugCertificatesRoute: typeof CSlugCertificatesRoute;
-	CSlugCommsRoute: typeof CSlugCommsRoute;
-	CSlugControlRoomRoute: typeof CSlugControlRoomRoute;
-	CSlugCustomFieldsRoute: typeof CSlugCustomFieldsRoute;
-	CSlugFeedbackRoute: typeof CSlugFeedbackRoute;
-	CSlugFinanceRoute: typeof CSlugFinanceRoute;
-	CSlugFoodRoute: typeof CSlugFoodRoute;
-	CSlugHelpdeskRoute: typeof CSlugHelpdeskRoute;
-	CSlugImportsRoute: typeof CSlugImportsRoute;
-	CSlugLogisticsRoute: typeof CSlugLogisticsRoute;
-	CSlugMembersRoute: typeof CSlugMembersRoute;
-	CSlugProgrammeRoute: typeof CSlugProgrammeRoute;
-	CSlugReportsRoute: typeof CSlugReportsRoute;
-	CSlugSettingsRoute: typeof CSlugSettingsRoute;
-	CSlugStaffRoute: typeof CSlugStaffRoute;
-	CSlugTravelRoute: typeof CSlugTravelRoute;
-	CSlugVipRoute: typeof CSlugVipRoute;
-	CSlugIndexRoute: typeof CSlugIndexRoute;
+  CSlugAccommodationRoute: typeof CSlugAccommodationRoute
+  CSlugAnnouncementsRoute: typeof CSlugAnnouncementsRoute
+  CSlugAttendeesRoute: typeof CSlugAttendeesRoute
+  CSlugAuditRoute: typeof CSlugAuditRoute
+  CSlugCertificatesRoute: typeof CSlugCertificatesRoute
+  CSlugCommsRoute: typeof CSlugCommsRoute
+  CSlugControlRoomRoute: typeof CSlugControlRoomRoute
+  CSlugCustomFieldsRoute: typeof CSlugCustomFieldsRoute
+  CSlugFeedbackRoute: typeof CSlugFeedbackRoute
+  CSlugFinanceRoute: typeof CSlugFinanceRoute
+  CSlugFoodRoute: typeof CSlugFoodRoute
+  CSlugHelpdeskRoute: typeof CSlugHelpdeskRoute
+  CSlugImportsRoute: typeof CSlugImportsRoute
+  CSlugLogisticsRoute: typeof CSlugLogisticsRoute
+  CSlugMembersRoute: typeof CSlugMembersRoute
+  CSlugProgrammeRoute: typeof CSlugProgrammeRoute
+  CSlugReportsRoute: typeof CSlugReportsRoute
+  CSlugSettingsRoute: typeof CSlugSettingsRoute
+  CSlugStaffRoute: typeof CSlugStaffRoute
+  CSlugTravelRoute: typeof CSlugTravelRoute
+  CSlugVipRoute: typeof CSlugVipRoute
+  CSlugIndexRoute: typeof CSlugIndexRoute
 }
 
 const CSlugRouteChildren: CSlugRouteChildren = {
-	CSlugAccommodationRoute: CSlugAccommodationRoute,
-	CSlugAnnouncementsRoute: CSlugAnnouncementsRoute,
-	CSlugAttendeesRoute: CSlugAttendeesRoute,
-	CSlugAuditRoute: CSlugAuditRoute,
-	CSlugCertificatesRoute: CSlugCertificatesRoute,
-	CSlugCommsRoute: CSlugCommsRoute,
-	CSlugControlRoomRoute: CSlugControlRoomRoute,
-	CSlugCustomFieldsRoute: CSlugCustomFieldsRoute,
-	CSlugFeedbackRoute: CSlugFeedbackRoute,
-	CSlugFinanceRoute: CSlugFinanceRoute,
-	CSlugFoodRoute: CSlugFoodRoute,
-	CSlugHelpdeskRoute: CSlugHelpdeskRoute,
-	CSlugImportsRoute: CSlugImportsRoute,
-	CSlugLogisticsRoute: CSlugLogisticsRoute,
-	CSlugMembersRoute: CSlugMembersRoute,
-	CSlugProgrammeRoute: CSlugProgrammeRoute,
-	CSlugReportsRoute: CSlugReportsRoute,
-	CSlugSettingsRoute: CSlugSettingsRoute,
-	CSlugStaffRoute: CSlugStaffRoute,
-	CSlugTravelRoute: CSlugTravelRoute,
-	CSlugVipRoute: CSlugVipRoute,
-	CSlugIndexRoute: CSlugIndexRoute,
-};
+  CSlugAccommodationRoute: CSlugAccommodationRoute,
+  CSlugAnnouncementsRoute: CSlugAnnouncementsRoute,
+  CSlugAttendeesRoute: CSlugAttendeesRoute,
+  CSlugAuditRoute: CSlugAuditRoute,
+  CSlugCertificatesRoute: CSlugCertificatesRoute,
+  CSlugCommsRoute: CSlugCommsRoute,
+  CSlugControlRoomRoute: CSlugControlRoomRoute,
+  CSlugCustomFieldsRoute: CSlugCustomFieldsRoute,
+  CSlugFeedbackRoute: CSlugFeedbackRoute,
+  CSlugFinanceRoute: CSlugFinanceRoute,
+  CSlugFoodRoute: CSlugFoodRoute,
+  CSlugHelpdeskRoute: CSlugHelpdeskRoute,
+  CSlugImportsRoute: CSlugImportsRoute,
+  CSlugLogisticsRoute: CSlugLogisticsRoute,
+  CSlugMembersRoute: CSlugMembersRoute,
+  CSlugProgrammeRoute: CSlugProgrammeRoute,
+  CSlugReportsRoute: CSlugReportsRoute,
+  CSlugSettingsRoute: CSlugSettingsRoute,
+  CSlugStaffRoute: CSlugStaffRoute,
+  CSlugTravelRoute: CSlugTravelRoute,
+  CSlugVipRoute: CSlugVipRoute,
+  CSlugIndexRoute: CSlugIndexRoute,
+}
 
-const CSlugRouteWithChildren = CSlugRoute._addFileChildren(CSlugRouteChildren);
+const CSlugRouteWithChildren = CSlugRoute._addFileChildren(CSlugRouteChildren)
 
 interface CRouteChildren {
-	CSlugRoute: typeof CSlugRouteWithChildren;
-	CIndexRoute: typeof CIndexRoute;
+  CSlugRoute: typeof CSlugRouteWithChildren
+  CIndexRoute: typeof CIndexRoute
 }
 
 const CRouteChildren: CRouteChildren = {
-	CSlugRoute: CSlugRouteWithChildren,
-	CIndexRoute: CIndexRoute,
-};
+  CSlugRoute: CSlugRouteWithChildren,
+  CIndexRoute: CIndexRoute,
+}
 
-const CRouteWithChildren = CRoute._addFileChildren(CRouteChildren);
+const CRouteWithChildren = CRoute._addFileChildren(CRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-	IndexRoute: IndexRoute,
-	AccountRoute: AccountRoute,
-	CRoute: CRouteWithChildren,
-	LoginRoute: LoginRoute,
-	NewConferenceRoute: NewConferenceRoute,
-	PublicCSlugRoute: PublicCSlugRoute,
-};
+  IndexRoute: IndexRoute,
+  AccountRoute: AccountRoute,
+  CRoute: CRouteWithChildren,
+  LoginRoute: LoginRoute,
+  NewConferenceRoute: NewConferenceRoute,
+  PublicCSlugRoute: PublicCSlugRoute,
+}
 export const routeTree = rootRouteImport
-	._addFileChildren(rootRouteChildren)
-	._addFileTypes<FileRouteTypes>();
+  ._addFileChildren(rootRouteChildren)
+  ._addFileTypes<FileRouteTypes>()
