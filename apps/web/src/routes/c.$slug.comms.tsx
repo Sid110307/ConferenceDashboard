@@ -616,10 +616,12 @@ function CampaignsTab({ canEdit }: { canEdit: boolean }) {
 											{c.channel}
 										</Badge>
 									</div>
-									<div className="mt-0.5 text-xs text-ink-3">
-										{c.recipientCount} recipients · created{" "}
-										{fmtRelative(c.createdAt)}
-									</div>
+									{c.createdAt && (
+										<div className="mt-0.5 text-xs text-ink-3">
+											{c.recipientCount} recipients · created{" "}
+											{fmtRelative(c.createdAt)}
+										</div>
+									)}
 								</div>
 								<div className="flex items-center gap-3 shrink-0">
 									<StatusBadge status={c.status} />

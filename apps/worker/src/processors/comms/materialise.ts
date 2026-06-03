@@ -2,14 +2,12 @@ import { logger } from "@/lib/infra";
 import { notifyConference } from "@/lib/notify";
 import { commsQueue, defaultJobOptions, JOB_NAMES } from "@/lib/queue";
 import { db, withTenant } from "@/lib/tenancy";
-import {
-	attendees,
-	messageCampaigns,
-	messageRecipients,
-	messageTemplates,
-	messagingProviders,
-} from "@conference/db";
+import { attendees, messageCampaigns, messageRecipients, messageTemplates, messagingProviders } from "@conference/db";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+
+
+
+
 
 type AudienceFilter = {
 	all?: boolean;
@@ -22,7 +20,7 @@ type AudienceFilter = {
 	registrationStatus?: string[];
 	checkinStatus?: string[];
 	isVip?: boolean;
-	tag?: string;
+	tags?: string;
 };
 
 export async function processCampaignMaterialise(payload: {
@@ -101,8 +99,8 @@ export async function processCampaignMaterialise(payload: {
 			if (typeof filter.isVip === "boolean") {
 				conds.push(eq(attendees.isVip, filter.isVip));
 			}
-			if (filter.tag) {
-				conds.push(sql`${filter.tag} = ANY(${attendees.tags})`);
+			if (filter.tags?.length) {
+				conds.push(sql`${attendees.tags} && ${filter.tags}::text[]`);
 			}
 
 			if (campaign.channel === "email") {
