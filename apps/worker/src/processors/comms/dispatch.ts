@@ -12,7 +12,7 @@ import {
 	messageTemplates,
 	messagingProviders,
 } from "@conference/db";
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 
 const BATCH_SIZE = 25;
 
@@ -105,11 +105,10 @@ export async function processCampaignDispatchBatch(payload: {
 			return;
 		}
 
-		const attendeeIds = claimedRows.map((r: any) => r.attendee_id);
-		const attendeeRows = await tx
-			.select()
-			.from(attendees)
-			.where(sql`${attendees.id} = ANY(${attendeeIds})`);
+		const attendeeIds = claimedRows.map((r: any) => r.attendee_id).filter(Boolean);
+		const attendeeRows = attendeeIds.length
+			? await tx.select().from(attendees).where(inArray(attendees.id, attendeeIds))
+			: [];
 		const attendeeById = new Map(attendeeRows.map(a => [a.id, a]));
 
 		for (const r of claimedRows) {
