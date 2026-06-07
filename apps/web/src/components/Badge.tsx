@@ -73,6 +73,7 @@ export function StatusBadge({ status }: { status: string | null | undefined }) {
 		in_progress: { variant: "info", label: "In progress" },
 		resolved: { variant: "success", label: "Resolved" },
 		closed: { variant: "neutral", label: "Closed" },
+		wont_fix: { variant: "neutral", label: "Won't fix" },
 
 		uploaded: { variant: "neutral", label: "Uploaded" },
 		mapping: { variant: "neutral", label: "Mapping" },

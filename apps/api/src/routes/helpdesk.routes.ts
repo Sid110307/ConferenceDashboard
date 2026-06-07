@@ -57,6 +57,20 @@ const helpdeskCrud = makeCrudRouter({
 	listQuerySchema: z.object({
 		status: z.enum(["open", "in_progress", "resolved", "closed", "wont_fix"]).optional(),
 		priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+		category: z
+			.enum([
+				"transport",
+				"accommodation",
+				"food",
+				"badge",
+				"technical",
+				"lost_item",
+				"medical",
+				"vip",
+				"registration",
+				"other",
+			])
+			.optional(),
 		assignedCommitteeId: z.string().uuid().optional(),
 	}),
 	applyFilters: filters => {
@@ -65,6 +79,8 @@ const helpdeskCrud = makeCrudRouter({
 			parts.push(eq(helpdeskIssues.status, filters.status as any));
 		if (typeof filters.priority === "string")
 			parts.push(eq(helpdeskIssues.priority, filters.priority as any));
+		if (typeof filters.category === "string")
+			parts.push(eq(helpdeskIssues.category, filters.category as any));
 		if (typeof filters.assignedCommitteeId === "string")
 			parts.push(
 				eq(helpdeskIssues.assignedCommitteeId, filters.assignedCommitteeId as string),
@@ -121,7 +137,7 @@ helpdeskRouter.post("/", requireRole("editor"), zValidator("json", helpdeskCreat
 					input.reporterType === "anonymous"
 						? "anonymous"
 						: (reporterInfo?.type ?? "anonymous"),
-				reporterPhone: reporterInfo?.phone,
+				reportedByPhone: reporterInfo?.phone,
 				createdBy: user.id,
 				updatedBy: user.id,
 			} as any)
@@ -179,15 +195,23 @@ helpdeskRouter.post(
 				.where(and(eq(helpdeskIssues.id, id), eq(helpdeskIssues.conferenceId, conf.id)))
 				.limit(1);
 			if (!before) throw new NotFoundError("issue");
-			const resolvedAt = to === "resolved" || to === "closed" ? new Date() : null;
+			const now = new Date();
 			const [updated] = await tx
 				.update(helpdeskIssues)
 				.set({
 					status: to,
 					resolutionNotes: resolutionNotes ?? before.resolutionNotes,
-					resolvedAt: resolvedAt ?? before.resolvedAt,
 					updatedBy: user.id,
-					updatedAt: new Date(),
+					updatedAt: now,
+					...(to === "in_progress" && !before.acknowledgedAt
+						? { acknowledgedAt: now }
+						: {}),
+					...(to === "resolved" ? { resolvedAt: now, closedAt: null } : {}),
+					...(to === "closed"
+						? { resolvedAt: before.resolvedAt ?? now, closedAt: now }
+						: {}),
+					...(to === "open" ? { resolvedAt: null, closedAt: null } : {}),
+					...(to === "wont_fix" ? { resolvedAt: now, closedAt: null } : {}),
 				})
 				.where(eq(helpdeskIssues.id, id))
 				.returning();

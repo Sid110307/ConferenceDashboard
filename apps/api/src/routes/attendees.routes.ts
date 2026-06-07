@@ -79,6 +79,11 @@ attendeesRouter.get(
 
 		if (q.q) {
 			const pattern = `%${q.q}%`;
+			const isUuid =
+				/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+					q.q,
+				);
+
 			whereParts.push(
 				or(
 					ilike(attendees.name, pattern),
@@ -86,6 +91,7 @@ attendeesRouter.get(
 					ilike(attendees.phone, pattern),
 					ilike(attendees.attendeeCode, pattern),
 					ilike(attendees.institution, pattern),
+					...(isUuid ? [eq(attendees.id, q.q)] : []),
 				) as any,
 			);
 		}

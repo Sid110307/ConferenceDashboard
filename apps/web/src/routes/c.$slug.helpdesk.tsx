@@ -9,7 +9,7 @@ import { useListQuery } from "@/lib/useListQuery";
 import { useRealtime } from "@/lib/useRealtime";
 import { useUrlState } from "@/lib/useUrlState";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plus, Trash2 } from "lucide-react";
 import { z } from "zod";
 
@@ -52,6 +52,9 @@ type Issue = {
 	resolutionNotes?: string | null;
 	createdAt: string;
 	resolvedAt?: string | null;
+	reportedByName?: string | null;
+	reporterType?: string | null;
+	reportedByPhone?: string | null;
 };
 
 const PAGE_SIZE = 20;
@@ -140,7 +143,15 @@ function HelpdeskPage() {
 			header: "Raised by",
 			cell: r =>
 				r.attendeeId ? (
-					<span>Attendee #{r.attendeeId}</span>
+					<Link
+						to="/c/$slug/attendees"
+						params={{ slug: conference.slug }}
+						search={{ q: r.attendeeId, page: 1 }}
+						className="text-accent hover:underline"
+						onClick={e => e.stopPropagation()}
+					>
+						{r.reportedByName ?? `Attendee ${r.attendeeId.slice(0, 8)}`}
+					</Link>
 				) : (
 					<span className="text-ink-3">Unknown</span>
 				),
@@ -191,7 +202,7 @@ function HelpdeskPage() {
 						onChange={e => setSearch({ status: e.target.value || undefined, page: 1 })}
 					>
 						<option value="">Any status</option>
-						{["open", "in_progress", "resolved", "closed"].map(s => (
+						{["open", "in_progress", "resolved", "closed", "wont_fix"].map(s => (
 							<option key={s} value={s}>
 								{humanise(s)}
 							</option>
@@ -274,9 +285,9 @@ function IssueDrawer({
 	const [notes, setNotes] = useState(issue.resolutionNotes ?? "");
 
 	const transition = useMutation({
-		mutationFn: (status: string) =>
+		mutationFn: (to: string) =>
 			api.post(`/api/v1/c/${conference.slug}/helpdesk/${issue.id}/transition`, {
-				status,
+				to,
 				resolutionNotes: notes || undefined,
 			}),
 		onSuccess: () => {
@@ -305,9 +316,13 @@ function IssueDrawer({
 	});
 
 	const NEXT: Record<string, { to: string; label: string }[]> = {
-		open: [{ to: "in_progress", label: "Start working" }],
+		open: [
+			{ to: "in_progress", label: "Start working" },
+			{ to: "wont_fix", label: "Won't fix" },
+		],
 		in_progress: [
 			{ to: "resolved", label: "Mark resolved" },
+			{ to: "wont_fix", label: "Won't fix" },
 			{ to: "open", label: "Re-open" },
 		],
 		resolved: [
@@ -315,6 +330,7 @@ function IssueDrawer({
 			{ to: "in_progress", label: "Re-open" },
 		],
 		closed: [{ to: "in_progress", label: "Re-open" }],
+		wont_fix: [{ to: "in_progress", label: "Re-open" }],
 	};
 
 	return (
@@ -423,9 +439,14 @@ function CreateIssueDrawer({ onClose }: { onClose: () => void }) {
 		description: "",
 		category: "other",
 		priority: "medium",
+		attendeeId: "",
 	});
 	const create = useMutation({
-		mutationFn: () => api.post(`/api/v1/c/${conference.slug}/helpdesk`, form),
+		mutationFn: () =>
+			api.post(`/api/v1/c/${conference.slug}/helpdesk`, {
+				...form,
+				attendeeId: form.attendeeId || undefined,
+			}),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: queryKeys.helpdesk(conference.slug) }).catch(
 				console.error,
@@ -506,6 +527,17 @@ function CreateIssueDrawer({ onClose }: { onClose: () => void }) {
 							))}
 						</Select>
 					</FieldRow>
+				</div>
+				<FieldRow label="Attendee ID">
+					<Input
+						value={form.attendeeId}
+						onChange={e => setForm(p => ({ ...p, attendeeId: e.target.value }))}
+						placeholder="If this issue was raised by a known attendee"
+					/>
+				</FieldRow>
+				<div className="text-xs text-ink-3">
+					Attendee ID is optional, but providing it will link the issue to the
+					attendee and allow staff to contact them for more information if needed.
 				</div>
 			</div>
 		</EntityDrawer>
