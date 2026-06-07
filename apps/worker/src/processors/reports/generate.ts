@@ -298,28 +298,34 @@ export async function processReportGenerate(payload: {
 }) {
 	const { jobId, conferenceId, userId } = payload;
 
-	const [job] = await db.select().from(reportJobs).where(eq(reportJobs.id, jobId)).limit(1);
+	const [job] = await withTenant(conferenceId, async tx =>
+		tx.select().from(reportJobs).where(eq(reportJobs.id, jobId)).limit(1),
+	);
 	if (!job) throw new Error(`report job ${jobId} not found`);
 
 	const reportType = job.reportType as ReportType;
 	const format = (job.format ?? "xlsx") as Format;
 	const query = QUERIES[reportType];
 	if (!query) {
-		await db
-			.update(reportJobs)
-			.set({
-				status: "failed",
-				errorMessage: `unsupported report type: ${reportType}`,
-				updatedAt: new Date(),
-			})
-			.where(eq(reportJobs.id, jobId));
+		await withTenant(conferenceId, async tx =>
+			tx
+				.update(reportJobs)
+				.set({
+					status: "failed",
+					errorMessage: `unsupported report type: ${reportType}`,
+					updatedAt: new Date(),
+				})
+				.where(eq(reportJobs.id, jobId)),
+		);
 		throw new Error(`unsupported report type: ${reportType}`);
 	}
 
-	await db
-		.update(reportJobs)
-		.set({ status: "generating", startedAt: new Date(), updatedAt: new Date() })
-		.where(eq(reportJobs.id, jobId));
+	await withTenant(conferenceId, async tx => {
+		await tx
+			.update(reportJobs)
+			.set({ status: "generating", startedAt: new Date(), updatedAt: new Date() })
+			.where(eq(reportJobs.id, jobId));
+	});
 
 	try {
 		let columns: string[] = [];
@@ -328,6 +334,13 @@ export async function processReportGenerate(payload: {
 			const result: any = await tx.execute(query(conferenceId));
 			rows = result.rows ?? result ?? [];
 			if (rows.length > 0) columns = Object.keys(rows[0]!);
+		});
+
+		rows = rows.map(r => {
+			const rec: Record<string, any> = {};
+			for (const c of columns) rec[c] = reportValue(r[c]);
+
+			return rec;
 		});
 
 		let body: Buffer;
@@ -398,14 +411,16 @@ export async function processReportGenerate(payload: {
 		return { rowCount: rows.length };
 	} catch (err: any) {
 		logger.error({ jobId, err: String(err) }, "report generation failed");
-		await db
-			.update(reportJobs)
-			.set({
-				status: "failed",
-				errorMessage: String(err?.message ?? err).slice(0, 1000),
-				updatedAt: new Date(),
-			})
-			.where(eq(reportJobs.id, jobId));
+		await withTenant(conferenceId, async tx =>
+			tx
+				.update(reportJobs)
+				.set({
+					status: "failed",
+					errorMessage: "An error occurred during report generation",
+					updatedAt: new Date(),
+				})
+				.where(eq(reportJobs.id, jobId)),
+		);
 		throw err;
 	}
 }
@@ -542,4 +557,12 @@ async function renderPDF(
 
 	const bytes = await pdf.save();
 	return Buffer.from(bytes);
+}
+
+function reportValue(v: unknown): unknown {
+	if (v == null) return null;
+	if (v instanceof Date) return v;
+	if (typeof v === "object") return JSON.stringify(v);
+
+	return v;
 }

@@ -46,7 +46,12 @@ function buildNav(slug: string): NavSection[] {
 			items: [
 				{ to: `${base}`, label: "Dashboard", icon: <LayoutDashboard size={16} /> },
 				{ to: `${base}/control-room`, label: "Control Room", icon: <Radio size={16} /> },
-				{ to: `${base}/comms`, label: "Messaging Studio", icon: <Megaphone size={16} /> },
+				{
+					to: `${base}/comms`,
+					label: "Messaging Studio",
+					icon: <Megaphone size={16} />,
+					min: "editor",
+				},
 			],
 		},
 		{
