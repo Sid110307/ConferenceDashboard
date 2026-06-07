@@ -1,9 +1,10 @@
+import { randomUUID } from "node:crypto";
+
 import { env } from "@/lib/env";
 import { logger, putObject, storageKey } from "@/lib/infra";
 import { notifyConference } from "@/lib/notify";
 import { db, withTenant } from "@/lib/tenancy";
 import { files as filesTable, reportJobs } from "@conference/db";
-import { createId } from "@paralleldrive/cuid2";
 import { eq, sql } from "drizzle-orm";
 import ExcelJS from "exceljs";
 import { PDFDocument, StandardFonts } from "pdf-lib";
@@ -349,7 +350,7 @@ export async function processReportGenerate(payload: {
 		}
 
 		const filename = `${reportType}-${new Date().toISOString().slice(0, 10)}.${ext}`;
-		const fileId = createId();
+		const fileId = randomUUID();
 		const key = storageKey({
 			conferenceId,
 			purpose: "reports",
@@ -369,7 +370,7 @@ export async function processReportGenerate(payload: {
 					sizeBytes: body.byteLength,
 					storageKey: key,
 					storageBucket: env.S3_BUCKET,
-					purpose: "report" as const,
+					purpose: "report_output" as const,
 					uploadedByUserId: userId,
 				})
 				.returning({ id: filesTable.id });
