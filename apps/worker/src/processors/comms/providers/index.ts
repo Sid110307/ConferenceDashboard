@@ -1,31 +1,19 @@
-import type { CommsChannel } from "@conference/shared";
+import { MessagingProviderInput } from "@conference/shared";
 import nodemailer from "nodemailer";
-
-export type SendInput = {
-	channel: CommsChannel;
-	to: string;
-	subject?: string | null;
-	body: string;
-	fromAddress?: string | null;
-	fromName?: string | null;
-	provider: string;
-	credentials: Record<string, any>;
-	configPublic?: Record<string, any> | null;
-};
 
 export type SendResult = {
 	providerMessageId: string | null;
 	rawResponse?: any;
 };
 
-export async function sendMessage(input: SendInput): Promise<SendResult> {
+export async function sendMessage(input: MessagingProviderInput): Promise<SendResult> {
 	if (input.channel === "email") return sendEmail(input);
 	if (input.channel === "sms") return sendSms(input);
 	if (input.channel === "whatsapp") return sendWhatsApp(input);
 	throw new Error(`unsupported channel ${input.channel}`);
 }
 
-async function sendEmail(input: SendInput): Promise<SendResult> {
+async function sendEmail(input: MessagingProviderInput): Promise<SendResult> {
 	const { provider, credentials } = input;
 	const from =
 		input.fromName && input.fromAddress
@@ -103,10 +91,10 @@ async function sendEmail(input: SendInput): Promise<SendResult> {
 	}
 }
 
-async function sendSms(input: SendInput): Promise<SendResult> {
+async function sendSms(input: MessagingProviderInput): Promise<SendResult> {
 	const { provider, credentials } = input;
 	switch (provider) {
-		case "twilio": {
+		case "twilio_sms": {
 			const sid = credentials.accountSid;
 			const auth = Buffer.from(`${sid}:${credentials.authToken}`, "utf8").toString("base64");
 			const form = new URLSearchParams({
@@ -161,10 +149,10 @@ async function sendSms(input: SendInput): Promise<SendResult> {
 	}
 }
 
-async function sendWhatsApp(input: SendInput): Promise<SendResult> {
+async function sendWhatsApp(input: MessagingProviderInput): Promise<SendResult> {
 	const { provider, credentials } = input;
 	switch (provider) {
-		case "twilio_whatsapp": {
+		case "twilio_wa": {
 			const sid = credentials.accountSid;
 			const auth = Buffer.from(`${sid}:${credentials.authToken}`, "utf8").toString("base64");
 			const form = new URLSearchParams({
@@ -189,7 +177,7 @@ async function sendWhatsApp(input: SendInput): Promise<SendResult> {
 			}
 			return { providerMessageId: data.sid ?? null, rawResponse: data };
 		}
-		case "meta_cloud": {
+		case "meta_wa": {
 			const phoneId = credentials.phoneNumberId;
 			const res = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
 				method: "POST",
