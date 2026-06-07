@@ -71,7 +71,6 @@ function buildNav(slug: string): NavSection[] {
 					to: `${base}/finance`,
 					label: "Finance & Sponsors",
 					icon: <Wallet size={16} />,
-					min: "editor",
 				},
 			],
 		},
