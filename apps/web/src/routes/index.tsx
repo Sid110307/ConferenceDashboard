@@ -55,6 +55,9 @@ function IndexPage() {
 					</Button>
 				</div>
 			</div>
+			<div className="absolute bottom-4 right-4 text-xs text-ink-3">
+				v1.0.0
+			</div>
 		</div>
 	) : error ? (
 		<div className="flex flex-col h-screen">
@@ -89,7 +92,6 @@ function IndexPage() {
 							</Button>
 						)}
 					</div>
-
 					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 						{(data?.memberships ?? [])
 							.filter(m => m.isActive)

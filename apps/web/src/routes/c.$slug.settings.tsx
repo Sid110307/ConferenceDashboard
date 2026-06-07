@@ -61,6 +61,17 @@ function SettingsPage() {
 					{ value: "advanced", label: "Advanced", content: <AdvancedTab /> },
 				]}
 			/>
+			<div className="mt-6 text-center text-xs text-ink-3">
+				Developed by{" "}
+				<a
+					href="https://sid110307.github.io/Sid110307"
+					target="_blank"
+					rel="noopener noreferrer"
+					className="underline"
+				>
+					Siddharth Praveen Bharadwaj
+				</a>
+			</div>
 		</div>
 	);
 }
